@@ -11,7 +11,7 @@ struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
 
     // Replace with your actual repository URL
-    private let sourceCodeURL = URL(string: "https://github.com/yourusername/mino")!
+    private let sourceCodeURL = URL(string: "https://github.com/ngooran/mino-iOS")!
     private let mupdfURL = URL(string: "https://mupdf.com")!
     private let agplURL = URL(string: "https://www.gnu.org/licenses/agpl-3.0.html")!
 

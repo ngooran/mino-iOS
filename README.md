@@ -39,7 +39,7 @@ See [BUILDING.md](BUILDING.md) for detailed build instructions.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mino.git
+git clone https://github.com/ngooran/mino-iOS.git
 cd mino
 
 # Initialize submodules
@@ -118,7 +118,7 @@ Contributions are welcome! Please:
 
 If you encounter issues or have questions:
 
-1. Check the [Issues](https://github.com/yourusername/mino/issues) page
+1. Check the [Issues](https://github.com/ngooran/mino-iOS/issues) page
 2. Open a new issue with details about your problem
 3. Include device model, iOS version, and steps to reproduce
 
