@@ -8,15 +8,12 @@
 import SwiftUI
 
 struct AboutView: View {
-    @Environment(\.dismiss) private var dismiss
-
     private let sourceCodeURL = URL(string: "https://github.com/ngooran/mino-iOS")!
     private let mupdfURL = URL(string: "https://mupdf.com")!
     private let agplURL = URL(string: "https://www.gnu.org/licenses/agpl-3.0.html")!
 
     var body: some View {
-        NavigationStack {
-            List {
+        List {
                 // App info section
                 Section {
                     appInfoHeader
@@ -113,16 +110,8 @@ struct AboutView: View {
                     }
                 }
             }
-            .navigationTitle("About")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
+        .navigationTitle("About")
+        .navigationBarTitleDisplayMode(.large)
     }
 
     // MARK: - Views

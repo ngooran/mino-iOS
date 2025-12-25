@@ -8,44 +8,49 @@
 import SwiftUI
 
 struct StatisticsView: View {
-    @Environment(\.dismiss) private var dismiss
-
     private let historyManager = HistoryManager.shared
 
+    @State private var showingClearConfirmation = false
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Stats cards
-                    statsGrid
+        ScrollView {
+            VStack(spacing: 24) {
+                // Stats cards
+                statsGrid
 
-                    // History section
-                    if !historyManager.history.isEmpty {
-                        historySection
-                    } else {
-                        emptyHistoryView
-                    }
-                }
-                .padding()
-            }
-            .background(Color.minoGradient.opacity(0.1).ignoresSafeArea())
-            .navigationTitle("Statistics")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-
+                // History section
                 if !historyManager.history.isEmpty {
-                    ToolbarItem(placement: .destructiveAction) {
-                        Button("Clear", role: .destructive) {
-                            historyManager.clearHistory()
-                        }
-                    }
+                    historySection
+                } else {
+                    emptyHistoryView
                 }
             }
+            .padding()
+        }
+        .background(Color.minoGradient.opacity(0.1).ignoresSafeArea())
+        .navigationTitle("Statistics")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            if !historyManager.history.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Clear History", role: .destructive) {
+                        showingClearConfirmation = true
+                    }
+                    .foregroundStyle(.red)
+                }
+            }
+        }
+        .confirmationDialog(
+            "Clear History",
+            isPresented: $showingClearConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear All History", role: .destructive) {
+                historyManager.clearHistory()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will clear all compression history. Your compressed files will not be deleted.")
         }
     }
 

@@ -11,6 +11,8 @@ import UniformTypeIdentifiers
 struct HomeView: View {
     @Environment(AppState.self) private var appState
 
+    @State private var showingClearAllConfirmation = false
+
     var body: some View {
         @Bindable var state = appState
 
@@ -27,37 +29,32 @@ struct HomeView: View {
                     recentDocumentsSection
                 }
 
-                // Recent compressions
+                // Compressed files (Recent compressions)
                 if !appState.compressionService.recentResults.isEmpty {
-                    recentCompressionsSection
+                    compressedFilesSection
                 }
 
-                Spacer(minLength: 50)
+                Spacer(minLength: 100)
             }
             .padding()
         }
         .navigationTitle("Mino")
         .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 16) {
-                    Button {
-                        state.showingStatistics = true
-                    } label: {
-                        Image(systemName: "chart.bar.fill")
-                    }
-
-                    Button {
-                        state.showingAboutView = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                    }
-                }
-            }
-        }
         .onDrop(of: [.pdf], isTargeted: nil) { providers in
             handleDrop(providers: providers)
             return true
+        }
+        .confirmationDialog(
+            "Clear All Compressed Files",
+            isPresented: $showingClearAllConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete All", role: .destructive) {
+                appState.compressionService.clearAllResults()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete all \(appState.compressionService.recentResults.count) compressed PDF files. This action cannot be undone.")
         }
     }
 
@@ -134,18 +131,45 @@ struct HomeView: View {
         }
     }
 
-    private var recentCompressionsSection: some View {
+    private var compressedFilesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Recent Compressions")
-                .font(.headline)
-                .padding(.horizontal)
+            HStack {
+                Text("Compressed Files")
+                    .font(.headline)
+
+                Spacer()
+
+                Button("Clear All") {
+                    showingClearAllConfirmation = true
+                }
+                .font(.subheadline)
+                .foregroundStyle(.red)
+            }
+            .padding(.horizontal)
 
             VStack(spacing: 8) {
-                ForEach(appState.compressionService.recentResults.prefix(3)) { result in
-                    CompressionResultCard(result: result)
+                ForEach(appState.compressionService.recentResults) { result in
+                    CompressedFileCard(result: result)
                         .onTapGesture {
                             appState.showResults(result)
                         }
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                appState.compressionService.deleteResult(result)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+
+                            ShareLink(item: result.outputURL) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
+                        }
+                }
+                .onDelete { indexSet in
+                    let resultsToDelete = indexSet.map { appState.compressionService.recentResults[$0] }
+                    for result in resultsToDelete {
+                        appState.compressionService.deleteResult(result)
+                    }
                 }
             }
             .padding(.horizontal)
@@ -201,16 +225,17 @@ struct DocumentCard: View {
     }
 }
 
-// MARK: - Compression Result Card
+// MARK: - Compressed File Card
 
-struct CompressionResultCard: View {
+struct CompressedFileCard: View {
     let result: CompressionResult
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: "doc.zipper")
                 .font(.title2)
-                .foregroundStyle(.green)
+                .foregroundStyle(Color.minoAccent)
+                .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(result.outputFileName)
@@ -218,17 +243,30 @@ struct CompressionResultCard: View {
                     .fontWeight(.medium)
                     .lineLimit(1)
 
-                Text("\(result.formattedOriginalSize) → \(result.formattedCompressedSize)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Text(result.formattedOriginalSize)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "arrow.right")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Text(result.formattedCompressedSize)
+                        .foregroundStyle(Color.minoSuccess)
+                }
+                .font(.caption)
             }
 
             Spacer()
 
-            Text("-\(result.formattedReduction)")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.green)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("-\(result.formattedReduction)")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.minoSuccess)
+
+                Text(result.timestamp, style: .relative)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding()
         .background(.regularMaterial)

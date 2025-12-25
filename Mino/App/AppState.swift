@@ -46,12 +46,6 @@ final class AppState {
     /// Whether the results view is showing
     var showingResultsView = false
 
-    /// Whether the about view is showing
-    var showingAboutView = false
-
-    /// Whether the statistics view is showing
-    var showingStatistics = false
-
     /// The current compression result to display
     var currentResult: CompressionResult?
 

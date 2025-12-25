@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Compression Quality Presets
 
 /// Compression quality presets with associated parameters
-enum CompressionQuality: String, CaseIterable, Identifiable, Sendable {
+enum CompressionQuality: String, CaseIterable, Identifiable, Sendable, Codable {
     case low = "Low"
     case medium = "Medium"
     case high = "High"
@@ -89,7 +89,7 @@ enum CompressionQuality: String, CaseIterable, Identifiable, Sendable {
 // MARK: - Compression Settings
 
 /// Custom compression settings
-struct CompressionSettings: Sendable {
+struct CompressionSettings: Sendable, Codable {
     /// JPEG quality for image recompression (1-100, higher = better quality, larger file)
     var jpegQuality: Int
 
@@ -165,7 +165,7 @@ struct CompressionSettings: Sendable {
 // MARK: - Compression Result
 
 /// Result of a successful compression operation
-struct CompressionResult: Sendable, Identifiable {
+struct CompressionResult: Sendable, Identifiable, Codable {
     let id: UUID
     let outputURL: URL
     let originalSize: Int64
