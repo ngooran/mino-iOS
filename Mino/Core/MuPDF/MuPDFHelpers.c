@@ -237,3 +237,122 @@ int64_t mino_get_file_size(const char *path) {
 
     return size;
 }
+
+// Render a page to pixmap
+fz_pixmap* mino_render_page(
+    fz_context *ctx,
+    fz_document *doc,
+    int page_number,
+    float zoom
+) {
+    if (!ctx || !doc) {
+        set_error("Invalid context or document");
+        return NULL;
+    }
+
+    mino_clear_error();
+    fz_pixmap *pix = NULL;
+    fz_page *page = NULL;
+    fz_device *dev = NULL;
+
+    fz_try(ctx) {
+        // Load the page
+        page = fz_load_page(ctx, doc, page_number);
+
+        // Get page bounds
+        fz_rect bounds = fz_bound_page(ctx, page);
+
+        // Create transformation matrix with zoom
+        fz_matrix transform = fz_scale(zoom, zoom);
+
+        // Transform the bounds
+        fz_irect bbox = fz_round_rect(fz_transform_rect(bounds, transform));
+
+        // Create pixmap with RGB colorspace and alpha
+        pix = fz_new_pixmap_with_bbox(ctx, fz_device_rgb(ctx), bbox, NULL, 1);
+
+        // Clear to white
+        fz_clear_pixmap_with_value(ctx, pix, 255);
+
+        // Create draw device
+        dev = fz_new_draw_device(ctx, transform, pix);
+
+        // Render page
+        fz_run_page(ctx, page, dev, fz_identity, NULL);
+
+        // Close device
+        fz_close_device(ctx, dev);
+    }
+    fz_always(ctx) {
+        fz_drop_device(ctx, dev);
+        fz_drop_page(ctx, page);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        fz_drop_pixmap(ctx, pix);
+        return NULL;
+    }
+
+    return pix;
+}
+
+// Get page dimensions
+int mino_get_page_size(
+    fz_context *ctx,
+    fz_document *doc,
+    int page_number,
+    float *width,
+    float *height
+) {
+    if (!ctx || !doc || !width || !height) {
+        set_error("Invalid parameters");
+        return -1;
+    }
+
+    mino_clear_error();
+    fz_page *page = NULL;
+
+    fz_try(ctx) {
+        page = fz_load_page(ctx, doc, page_number);
+        fz_rect bounds = fz_bound_page(ctx, page);
+        *width = bounds.x1 - bounds.x0;
+        *height = bounds.y1 - bounds.y0;
+    }
+    fz_always(ctx) {
+        fz_drop_page(ctx, page);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+
+    return 0;
+}
+
+// Drop pixmap
+void mino_drop_pixmap(fz_context *ctx, fz_pixmap *pix) {
+    if (ctx && pix) {
+        fz_drop_pixmap(ctx, pix);
+    }
+}
+
+// Pixmap data accessors
+int mino_pixmap_width(fz_context *ctx, fz_pixmap *pix) {
+    if (!ctx || !pix) return 0;
+    return fz_pixmap_width(ctx, pix);
+}
+
+int mino_pixmap_height(fz_context *ctx, fz_pixmap *pix) {
+    if (!ctx || !pix) return 0;
+    return fz_pixmap_height(ctx, pix);
+}
+
+unsigned char* mino_pixmap_samples(fz_context *ctx, fz_pixmap *pix) {
+    if (!ctx || !pix) return NULL;
+    return fz_pixmap_samples(ctx, pix);
+}
+
+int mino_pixmap_stride(fz_context *ctx, fz_pixmap *pix) {
+    if (!ctx || !pix) return 0;
+    return fz_pixmap_stride(ctx, pix);
+}

@@ -49,6 +49,9 @@ final class AppState {
     /// Whether the about view is showing
     var showingAboutView = false
 
+    /// Whether the statistics view is showing
+    var showingStatistics = false
+
     /// The current compression result to display
     var currentResult: CompressionResult?
 
@@ -98,5 +101,10 @@ final class AppState {
     func showResults(_ result: CompressionResult) {
         currentResult = result
         showingResultsView = true
+
+        // Track in history
+        if let document = selectedDocument {
+            HistoryManager.shared.addEntry(from: result, originalFileName: document.name)
+        }
     }
 }

@@ -15,6 +15,7 @@ struct ResultsView: View {
 
     @State private var showingShareSheet = false
     @State private var showingExportPicker = false
+    @State private var showingPDFViewer = false
 
     var body: some View {
         NavigationStack {
@@ -50,6 +51,9 @@ struct ResultsView: View {
                 DocumentExporter(url: result.outputURL) { success in
                     showingExportPicker = false
                 }
+            }
+            .fullScreenCover(isPresented: $showingPDFViewer) {
+                PDFViewerView(documentURL: result.outputURL)
             }
         }
     }
@@ -136,6 +140,24 @@ struct ResultsView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 12) {
+            // View PDF button
+            Button {
+                showingPDFViewer = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.title3)
+                    Text("View PDF")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color.accentColor)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(.plain)
+
             // Share button
             Button {
                 showingShareSheet = true
@@ -148,8 +170,8 @@ struct ResultsView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(Color.accentColor)
-                .foregroundStyle(.white)
+                .background(.secondary.opacity(0.2))
+                .foregroundStyle(.primary)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)

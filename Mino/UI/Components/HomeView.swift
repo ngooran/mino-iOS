@@ -40,10 +40,18 @@ struct HomeView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    state.showingAboutView = true
-                } label: {
-                    Image(systemName: "info.circle")
+                HStack(spacing: 16) {
+                    Button {
+                        state.showingStatistics = true
+                    } label: {
+                        Image(systemName: "chart.bar.fill")
+                    }
+
+                    Button {
+                        state.showingAboutView = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                    }
                 }
             }
         }

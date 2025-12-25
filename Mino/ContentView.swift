@@ -39,6 +39,9 @@ struct ContentView: View {
                 .sheet(isPresented: $state.showingAboutView) {
                     AboutView()
                 }
+                .sheet(isPresented: $state.showingStatistics) {
+                    StatisticsView()
+                }
                 .alert("Error", isPresented: $state.showingError) {
                     Button("OK") {
                         state.clearError()
