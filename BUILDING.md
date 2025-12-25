@@ -4,8 +4,8 @@ This guide explains how to build Mino from source.
 
 ## Prerequisites
 
-- **macOS** Ventura (13.0) or later
-- **Xcode** 15.0 or later
+- **macOS** Sonoma (14.0) or later
+- **Xcode** 16.0 or later
 - **Command Line Tools**: `xcode-select --install`
 - **Git** with submodule support
 
@@ -13,7 +13,7 @@ This guide explains how to build Mino from source.
 
 ```bash
 git clone https://github.com/ngooran/mino-iOS.git
-cd mino
+cd mino-iOS
 ```
 
 ## Step 2: Initialize Submodules

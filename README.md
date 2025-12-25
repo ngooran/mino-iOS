@@ -7,7 +7,8 @@ Mino is an iOS app that compresses PDF files (especially image-heavy PDFs) using
 ## Features
 
 - **Powerful Compression**: Achieve 60-95% file size reduction on image-heavy PDFs
-- **Three Quality Levels**: Choose between Low, Medium, and High quality presets
+- **Quality Presets**: Choose between Low, Medium, and High quality presets
+- **Advanced Mode**: Fine-tune JPEG quality, DPI, and cleanup settings
 - **Complete Privacy**: All processing happens on-device, no server uploads
 - **Simple Interface**: Clean SwiftUI design with drag-and-drop support
 - **Open Source**: Licensed under AGPL-3.0 with App Store Exception
@@ -27,9 +28,9 @@ For a 100MB image-heavy PDF:
 
 ## Requirements
 
-- iOS 16.0+
-- Xcode 15.0+
-- macOS Ventura or later (for building)
+- iOS 18.0+
+- Xcode 16.0+
+- macOS Sonoma or later (for building)
 
 ## Building from Source
 
@@ -40,7 +41,7 @@ See [BUILDING.md](BUILDING.md) for detailed build instructions.
 ```bash
 # Clone the repository
 git clone https://github.com/ngooran/mino-iOS.git
-cd mino
+cd mino-iOS
 
 # Initialize submodules
 git submodule update --init --recursive
