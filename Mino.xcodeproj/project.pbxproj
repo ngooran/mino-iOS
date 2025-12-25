@@ -6,8 +6,32 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		173B53B52EFDA50A005B2280 /* MuPDF.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 173B53B42EFDA50A005B2280 /* MuPDF.xcframework */; };
+		173B53B62EFDA50A005B2280 /* MuPDF.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 173B53B42EFDA50A005B2280 /* MuPDF.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		173B53B92EFDA518005B2280 /* MuPDFThird.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 173B53B82EFDA518005B2280 /* MuPDFThird.xcframework */; };
+		173B53BA2EFDA518005B2280 /* MuPDFThird.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 173B53B82EFDA518005B2280 /* MuPDFThird.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		173B53B72EFDA50A005B2280 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				173B53BA2EFDA518005B2280 /* MuPDFThird.xcframework in Embed Frameworks */,
+				173B53B62EFDA50A005B2280 /* MuPDF.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		173B52462EFD9129005B2280 /* Mino.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mino.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		173B53B42EFDA50A005B2280 /* MuPDF.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = MuPDF.xcframework; path = Frameworks/MuPDF.xcframework; sourceTree = "<group>"; };
+		173B53B82EFDA518005B2280 /* MuPDFThird.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = MuPDFThird.xcframework; path = Frameworks/MuPDFThird.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -23,6 +47,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				173B53B92EFDA518005B2280 /* MuPDFThird.xcframework in Frameworks */,
+				173B53B52EFDA50A005B2280 /* MuPDF.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -33,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				173B52482EFD9129005B2280 /* Mino */,
+				173B53B32EFDA50A005B2280 /* Frameworks */,
 				173B52472EFD9129005B2280 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -45,6 +72,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		173B53B32EFDA50A005B2280 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				173B53B82EFDA518005B2280 /* MuPDFThird.xcframework */,
+				173B53B42EFDA50A005B2280 /* MuPDF.xcframework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -55,6 +91,7 @@
 				173B52422EFD9129005B2280 /* Sources */,
 				173B52432EFD9129005B2280 /* Frameworks */,
 				173B52442EFD9129005B2280 /* Resources */,
+				173B53B72EFDA50A005B2280 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -178,7 +215,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -236,7 +273,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -256,22 +293,32 @@
 				DEVELOPMENT_TEAM = T9H7KYQM8Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/Frameworks/mupdf/include",
+					"$(PROJECT_DIR)/Mino/Core/MuPDF",
+				);
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-lc++",
+					"-lz",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.applestan.Mino;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Mino/Core/MuPDF/Mino-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -288,22 +335,32 @@
 				DEVELOPMENT_TEAM = T9H7KYQM8Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/Frameworks/mupdf/include",
+					"$(PROJECT_DIR)/Mino/Core/MuPDF",
+				);
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-lc++",
+					"-lz",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.applestan.Mino;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Mino/Core/MuPDF/Mino-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
