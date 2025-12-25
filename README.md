@@ -96,7 +96,7 @@ This project is licensed under the **GNU Affero General Public License v3.0** wi
 
 ### Third-Party Licenses
 
-- **MuPDF**: [AGPL-3.0](https://mupdf.com/license)
+- **MuPDF**: [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) (by [Artifex Software](https://artifex.com))
 
 See [LICENSE](LICENSE) for the full license text.
 
