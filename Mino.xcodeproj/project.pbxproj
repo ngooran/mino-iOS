@@ -11,7 +11,18 @@
 		173B53B62EFDA50A005B2280 /* MuPDF.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 173B53B42EFDA50A005B2280 /* MuPDF.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		173B53B92EFDA518005B2280 /* MuPDFThird.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 173B53B82EFDA518005B2280 /* MuPDFThird.xcframework */; };
 		173B53BA2EFDA518005B2280 /* MuPDFThird.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 173B53B82EFDA518005B2280 /* MuPDFThird.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		17SHARE0012EFDA600005B228 /* MinoShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 17SHARE0002EFDA600005B228 /* MinoShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		17SHARE0032EFDA600005B228 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 173B523E2EFD9129005B2280 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 17SHARE0082EFDA600005B228;
+			remoteInfo = MinoShare;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		173B53B72EFDA50A005B2280 /* Embed Frameworks */ = {
@@ -26,18 +37,60 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		17SHARE0042EFDA600005B228 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				17SHARE0012EFDA600005B228 /* MinoShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		173B52462EFD9129005B2280 /* Mino.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mino.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		173B53B42EFDA50A005B2280 /* MuPDF.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = MuPDF.xcframework; path = Frameworks/MuPDF.xcframework; sourceTree = "<group>"; };
 		173B53B82EFDA518005B2280 /* MuPDFThird.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = MuPDFThird.xcframework; path = Frameworks/MuPDFThird.xcframework; sourceTree = "<group>"; };
+		17SHARE0002EFDA600005B228 /* MinoShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MinoShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		17EXCEP012EFDA700005B228 /* Mino Exceptions */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				Mino.entitlements,
+			);
+			target = 173B52452EFD9129005B2280 /* Mino */;
+		};
+		17EXCEP022EFDA700005B228 /* MinoShare Exceptions */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				MinoShare.entitlements,
+			);
+			target = 17SHARE0082EFDA600005B228 /* MinoShare */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		173B52482EFD9129005B2280 /* Mino */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				17EXCEP012EFDA700005B228 /* Mino Exceptions */,
+			);
 			path = Mino;
+			sourceTree = "<group>";
+		};
+		17SHARE0052EFDA600005B228 /* MinoShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				17EXCEP022EFDA700005B228 /* MinoShare Exceptions */,
+			);
+			path = MinoShare;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +105,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		17SHARE0062EFDA600005B228 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -59,6 +119,7 @@
 			isa = PBXGroup;
 			children = (
 				173B52482EFD9129005B2280 /* Mino */,
+				17SHARE0052EFDA600005B228 /* MinoShare */,
 				173B53B32EFDA50A005B2280 /* Frameworks */,
 				173B52472EFD9129005B2280 /* Products */,
 			);
@@ -68,6 +129,7 @@
 			isa = PBXGroup;
 			children = (
 				173B52462EFD9129005B2280 /* Mino.app */,
+				17SHARE0002EFDA600005B228 /* MinoShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -92,10 +154,12 @@
 				173B52432EFD9129005B2280 /* Frameworks */,
 				173B52442EFD9129005B2280 /* Resources */,
 				173B53B72EFDA50A005B2280 /* Embed Frameworks */,
+				17SHARE0042EFDA600005B228 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				17SHARE0072EFDA600005B228 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				173B52482EFD9129005B2280 /* Mino */,
@@ -106,6 +170,28 @@
 			productName = Mino;
 			productReference = 173B52462EFD9129005B2280 /* Mino.app */;
 			productType = "com.apple.product-type.application";
+		};
+		17SHARE0082EFDA600005B228 /* MinoShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 17SHARE0092EFDA600005B228 /* Build configuration list for PBXNativeTarget "MinoShare" */;
+			buildPhases = (
+				17SHARE00A2EFDA600005B228 /* Sources */,
+				17SHARE0062EFDA600005B228 /* Frameworks */,
+				17SHARE00B2EFDA600005B228 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				17SHARE0052EFDA600005B228 /* MinoShare */,
+			);
+			name = MinoShare;
+			packageProductDependencies = (
+			);
+			productName = MinoShare;
+			productReference = 17SHARE0002EFDA600005B228 /* MinoShare.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -118,6 +204,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					173B52452EFD9129005B2280 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					17SHARE0082EFDA600005B228 = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -137,12 +226,20 @@
 			projectRoot = "";
 			targets = (
 				173B52452EFD9129005B2280 /* Mino */,
+				17SHARE0082EFDA600005B228 /* MinoShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		173B52442EFD9129005B2280 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		17SHARE00B2EFDA600005B228 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -159,7 +256,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		17SHARE00A2EFDA600005B228 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		17SHARE0072EFDA600005B228 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 17SHARE0082EFDA600005B228 /* MinoShare */;
+			targetProxy = 17SHARE0032EFDA600005B228 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		173B524F2EFD912A005B2280 /* Debug */ = {
@@ -286,8 +398,10 @@
 		173B52522EFD912A005B2280 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Mino/Mino.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T9H7KYQM8Q;
@@ -297,6 +411,7 @@
 					"$(PROJECT_DIR)/Frameworks/mupdf/include",
 					"$(PROJECT_DIR)/Mino/Core/MuPDF",
 				);
+				INFOPLIST_FILE = Mino/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -328,8 +443,10 @@
 		173B52532EFD912A005B2280 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Mino/Mino.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T9H7KYQM8Q;
@@ -339,6 +456,7 @@
 					"$(PROJECT_DIR)/Frameworks/mupdf/include",
 					"$(PROJECT_DIR)/Mino/Core/MuPDF",
 				);
+				INFOPLIST_FILE = Mino/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -367,6 +485,60 @@
 			};
 			name = Release;
 		};
+		17SHARE00C2EFDA600005B228 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MinoShare/MinoShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T9H7KYQM8Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinoShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Compress with Mino";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.applestan.Mino.MinoShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		17SHARE00D2EFDA600005B228 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MinoShare/MinoShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T9H7KYQM8Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MinoShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Compress with Mino";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.applestan.Mino.MinoShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -384,6 +556,15 @@
 			buildConfigurations = (
 				173B52522EFD912A005B2280 /* Debug */,
 				173B52532EFD912A005B2280 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		17SHARE0092EFDA600005B228 /* Build configuration list for PBXNativeTarget "MinoShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				17SHARE00C2EFDA600005B228 /* Debug */,
+				17SHARE00D2EFDA600005B228 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
