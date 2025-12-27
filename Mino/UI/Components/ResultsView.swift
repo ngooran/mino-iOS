@@ -19,21 +19,29 @@ struct ResultsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 32) {
-                    // Success indicator
-                    successHeader
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 32) {
+                        // Success indicator
+                        successHeader
 
-                    // Size comparison
-                    SizeComparisonCard(result: result)
+                        // Size comparison
+                        SizeComparisonCard(result: result)
 
-                    // Statistics
-                    statisticsCard
+                        // Statistics
+                        statisticsCard
 
-                    // Action buttons
-                    actionButtons
+                        Spacer(minLength: 20)
+                    }
+                    .padding()
                 }
-                .padding()
+
+                // Sticky action buttons
+                actionButtons
+                    .padding(.horizontal)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    .background(.bar)
             }
             .navigationTitle("Compression Complete")
             .navigationBarTitleDisplayMode(.inline)

@@ -383,28 +383,38 @@ struct AppIconExportView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 32) {
-                // Variant picker
-                Picker("Variant", selection: $selectedVariant) {
-                    ForEach(IconVariant.allCases, id: \.self) { variant in
-                        Text(variant.rawValue).tag(variant)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 32) {
+                        // Variant picker
+                        Picker("Variant", selection: $selectedVariant) {
+                            ForEach(IconVariant.allCases, id: \.self) { variant in
+                                Text(variant.rawValue).tag(variant)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+
+                        // Preview with iOS corner radius simulation
+                        currentIconView(size: 280)
+                            .clipShape(RoundedRectangle(cornerRadius: 280 * 0.22, style: .continuous))
+                            .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
+
+                        Text("1024 x 1024 PNG")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        // All variants export info
+                        Text("Export each variant separately for iOS 18 dark/tinted icons")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
+
+                        Spacer(minLength: 20)
                     }
+                    .padding()
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
 
-                // Preview with iOS corner radius simulation
-                currentIconView(size: 280)
-                    .clipShape(RoundedRectangle(cornerRadius: 280 * 0.22, style: .continuous))
-                    .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
-
-                Text("1024 x 1024 PNG")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                // Export button
+                // Sticky export button
                 if let image = renderedImage {
                     ShareLink(
                         item: Image(uiImage: image),
@@ -424,16 +434,11 @@ struct AppIconExportView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    .background(.bar)
                 }
-
-                // All variants export info
-                Text("Export each variant separately for iOS 18 dark/tinted icons")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
             }
-            .padding(.vertical)
             .navigationTitle("App Icon")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

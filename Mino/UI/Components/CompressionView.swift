@@ -17,8 +17,7 @@ struct CompressionView: View {
     @State private var isAdvancedMode = false
     @State private var customSettings = CompressionSettings.default
     @State private var isCompressing = false
-    @State private var compressionProgress: Double = 0
-    @State private var progressMessage: String = "Preparing..."
+    @State private var currentPhase: CompressionPhase = .opening
 
     /// Current settings based on mode
     private var currentSettings: CompressionSettings {
@@ -27,40 +26,54 @@ struct CompressionView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Document info
-                    DocumentInfoHeader(document: document)
+            ZStack {
+                // Main content
+                VStack(spacing: 0) {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // Document info
+                            DocumentInfoHeader(document: document)
 
-                    Divider()
+                            Divider()
 
-                    // Mode toggle
-                    modeToggle
+                            // Mode toggle
+                            modeToggle
+                                .disabled(isCompressing)
+
+                            // Quality selector or advanced settings
+                            if isAdvancedMode {
+                                AdvancedSettingsView(settings: $customSettings)
+                                    .disabled(isCompressing)
+                            } else {
+                                QualitySelector(selectedQuality: $selectedQuality)
+                                    .disabled(isCompressing)
+                            }
+
+                            Spacer(minLength: 20)
+                        }
+                        .padding()
+                    }
+
+                    // Sticky bottom button
+                    compressButton
                         .disabled(isCompressing)
-
-                    // Quality selector or advanced settings
-                    if isAdvancedMode {
-                        AdvancedSettingsView(settings: $customSettings)
-                            .disabled(isCompressing)
-                    } else {
-                        QualitySelector(selectedQuality: $selectedQuality)
-                            .disabled(isCompressing)
-                    }
-
-                    Spacer(minLength: 20)
-
-                    // Compress button or progress
-                    if isCompressing {
-                        CompressionProgressSection(
-                            progress: compressionProgress,
-                            message: progressMessage
-                        )
-                    } else {
-                        compressButton
-                    }
+                        .opacity(isCompressing ? 0.5 : 1)
+                        .padding(.horizontal)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
+                        .background(.bar)
                 }
-                .padding()
+
+                // Compression overlay
+                if isCompressing {
+                    CompressionOverlay(
+                        currentPhase: currentPhase,
+                        fileName: document.name
+                    )
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
             }
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isCompressing)
             .navigationTitle("Compress PDF")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -122,16 +135,35 @@ struct CompressionView: View {
     // MARK: - Actions
 
     private func startCompression() {
+        // Show overlay immediately
         isCompressing = true
-        compressionProgress = 0
-        progressMessage = "Preparing..."
+        currentPhase = .opening
 
         Task {
             do {
+                // Phase 1: Opening
+                await setPhase(.opening)
+                try? await Task.sleep(nanoseconds: 300_000_000)
+
+                // Phase 2: Analyzing
+                await setPhase(.analyzing)
+                try? await Task.sleep(nanoseconds: 300_000_000)
+
+                // Phase 3: Compressing (this is where actual work happens)
+                await setPhase(.compressing)
+
                 let result = try await appState.compressionService.compress(
                     document: document,
                     settings: currentSettings
                 )
+
+                // Phase 4: Saving
+                await setPhase(.saving)
+                try? await Task.sleep(nanoseconds: 300_000_000)
+
+                // Phase 5: Complete
+                await setPhase(.complete)
+                try? await Task.sleep(nanoseconds: 600_000_000)
 
                 await MainActor.run {
                     isCompressing = false
@@ -145,6 +177,265 @@ struct CompressionView: View {
                 }
             }
         }
+    }
+
+    @MainActor
+    private func setPhase(_ phase: CompressionPhase) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentPhase = phase
+        }
+    }
+}
+
+// MARK: - Compression Phase
+
+enum CompressionPhase: Int, CaseIterable {
+    case opening = 0
+    case analyzing = 1
+    case compressing = 2
+    case saving = 3
+    case complete = 4
+
+    var title: String {
+        switch self {
+        case .opening: return "Opening file"
+        case .analyzing: return "Analyzing document"
+        case .compressing: return "Compressing"
+        case .saving: return "Saving file"
+        case .complete: return "Complete"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .opening: return "doc"
+        case .analyzing: return "magnifyingglass"
+        case .compressing: return "arrow.down.circle"
+        case .saving: return "square.and.arrow.down"
+        case .complete: return "checkmark.circle.fill"
+        }
+    }
+}
+
+// MARK: - Compression Overlay
+
+struct CompressionOverlay: View {
+    let currentPhase: CompressionPhase
+    let fileName: String
+
+    var body: some View {
+        ZStack {
+            // Dimmed background
+            Color.black.opacity(0.5)
+                .ignoresSafeArea()
+
+            // Modal card
+            VStack(spacing: 24) {
+                // Header with icon
+                ZStack {
+                    Circle()
+                        .fill(Color.minoAccent.opacity(0.15))
+                        .frame(width: 80, height: 80)
+
+                    if currentPhase == .complete {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 44))
+                            .foregroundStyle(Color.minoSuccess)
+                            .transition(.scale.combined(with: .opacity))
+                    } else {
+                        SpinningDocIcon()
+                    }
+                }
+
+                // Title
+                Text(currentPhase == .complete ? "Compression Complete!" : "Compressing PDF")
+                    .font(.title3.bold())
+                    .foregroundStyle(.primary)
+
+                // File name
+                Text(fileName)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.horizontal)
+
+                // Indeterminate progress bar
+                if currentPhase != .complete {
+                    IndeterminateProgressBar()
+                        .padding(.horizontal, 8)
+                }
+
+                // Phase checklist
+                VStack(spacing: 0) {
+                    ForEach(CompressionPhase.allCases.filter { $0 != .complete }, id: \.rawValue) { phase in
+                        PhaseRow(
+                            phase: phase,
+                            currentPhase: currentPhase
+                        )
+                    }
+                }
+                .padding(.vertical, 8)
+                .background(Color.primary.opacity(0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .padding(28)
+            .frame(maxWidth: 320)
+            .background {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.25), radius: 30, y: 10)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.4), .white.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+        }
+    }
+}
+
+// MARK: - Spinning Doc Icon
+
+struct SpinningDocIcon: View {
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        Image(systemName: "doc.zipper")
+            .font(.system(size: 36))
+            .foregroundStyle(Color.minoAccent)
+            .rotationEffect(.degrees(rotation))
+            .onAppear {
+                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
+                    rotation = 360
+                }
+            }
+    }
+}
+
+// MARK: - Phase Row
+
+struct PhaseRow: View {
+    let phase: CompressionPhase
+    let currentPhase: CompressionPhase
+
+    private var isComplete: Bool {
+        phase.rawValue < currentPhase.rawValue
+    }
+
+    private var isCurrent: Bool {
+        phase.rawValue == currentPhase.rawValue
+    }
+
+    private var isPending: Bool {
+        phase.rawValue > currentPhase.rawValue
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            // Status icon
+            ZStack {
+                if isComplete {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color.minoSuccess)
+                        .transition(.scale.combined(with: .opacity))
+                } else if isCurrent {
+                    // Animated spinner
+                    SpinnerIcon()
+                } else {
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.3), lineWidth: 2)
+                        .frame(width: 22, height: 22)
+                }
+            }
+            .frame(width: 24, height: 24)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentPhase)
+
+            // Phase title
+            Text(phase.title)
+                .font(.subheadline)
+                .fontWeight(isCurrent ? .semibold : .regular)
+                .foregroundStyle(isPending ? .secondary : .primary)
+
+            Spacer()
+
+            // Current indicator
+            if isCurrent {
+                Text("In Progress")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+                    .foregroundStyle(Color.minoAccent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.minoAccent.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+}
+
+// MARK: - Spinner Icon
+
+struct SpinnerIcon: View {
+    @State private var isAnimating = false
+
+    var body: some View {
+        Circle()
+            .trim(from: 0, to: 0.7)
+            .stroke(Color.minoAccent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+            .frame(width: 22, height: 22)
+            .rotationEffect(.degrees(isAnimating ? 360 : 0))
+            .onAppear {
+                withAnimation(.linear(duration: 0.8).repeatForever(autoreverses: false)) {
+                    isAnimating = true
+                }
+            }
+    }
+}
+
+// MARK: - Indeterminate Progress Bar
+
+struct IndeterminateProgressBar: View {
+    @State private var offset: CGFloat = -1
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+
+            ZStack(alignment: .leading) {
+                // Track
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(height: 6)
+
+                // Animated bar
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.minoAccent.opacity(0.3), Color.minoAccent, Color.minoAccentLight, Color.minoAccent, Color.minoAccent.opacity(0.3)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: width * 0.4, height: 6)
+                    .offset(x: offset * width)
+            }
+            .onAppear {
+                withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                    offset = 0.6
+                }
+            }
+        }
+        .frame(height: 6)
     }
 }
 
@@ -404,43 +695,6 @@ struct QualityOptionRow: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 1)
         )
-    }
-}
-
-// MARK: - Compression Progress Section
-
-struct CompressionProgressSection: View {
-    let progress: Double
-    let message: String
-
-    var body: some View {
-        VStack(spacing: 20) {
-            // Progress ring
-            ZStack {
-                Circle()
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 8)
-
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut, value: progress)
-
-                Text("\(Int(progress * 100))%")
-                    .font(.title.monospacedDigit())
-                    .fontWeight(.semibold)
-            }
-            .frame(width: 100, height: 100)
-
-            Text(message)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            ProgressView()
-                .progressViewStyle(.linear)
-                .padding(.horizontal, 40)
-        }
-        .padding(.vertical, 20)
     }
 }
 
