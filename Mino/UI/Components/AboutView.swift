@@ -12,6 +12,8 @@ struct AboutView: View {
     private let mupdfURL = URL(string: "https://mupdf.com")!
     private let agplURL = URL(string: "https://www.gnu.org/licenses/agpl-3.0.html")!
 
+    @State private var showingIconExport = false
+
     var body: some View {
         List {
                 // App info section
@@ -109,9 +111,21 @@ struct AboutView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                // Developer section
+                Section("Developer") {
+                    Button {
+                        showingIconExport = true
+                    } label: {
+                        Label("Export App Icon", systemImage: "app.gift")
+                    }
+                }
             }
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.large)
+        .sheet(isPresented: $showingIconExport) {
+            AppIconExportView()
+        }
     }
 
     // MARK: - Views
