@@ -16,43 +16,51 @@ struct HomeView: View {
     var body: some View {
         @Bindable var state = appState
 
-        ScrollView {
-            VStack(spacing: 32) {
-                // Hero section
-                heroSection
+        Group {
+            if appState.compressionService.recentResults.isEmpty && appState.importedDocuments.isEmpty {
+                // Empty state - centered with character
+                emptyStateView
+            } else {
+                // Has content - scrollable list with FAB
+                ZStack(alignment: .bottomTrailing) {
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            // Recent documents
+                            if !appState.importedDocuments.isEmpty {
+                                recentDocumentsSection
+                            }
 
-                // Import button
-                importButton
+                            // Compressed files
+                            if !appState.compressionService.recentResults.isEmpty {
+                                compressedFilesSection
+                            }
 
-                // Recent documents
-                if !appState.importedDocuments.isEmpty {
-                    recentDocumentsSection
+                            Spacer(minLength: 100)
+                        }
+                        .padding()
+                    }
+
+                    // Floating Action Button
+                    fabButton
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
                 }
-
-                // Compressed files (Recent compressions)
-                if !appState.compressionService.recentResults.isEmpty {
-                    compressedFilesSection
-                }
-
-                Spacer(minLength: 100)
             }
-            .padding()
         }
-        .navigationTitle("Mino")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle("Compress PDFs")
+        .navigationBarTitleDisplayMode(.inline)
         .onDrop(of: [.pdf], isTargeted: nil) { providers in
             handleDrop(providers: providers)
             return true
         }
-        .confirmationDialog(
+        .alert(
             "Clear All Compressed Files",
-            isPresented: $showingClearAllConfirmation,
-            titleVisibility: .visible
+            isPresented: $showingClearAllConfirmation
         ) {
+            Button("Cancel", role: .cancel) {}
             Button("Delete All", role: .destructive) {
                 appState.compressionService.clearAllResults()
             }
-            Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will permanently delete all \(appState.compressionService.recentResults.count) compressed PDF files. This action cannot be undone.")
         }
@@ -60,24 +68,47 @@ struct HomeView: View {
 
     // MARK: - Views
 
-    private var heroSection: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "doc.zipper")
-                .font(.system(size: 72))
-                .foregroundStyle(Color.accentColor)
-                .symbolEffect(.pulse, options: .repeating.speed(0.5))
+    private var emptyStateView: some View {
+        VStack(spacing: 0) {
+            Spacer()
 
-            Text("PDF Compressor")
-                .font(.title2)
-                .foregroundStyle(.secondary)
+            VStack(spacing: 24) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.1))
+                        .frame(width: 100, height: 100)
 
-            Text("Shrink your PDFs while keeping quality")
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
+                    Image(systemName: "doc.zipper")
+                        .font(.system(size: 40))
+                        .foregroundStyle(Color.accentColor)
+                }
+
+                // Title and description
+                headerSection
+
+                // CTA Button
+                importButton
+                    .padding(.top, 8)
+            }
+            .padding(.horizontal, 32)
+
+            Spacer()
+            Spacer()
         }
-        .padding(.top, 40)
-        .padding(.bottom, 20)
+    }
+
+    private var headerSection: some View {
+        VStack(spacing: 8) {
+            Text("Compress PDFs")
+                .font(.title2.bold())
+
+            Text("Reduce file size while maintaining quality.\nAll processing happens on your device.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(2)
+        }
     }
 
     private var importButton: some View {
@@ -100,6 +131,23 @@ struct HomeView: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal)
+    }
+
+    private var fabButton: some View {
+        @Bindable var state = appState
+
+        return Button {
+            state.showingDocumentPicker = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 56, height: 56)
+                .background(Color.accentColor)
+                .clipShape(Circle())
+                .shadow(color: Color.accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
     }
 
     private var recentDocumentsSection: some View {
@@ -235,9 +283,9 @@ struct CompressedFileCard: View {
             Image(systemName: "doc.zipper")
                 .font(.title2)
                 .foregroundStyle(Color.minoAccent)
-                .frame(width: 40)
+                .frame(width: 36)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(result.outputFileName)
                     .font(.subheadline)
                     .fontWeight(.medium)
@@ -257,16 +305,10 @@ struct CompressedFileCard: View {
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("-\(result.formattedReduction)")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.minoSuccess)
-
-                Text(result.timestamp, style: .relative)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
+            Text("-\(result.formattedReduction)")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color.minoSuccess)
         }
         .padding()
         .background(.regularMaterial)

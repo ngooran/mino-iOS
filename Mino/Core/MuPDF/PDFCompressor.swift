@@ -15,10 +15,10 @@ enum CompressionQuality: String, CaseIterable, Identifiable, Sendable, Codable {
     case medium = "Medium"
     case high = "High"
 
-    var id: String { rawValue }
+    nonisolated var id: String { rawValue }
 
     /// JPEG quality (0-100)
-    var jpegQuality: Int32 {
+    nonisolated var jpegQuality: Int32 {
         switch self {
         case .low: return 30
         case .medium: return 50
@@ -27,7 +27,7 @@ enum CompressionQuality: String, CaseIterable, Identifiable, Sendable, Codable {
     }
 
     /// Target DPI for image downsampling
-    var targetDPI: Int32 {
+    nonisolated var targetDPI: Int32 {
         switch self {
         case .low: return 72
         case .medium: return 100
@@ -36,17 +36,17 @@ enum CompressionQuality: String, CaseIterable, Identifiable, Sendable, Codable {
     }
 
     /// DPI threshold (images above this will be downsampled)
-    var dpiThreshold: Int32 {
+    nonisolated var dpiThreshold: Int32 {
         targetDPI + 50
     }
 
     /// Garbage collection level (0-4)
-    var garbageLevel: Int32 {
+    nonisolated var garbageLevel: Int32 {
         4 // Maximum for all quality levels
     }
 
     /// User-friendly description
-    var displayDescription: String {
+    nonisolated var displayDescription: String {
         switch self {
         case .low:
             return "Maximum compression, smaller file"
@@ -58,12 +58,12 @@ enum CompressionQuality: String, CaseIterable, Identifiable, Sendable, Codable {
     }
 
     /// Technical description
-    var technicalDescription: String {
+    nonisolated var technicalDescription: String {
         "JPEG \(jpegQuality)%, \(targetDPI) DPI"
     }
 
     /// Expected compression ratio description
-    var expectedReduction: String {
+    nonisolated var expectedReduction: String {
         switch self {
         case .low: return "85-95%"
         case .medium: return "75-85%"
@@ -72,7 +72,7 @@ enum CompressionQuality: String, CaseIterable, Identifiable, Sendable, Codable {
     }
 
     /// Convert to compression settings
-    var settings: CompressionSettings {
+    nonisolated var settings: CompressionSettings {
         CompressionSettings(
             jpegQuality: Int(jpegQuality),
             targetDPI: Int(targetDPI),
@@ -120,10 +120,10 @@ struct CompressionSettings: Sendable, Codable {
     }
 
     /// Default settings (Medium preset)
-    static let `default` = CompressionQuality.medium.settings
+    nonisolated static let `default` = CompressionQuality.medium.settings
 
     /// Initialize with all parameters
-    init(
+    nonisolated init(
         jpegQuality: Int = 50,
         targetDPI: Int = 100,
         garbageLevel: Int = 4,
@@ -144,7 +144,7 @@ struct CompressionSettings: Sendable, Codable {
     }
 
     /// Human-readable description
-    var displayDescription: String {
+    nonisolated var displayDescription: String {
         if let preset = preset {
             return preset.displayDescription
         }
@@ -152,12 +152,12 @@ struct CompressionSettings: Sendable, Codable {
     }
 
     /// Technical description
-    var technicalDescription: String {
+    nonisolated var technicalDescription: String {
         "JPEG \(jpegQuality)%, \(targetDPI) DPI"
     }
 
     /// Display name for results
-    var displayName: String {
+    nonisolated var displayName: String {
         preset?.rawValue ?? "Custom"
     }
 }
@@ -179,7 +179,7 @@ struct CompressionResult: Sendable, Identifiable, Codable {
         settings.preset ?? .medium
     }
 
-    init(
+    nonisolated init(
         outputURL: URL,
         originalSize: Int64,
         compressedSize: Int64,
@@ -196,7 +196,7 @@ struct CompressionResult: Sendable, Identifiable, Codable {
     }
 
     /// Legacy initializer for compatibility
-    init(
+    nonisolated init(
         outputURL: URL,
         originalSize: Int64,
         compressedSize: Int64,
@@ -276,7 +276,7 @@ final class PDFCompressor: @unchecked Sendable {
     // MARK: - Compression
 
     /// Compresses a PDF document with the specified settings
-    func compress(
+    nonisolated func compress(
         documentURL: URL,
         settings: CompressionSettings,
         outputURL: URL
@@ -351,7 +351,7 @@ final class PDFCompressor: @unchecked Sendable {
     }
 
     /// Compresses a PDF document with the specified quality preset
-    func compress(
+    nonisolated func compress(
         documentURL: URL,
         quality: CompressionQuality,
         outputURL: URL
@@ -359,7 +359,7 @@ final class PDFCompressor: @unchecked Sendable {
         try compress(documentURL: documentURL, settings: quality.settings, outputURL: outputURL)
     }
 
-    private func getLastError() -> String? {
+    nonisolated private func getLastError() -> String? {
         guard let cError = mino_get_last_error() else { return nil }
         return String(cString: cError)
     }

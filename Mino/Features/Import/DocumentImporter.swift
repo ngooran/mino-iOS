@@ -128,7 +128,7 @@ final class DocumentImporter {
         defer { isImporting = false }
 
         // Generate unique filename
-        let filename = suggestedName.hasSuffix(".pdf") ? suggestedName : "\(suggestedName).pdf"
+        _ = suggestedName.hasSuffix(".pdf") ? suggestedName : "\(suggestedName).pdf"
         let destinationURL = importedPDFsDirectory
             .appendingPathComponent(UUID().uuidString)
             .deletingPathExtension()

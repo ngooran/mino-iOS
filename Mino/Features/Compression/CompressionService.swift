@@ -60,10 +60,14 @@ final class CompressionService {
             // Update state
             job.updateState(.compressing(progress: 0.5, phase: "Compressing..."))
 
+            // Capture values for detached task
+            let compressor = self.compressor
+            let documentURL = document.url
+
             // Perform compression on background thread
             let result = try await Task.detached(priority: .userInitiated) {
-                try self.compressor.compress(
-                    documentURL: document.url,
+                try compressor.compress(
+                    documentURL: documentURL,
                     settings: settings,
                     outputURL: outputURL
                 )

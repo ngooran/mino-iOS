@@ -142,15 +142,15 @@ struct CompressionView: View {
         Task {
             do {
                 // Phase 1: Opening
-                await setPhase(.opening)
+                setPhase(.opening)
                 try? await Task.sleep(nanoseconds: 300_000_000)
 
                 // Phase 2: Analyzing
-                await setPhase(.analyzing)
+                setPhase(.analyzing)
                 try? await Task.sleep(nanoseconds: 300_000_000)
 
                 // Phase 3: Compressing (this is where actual work happens)
-                await setPhase(.compressing)
+                setPhase(.compressing)
 
                 let result = try await appState.compressionService.compress(
                     document: document,
@@ -158,28 +158,23 @@ struct CompressionView: View {
                 )
 
                 // Phase 4: Saving
-                await setPhase(.saving)
+                setPhase(.saving)
                 try? await Task.sleep(nanoseconds: 300_000_000)
 
                 // Phase 5: Complete
-                await setPhase(.complete)
+                setPhase(.complete)
                 try? await Task.sleep(nanoseconds: 600_000_000)
 
-                await MainActor.run {
-                    isCompressing = false
-                    dismiss()
-                    appState.showResults(result)
-                }
+                isCompressing = false
+                dismiss()
+                appState.showResults(result)
             } catch {
-                await MainActor.run {
-                    isCompressing = false
-                    appState.showError(error)
-                }
+                isCompressing = false
+                appState.showError(error)
             }
         }
     }
 
-    @MainActor
     private func setPhase(_ phase: CompressionPhase) {
         withAnimation(.easeInOut(duration: 0.3)) {
             currentPhase = phase
