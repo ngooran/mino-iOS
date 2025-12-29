@@ -49,7 +49,16 @@ User selects PDF → DocumentImporter → PDFDocumentInfo
 - `MuPDFHelpers.h/.c` - C wrapper functions for MuPDF API
 - `Mino-Bridging-Header.h` - Exposes C functions to Swift
 - `PDFCompressor.swift` - Swift interface calling C helpers
+- `MuPDFRenderer.swift` - Renders PDF pages to UIImage for viewer
 - `CompressionSettings` - Holds compression parameters (preset or custom)
+
+**History & Statistics** (`Mino/Features/History/`)
+- `HistoryManager` - Singleton tracking compression stats (persisted to UserDefaults)
+- Cleared automatically when `CompressionService.clearAllResults()` is called
+
+**PDF Viewer** (`Mino/Features/Viewer/`)
+- `PDFViewerView` - Full-screen viewer with page navigation and zoom
+- Uses MuPDFRenderer for page rendering
 
 **Compression Pipeline**
 1. `CompressionService.compress()` creates a `CompressionJob`
@@ -64,6 +73,19 @@ User selects PDF → DocumentImporter → PDFDocumentInfo
 - `CompressionSettings` - Full settings including custom values
 - `CompressionResult` - Output file info, sizes, duration
 - `PDFDocumentInfo` - Input document metadata
+
+## UI & Theming
+
+**Theme** (`Mino/UI/Styles/Theme.swift`)
+- Dark theme with color hierarchy: `minoBackground` → `minoCardBackground`
+- Accent color: `minoAccent` (teal), Success: `minoSuccess` (green)
+- Glass modifiers: `minoGlass()`, `minoGlassAccentButton()` for iOS 26 Liquid Glass
+- Falls back to solid backgrounds on iOS < 26
+
+**App Icon** (`Mino/Resources/AppIconDesign.swift`)
+- SwiftUI Canvas-based icon design
+- Three variants: Main (gradient), Dark (black), Tinted (monochrome)
+- Export via `AppIconExportView`
 
 ## MuPDF C API Notes
 
