@@ -35,6 +35,7 @@ struct CompressionView: View {
                             DocumentInfoHeader(document: document)
 
                             Divider()
+                                .background(Color.minoCardBorder)
 
                             // Mode toggle
                             modeToggle
@@ -61,7 +62,6 @@ struct CompressionView: View {
                         .padding(.horizontal)
                         .padding(.top, 12)
                         .padding(.bottom, 8)
-                        .background(.bar)
                 }
 
                 // Compression overlay
@@ -73,15 +73,18 @@ struct CompressionView: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
             }
+            .background(Color.minoBackground)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isCompressing)
             .navigationTitle("Compress PDF")
             .navigationBarTitleDisplayMode(.inline)
+            .minoToolbarStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         dismiss()
                     }
                     .disabled(isCompressing)
+                    .foregroundStyle(Color.minoAccent)
                 }
             }
             .interactiveDismissDisabled(isCompressing)
@@ -94,12 +97,13 @@ struct CompressionView: View {
         HStack {
             Text("Advanced Settings")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.6))
 
             Spacer()
 
             Toggle("", isOn: $isAdvancedMode)
                 .labelsHidden()
+                .tint(Color.minoAccent)
                 .onChange(of: isAdvancedMode) { _, newValue in
                     if newValue {
                         // Initialize custom settings from current preset
@@ -125,9 +129,10 @@ struct CompressionView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
-            .background(Color.accentColor)
+            .background(Color.minoAccent)
             .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -443,6 +448,7 @@ struct AdvancedSettingsView: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Custom Settings")
                 .font(.headline)
+                .foregroundStyle(.white)
 
             // JPEG Quality
             SettingSlider(
@@ -484,6 +490,7 @@ struct AdvancedSettingsView: View {
             )
 
             Divider()
+                .background(Color.minoCardBorder)
 
             // Toggle options
             VStack(spacing: 12) {
@@ -515,16 +522,20 @@ struct AdvancedSettingsView: View {
             // Summary
             HStack {
                 Image(systemName: "info.circle")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.5))
                 Text(settings.technicalDescription)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.5))
             }
             .padding(.top, 8)
         }
         .padding()
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color.minoCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.minoCardBorder, lineWidth: 1)
+        )
     }
 }
 
@@ -544,22 +555,23 @@ struct SettingSlider: View {
                 Text(title)
                     .font(.subheadline)
                     .fontWeight(.medium)
+                    .foregroundStyle(.white)
 
                 Spacer()
 
                 Text("\(Int(value))\(unit)")
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.minoAccent)
                     .monospacedDigit()
             }
 
             Slider(value: $value, in: range, step: step)
-                .tint(Color.accentColor)
+                .tint(Color.minoAccent)
 
             Text(description)
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.white.opacity(0.4))
         }
     }
 }
@@ -576,16 +588,18 @@ struct SettingToggle: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.subheadline)
+                    .foregroundStyle(.white)
 
                 Text(description)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.white.opacity(0.4))
             }
 
             Spacer()
 
             Toggle("", isOn: $isOn)
                 .labelsHidden()
+                .tint(Color.minoAccent)
         }
     }
 }
@@ -597,29 +611,40 @@ struct DocumentInfoHeader: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Image(systemName: "doc.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(Color.accentColor)
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.minoAccent.opacity(0.15))
+                    .frame(width: 56, height: 56)
+
+                Image(systemName: "doc.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color.minoAccent)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(document.name)
                     .font(.headline)
+                    .foregroundStyle(.white)
                     .lineLimit(2)
 
                 Text(document.formattedPageCount)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.5))
 
                 Text(document.formattedSize)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.5))
             }
 
             Spacer()
         }
         .padding()
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color.minoCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.minoCardBorder, lineWidth: 1)
+        )
     }
 }
 
@@ -632,8 +657,9 @@ struct QualitySelector: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Compression Quality")
                 .font(.headline)
+                .foregroundStyle(.white)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 ForEach(CompressionQuality.allCases) { quality in
                     QualityOptionRow(
                         quality: quality,
@@ -662,34 +688,36 @@ struct QualityOptionRow: View {
                 HStack {
                     Text(quality.rawValue)
                         .font(.headline)
+                        .foregroundStyle(.white)
 
                     Text("(\(quality.technicalDescription))")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.5))
                 }
 
                 Text(quality.displayDescription)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.6))
 
                 Text("Expected reduction: \(quality.expectedReduction)")
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.white.opacity(0.4))
             }
 
             Spacer()
 
             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                 .font(.title2)
-                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                .foregroundStyle(isSelected ? Color.minoAccent : .white.opacity(0.3))
         }
         .padding()
-        .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(isSelected ? Color.minoAccent.opacity(0.1) : Color.minoCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(isSelected ? Color.minoAccent : Color.minoCardBorder, lineWidth: 1)
         )
+        .contentShape(Rectangle())
     }
 }
 
@@ -701,4 +729,5 @@ struct QualityOptionRow: View {
 
     return CompressionView(document: document)
         .environment(AppState())
+        .preferredColorScheme(.dark)
 }

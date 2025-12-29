@@ -21,7 +21,7 @@ struct ResultsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 ScrollView {
-                    VStack(spacing: 32) {
+                    VStack(spacing: 24) {
                         // Success indicator
                         successHeader
 
@@ -36,20 +36,41 @@ struct ResultsView: View {
                     .padding()
                 }
 
-                // Sticky action buttons
+                // Sticky action button
                 actionButtons
                     .padding(.horizontal)
                     .padding(.top, 12)
                     .padding(.bottom, 8)
-                    .background(.bar)
             }
+            .background(Color.minoBackground)
             .navigationTitle("Compression Complete")
             .navigationBarTitleDisplayMode(.inline)
+            .minoToolbarStyle()
             .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button {
+                            showingShareSheet = true
+                        } label: {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+
+                        Button {
+                            showingExportPicker = true
+                        } label: {
+                            Label("Save to Files", systemImage: "folder")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.title3)
+                    }
+                }
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundStyle(Color.minoAccent)
                 }
             }
             .sheet(isPresented: $showingShareSheet) {
@@ -70,17 +91,24 @@ struct ResultsView: View {
 
     private var successHeader: some View {
         VStack(spacing: 16) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(.green)
-                .symbolEffect(.bounce, value: true)
+            ZStack {
+                Circle()
+                    .fill(Color.minoSuccess.opacity(0.15))
+                    .frame(width: 100, height: 100)
+
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 56))
+                    .foregroundStyle(Color.minoSuccess)
+                    .symbolEffect(.bounce, value: true)
+            }
 
             Text("Success!")
                 .font(.title.bold())
+                .foregroundStyle(.white)
 
             Text("Your PDF has been compressed")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.6))
         }
         .padding(.top, 20)
     }
@@ -91,19 +119,21 @@ struct ResultsView: View {
                 icon: "arrow.down.circle",
                 label: "Space Saved",
                 value: result.formattedSavedBytes,
-                color: .green
+                color: Color.minoSuccess
             )
 
             Divider()
+                .background(Color.minoCardBorder)
 
             StatisticRow(
                 icon: "percent",
                 label: "Reduction",
                 value: result.formattedReduction,
-                color: .blue
+                color: Color.minoAccent
             )
 
             Divider()
+                .background(Color.minoCardBorder)
 
             StatisticRow(
                 icon: "clock",
@@ -113,6 +143,7 @@ struct ResultsView: View {
             )
 
             Divider()
+                .background(Color.minoCardBorder)
 
             StatisticRow(
                 icon: "slider.horizontal.3",
@@ -123,6 +154,7 @@ struct ResultsView: View {
 
             if result.settings.preset == nil {
                 Divider()
+                    .background(Color.minoCardBorder)
 
                 StatisticRow(
                     icon: "photo",
@@ -132,6 +164,7 @@ struct ResultsView: View {
                 )
 
                 Divider()
+                    .background(Color.minoCardBorder)
 
                 StatisticRow(
                     icon: "square.resize",
@@ -142,66 +175,32 @@ struct ResultsView: View {
             }
         }
         .padding()
-        .background(.regularMaterial)
+        .background(Color.minoCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(Color.minoCardBorder, lineWidth: 1)
+        )
     }
 
     private var actionButtons: some View {
-        VStack(spacing: 12) {
-            // View PDF button
-            Button {
-                showingPDFViewer = true
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.title3)
-                    Text("View PDF")
-                        .font(.headline)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Color.accentColor)
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+        // View PDF button only - Share/Save moved to toolbar menu
+        Button {
+            showingPDFViewer = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.title3)
+                Text("View PDF")
+                    .font(.headline)
             }
-            .buttonStyle(.plain)
-
-            // Share button
-            Button {
-                showingShareSheet = true
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.title3)
-                    Text("Share")
-                        .font(.headline)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(.secondary.opacity(0.2))
-                .foregroundStyle(.primary)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-            .buttonStyle(.plain)
-
-            // Save to Files button
-            Button {
-                showingExportPicker = true
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "folder")
-                        .font(.title3)
-                    Text("Save to Files")
-                        .font(.headline)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(.secondary.opacity(0.2))
-                .foregroundStyle(.primary)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .foregroundStyle(.white)
+            .minoGlassAccentButton()
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }
 
@@ -216,14 +215,15 @@ struct SizeComparisonCard: View {
             VStack(spacing: 8) {
                 Text("Original")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.5))
 
                 Text(result.formattedOriginalSize)
                     .font(.title2.bold())
+                    .foregroundStyle(.white)
 
                 Image(systemName: "doc.fill")
                     .font(.title)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.4))
             }
             .frame(maxWidth: .infinity)
 
@@ -231,32 +231,40 @@ struct SizeComparisonCard: View {
             VStack(spacing: 4) {
                 Image(systemName: "arrow.right")
                     .font(.title2)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Color.minoAccent)
 
                 Text("-\(result.formattedReduction)")
                     .font(.caption.bold())
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.minoSuccess)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.minoSuccess.opacity(0.15))
+                    .clipShape(Capsule())
             }
 
             // Compressed
             VStack(spacing: 8) {
                 Text("Compressed")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.5))
 
                 Text(result.formattedCompressedSize)
                     .font(.title2.bold())
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.minoSuccess)
 
                 Image(systemName: "doc.zipper")
                     .font(.title)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.minoSuccess)
             }
             .frame(maxWidth: .infinity)
         }
         .padding()
-        .background(.regularMaterial)
+        .background(Color.minoCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(Color.minoCardBorder, lineWidth: 1)
+        )
     }
 }
 
@@ -276,12 +284,13 @@ struct StatisticRow: View {
                 .frame(width: 30)
 
             Text(label)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.6))
 
             Spacer()
 
             Text(value)
                 .fontWeight(.semibold)
+                .foregroundStyle(.white)
         }
     }
 }
@@ -297,4 +306,5 @@ struct StatisticRow: View {
 
     return ResultsView(result: result)
         .environment(AppState())
+        .preferredColorScheme(.dark)
 }

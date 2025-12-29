@@ -134,6 +134,8 @@ final class CompressionService {
         recentResults.removeAll()
         // Persist changes
         persistResults()
+        // Also clear statistics
+        HistoryManager.shared.clearHistory()
     }
 
     // MARK: - Private Methods

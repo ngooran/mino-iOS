@@ -7,6 +7,99 @@
 
 import SwiftUI
 
+// MARK: - Liquid Glass Support (iOS 26+)
+
+extension View {
+    /// Applies Liquid Glass effect on iOS 26+, falls back to dark card on older versions
+    @ViewBuilder
+    func minoGlass(in cornerRadius: CGFloat = 20) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius))
+        } else {
+            self
+                .background(Color.minoCardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(Color.minoCardBorder, lineWidth: 1)
+                )
+        }
+    }
+
+    /// Applies interactive Liquid Glass effect (for buttons) on iOS 26+
+    @ViewBuilder
+    func minoGlassInteractive(in cornerRadius: CGFloat = 14) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: cornerRadius))
+        } else {
+            self
+                .background(Color.minoCardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(Color.minoCardBorder, lineWidth: 1)
+                )
+        }
+    }
+
+    /// Applies tinted Liquid Glass effect on iOS 26+
+    @ViewBuilder
+    func minoGlassTinted(_ color: Color, in cornerRadius: CGFloat = 14) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.tint(color), in: RoundedRectangle(cornerRadius: cornerRadius))
+        } else {
+            self
+                .background(color.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(color.opacity(0.3), lineWidth: 1)
+                )
+        }
+    }
+
+    /// Applies accent-tinted interactive Liquid Glass for primary buttons
+    @ViewBuilder
+    func minoGlassAccentButton(in cornerRadius: CGFloat = 14) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.tint(Color.minoAccent).interactive(), in: RoundedRectangle(cornerRadius: cornerRadius))
+        } else {
+            self
+                .background(Color.minoAccent)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        }
+    }
+
+    /// Applies toolbar styling - Liquid Glass on iOS 26+, dark background on older
+    @ViewBuilder
+    func minoToolbarStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            // iOS 26: Let system handle Liquid Glass automatically
+            self
+        } else {
+            // Older iOS: Apply dark theme toolbar background
+            self
+                .toolbarBackground(Color.minoHeroBackground, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+    }
+
+    /// Applies Liquid Glass to a panel/container background on iOS 26+
+    @ViewBuilder
+    func minoGlassPanel() -> some View {
+        if #available(iOS 26.0, *) {
+            self.background {
+                Rectangle()
+                    .fill(.clear)
+                    .glassEffect(.regular, in: Rectangle())
+            }
+        } else {
+            self.background(Color.minoHeroBackground)
+        }
+    }
+}
+
 // MARK: - Colors
 
 extension Color {
@@ -29,6 +122,16 @@ extension Color {
 
     // Background
     static let minoSecondaryBackground = Color(.secondarySystemBackground)
+
+    // Dark theme backgrounds (distinct shades)
+    /// Main background - darkest shade (#0A0E14)
+    static let minoBackground = Color(red: 0.039, green: 0.055, blue: 0.078)
+    /// Hero card background - medium dark (#141B24)
+    static let minoHeroBackground = Color(red: 0.078, green: 0.106, blue: 0.141)
+    /// List item card background - slightly lighter (#1A2332)
+    static let minoCardBackground = Color(red: 0.102, green: 0.137, blue: 0.196)
+    /// Card border color
+    static let minoCardBorder = Color.white.opacity(0.08)
 
     // Gradients
     static var minoGradient: LinearGradient {

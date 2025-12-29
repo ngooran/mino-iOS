@@ -8,9 +8,14 @@
 import SwiftUI
 
 struct StatisticsView: View {
+    @Environment(AppState.self) private var appState
     private let historyManager = HistoryManager.shared
 
     @State private var showingClearConfirmation = false
+
+    private var recentResults: [CompressionResult] {
+        appState.compressionService.recentResults
+    }
 
     var body: some View {
         ScrollView {
@@ -18,8 +23,8 @@ struct StatisticsView: View {
                 // Stats cards
                 statsGrid
 
-                // History section
-                if !historyManager.history.isEmpty {
+                // History section (using same cards as HomeView)
+                if !recentResults.isEmpty {
                     historySection
                 } else {
                     emptyHistoryView
@@ -27,30 +32,28 @@ struct StatisticsView: View {
             }
             .padding()
         }
-        .background(Color.minoGradient.opacity(0.1).ignoresSafeArea())
-        .navigationTitle("Statistics")
-        .navigationBarTitleDisplayMode(.large)
+        .background(Color.minoBackground)
+        .minoToolbarStyle()
         .toolbar {
-            if !historyManager.history.isEmpty {
+            if !recentResults.isEmpty {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Clear History", role: .destructive) {
+                    Button("Clear", role: .destructive) {
                         showingClearConfirmation = true
                     }
                     .foregroundStyle(.red)
                 }
             }
         }
-        .confirmationDialog(
+        .alert(
             "Clear History",
-            isPresented: $showingClearConfirmation,
-            titleVisibility: .visible
+            isPresented: $showingClearConfirmation
         ) {
-            Button("Clear All History", role: .destructive) {
-                historyManager.clearHistory()
-            }
             Button("Cancel", role: .cancel) {}
+            Button("Clear All", role: .destructive) {
+                appState.compressionService.clearAllResults()
+            }
         } message: {
-            Text("This will clear all compression history. Your compressed files will not be deleted.")
+            Text("This will permanently delete all compressed files.")
         }
     }
 
@@ -95,13 +98,19 @@ struct StatisticsView: View {
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Recent Activity")
-                .font(.headline)
-                .padding(.horizontal, 4)
+            Text("RECENT ACTIVITY")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.5))
+                .tracking(0.5)
 
-            VStack(spacing: 8) {
-                ForEach(historyManager.history.prefix(20)) { entry in
-                    HistoryEntryRow(entry: entry)
+            VStack(spacing: 10) {
+                ForEach(recentResults.prefix(20)) { result in
+                    CompressedFileCard(result: result) {
+                        appState.compressionService.deleteResult(result)
+                    }
+                    .onTapGesture {
+                        appState.showResults(result)
+                    }
                 }
             }
         }
@@ -111,17 +120,23 @@ struct StatisticsView: View {
 
     private var emptyHistoryView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "clock.arrow.circlepath")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.minoSecondary.opacity(0.5))
+            ZStack {
+                Circle()
+                    .fill(Color.minoAccent.opacity(0.1))
+                    .frame(width: 80, height: 80)
+
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 32))
+                    .foregroundStyle(Color.minoAccent.opacity(0.6))
+            }
 
             Text("No compression history")
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.7))
 
             Text("Compressed PDFs will appear here")
                 .font(.subheadline)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.white.opacity(0.4))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
@@ -139,9 +154,15 @@ struct StatCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(color)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(color.opacity(0.15))
+                        .frame(width: 36, height: 36)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 16))
+                        .foregroundStyle(color)
+                }
 
                 Spacer()
             }
@@ -149,77 +170,22 @@ struct StatCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(value)
                     .font(.title2.bold())
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.white)
 
                 Text(title)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.5))
             }
         }
         .padding()
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.regularMaterial)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(color.opacity(0.2), lineWidth: 1)
-        }
-    }
-}
-
-// MARK: - History Entry Row
-
-struct HistoryEntryRow: View {
-    let entry: CompressionHistoryEntry
-
-    var body: some View {
-        HStack(spacing: 12) {
-            // Icon
-            Image(systemName: "doc.fill")
-                .font(.title3)
-                .foregroundStyle(Color.minoAccent)
-                .frame(width: 32)
-
-            // Info
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.originalFileName)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-
-                HStack(spacing: 8) {
-                    Text(entry.formattedOriginalSize)
-                    Image(systemName: "arrow.right")
-                        .font(.caption2)
-                    Text(entry.formattedCompressedSize)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            // Reduction
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("-\(entry.formattedReduction)")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.minoSuccess)
-
-                Text(entry.formattedTimestamp)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding()
-        .background {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-        }
+        .minoGlass(in: 14)
     }
 }
 
 #Preview {
-    StatisticsView()
+    NavigationStack {
+        StatisticsView()
+    }
+    .environment(AppState())
+    .preferredColorScheme(.dark)
 }

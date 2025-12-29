@@ -15,114 +15,134 @@ struct AboutView: View {
     @State private var showingIconExport = false
 
     var body: some View {
-        List {
-                // App info section
-                Section {
-                    appInfoHeader
-                }
-
+        ScrollView {
+            VStack(spacing: 16) {
                 // About section
-                Section("About") {
-                    Text("Mino is an offline PDF compressor that uses the MuPDF library to efficiently reduce PDF file sizes while maintaining quality.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                AboutSection(title: "About") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Mino is an offline PDF compressor that uses the MuPDF library to efficiently reduce PDF file sizes while maintaining quality.")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.7))
 
-                    Label {
-                        Text("All compression happens on your device. Your files never leave your phone.")
-                    } icon: {
-                        Image(systemName: "lock.shield.fill")
-                            .foregroundStyle(.green)
+                        HStack(spacing: 12) {
+                            Image(systemName: "lock.shield.fill")
+                                .foregroundStyle(Color.minoSuccess)
+                            Text("All compression happens on your device. Your files never leave your phone.")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
                     }
-                    .font(.subheadline)
                 }
 
                 // Open Source section
-                Section("Open Source") {
-                    Link(destination: sourceCodeURL) {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("View Source Code")
-                                Text("GitHub Repository")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "chevron.left.forwardslash.chevron.right")
-                        }
-                    }
+                AboutSection(title: "Open Source") {
+                    VStack(spacing: 0) {
+                        AboutLinkRow(
+                            icon: "chevron.left.forwardslash.chevron.right",
+                            title: "View Source Code",
+                            subtitle: "GitHub Repository",
+                            url: sourceCodeURL
+                        )
 
-                    Link(destination: mupdfURL) {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("MuPDF Library")
-                                Text("PDF rendering engine")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "doc.text")
-                        }
+                        Divider()
+                            .background(Color.minoCardBorder)
+
+                        AboutLinkRow(
+                            icon: "doc.text",
+                            title: "MuPDF Library",
+                            subtitle: "PDF rendering engine",
+                            url: mupdfURL
+                        )
                     }
                 }
 
                 // License section
-                Section("License") {
-                    VStack(alignment: .leading, spacing: 8) {
+                AboutSection(title: "License") {
+                    VStack(alignment: .leading, spacing: 12) {
                         Text("GNU Affero General Public License v3.0")
                             .font(.subheadline)
                             .fontWeight(.medium)
+                            .foregroundStyle(.white)
 
                         Text("This application is free software licensed under the AGPL-3.0. You are free to use, modify, and distribute it under the terms of this license.")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.white.opacity(0.6))
 
                         Text("The source code is available at the GitHub link above.")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
+                            .foregroundStyle(.white.opacity(0.6))
 
-                    Link(destination: agplURL) {
-                        Label("Read Full License", systemImage: "doc.plaintext")
+                        Divider()
+                            .background(Color.minoCardBorder)
+                            .padding(.vertical, 4)
+
+                        Link(destination: agplURL) {
+                            HStack {
+                                Image(systemName: "doc.plaintext")
+                                    .foregroundStyle(Color.minoAccent)
+                                Text("Read Full License")
+                                    .foregroundStyle(Color.minoAccent)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                        }
                     }
                 }
 
                 // Credits section
-                Section("Credits") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        creditRow(name: "MuPDF", role: "PDF Engine", license: "AGPL-3.0")
-                    }
-                    .padding(.vertical, 4)
+                AboutSection(title: "Credits") {
+                    creditRow(name: "MuPDF", role: "PDF Engine", license: "AGPL-3.0")
                 }
 
                 // Version section
-                Section {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text(appVersion)
-                            .foregroundStyle(.secondary)
-                    }
+                AboutSection(title: nil) {
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("Version")
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Text(appVersion)
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                        .padding(.vertical, 12)
 
-                    HStack {
-                        Text("Build")
-                        Spacer()
-                        Text(buildNumber)
-                            .foregroundStyle(.secondary)
+                        Divider()
+                            .background(Color.minoCardBorder)
+
+                        HStack {
+                            Text("Build")
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Text(buildNumber)
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                        .padding(.vertical, 12)
                     }
                 }
 
                 // Developer section
-                Section("Developer") {
+                AboutSection(title: "Developer") {
                     Button {
                         showingIconExport = true
                     } label: {
-                        Label("Export App Icon", systemImage: "app.gift")
+                        HStack {
+                            Image(systemName: "app.gift")
+                                .foregroundStyle(Color.minoAccent)
+                            Text("Export App Icon")
+                                .foregroundStyle(Color.minoAccent)
+                            Spacer()
+                        }
                     }
                 }
+
+                Spacer(minLength: 100)
             }
-        .navigationTitle("About")
-        .navigationBarTitleDisplayMode(.large)
+            .padding()
+        }
+        .background(Color.minoBackground)
+        .minoToolbarStyle()
         .sheet(isPresented: $showingIconExport) {
             AppIconExportView()
         }
@@ -130,44 +150,24 @@ struct AboutView: View {
 
     // MARK: - Views
 
-    private var appInfoHeader: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "doc.zipper")
-                .font(.system(size: 60))
-                .foregroundStyle(Color.accentColor)
-
-            Text("Mino")
-                .font(.title.bold())
-
-            Text("PDF Compressor")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Text("PDFs, made light")
-                .font(.caption)
-                .italic()
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-    }
-
     private func creditRow(name: String, role: String, license: String) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.subheadline)
                     .fontWeight(.medium)
+                    .foregroundStyle(.white)
                 Text(role)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.5))
             }
             Spacer()
             Text(license)
                 .font(.caption)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(.secondary.opacity(0.2))
+                .foregroundStyle(Color.minoAccent)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.minoAccent.opacity(0.15))
                 .clipShape(Capsule())
         }
     }
@@ -183,6 +183,73 @@ struct AboutView: View {
     }
 }
 
+// MARK: - About Section
+
+struct AboutSection<Content: View>: View {
+    let title: String?
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let title = title {
+                Text(title.uppercased())
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .tracking(0.5)
+            }
+
+            content
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.minoCardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Color.minoCardBorder, lineWidth: 1)
+                )
+        }
+    }
+}
+
+// MARK: - About Link Row
+
+struct AboutLinkRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let url: URL
+
+    var body: some View {
+        Link(destination: url) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(Color.minoAccent)
+                    .frame(width: 28)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            .padding(.vertical, 12)
+        }
+    }
+}
+
 #Preview {
-    AboutView()
+    NavigationStack {
+        AboutView()
+    }
+    .preferredColorScheme(.dark)
 }

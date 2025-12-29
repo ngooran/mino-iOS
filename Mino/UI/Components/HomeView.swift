@@ -13,42 +13,36 @@ struct HomeView: View {
 
     @State private var showingClearAllConfirmation = false
 
+    private var hasRecentActivity: Bool {
+        !appState.compressionService.recentResults.isEmpty
+    }
+
     var body: some View {
         @Bindable var state = appState
 
         Group {
-            if appState.compressionService.recentResults.isEmpty && appState.importedDocuments.isEmpty {
-                // Empty state - centered with character
-                emptyStateView
-            } else {
-                // Has content - scrollable list with FAB
-                ZStack(alignment: .bottomTrailing) {
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            // Recent documents
-                            if !appState.importedDocuments.isEmpty {
-                                recentDocumentsSection
-                            }
-
-                            // Compressed files
-                            if !appState.compressionService.recentResults.isEmpty {
-                                compressedFilesSection
-                            }
-
-                            Spacer(minLength: 100)
-                        }
-                        .padding()
+            if hasRecentActivity {
+                // Has history - scrollable with hero at top
+                ScrollView {
+                    VStack(spacing: 20) {
+                        heroCard
+                        compressedFilesSection
+                        Spacer(minLength: 100)
                     }
-
-                    // Floating Action Button
-                    fabButton
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 20)
+                    .padding()
+                }
+            } else {
+                // No history - center the hero
+                VStack {
+                    Spacer()
+                    heroCard
+                        .padding()
+                    Spacer()
                 }
             }
         }
-        .navigationTitle("Compress PDFs")
-        .navigationBarTitleDisplayMode(.inline)
+        .background(Color.minoBackground)
+        .minoToolbarStyle()
         .onDrop(of: [.pdf], isTargeted: nil) { providers in
             handleDrop(providers: providers)
             return true
@@ -66,161 +60,114 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Views
+    // MARK: - Hero Card
 
-    private var emptyStateView: some View {
-        VStack(spacing: 0) {
-            Spacer()
-
-            VStack(spacing: 24) {
-                // Icon
-                ZStack {
-                    Circle()
-                        .fill(Color.accentColor.opacity(0.1))
-                        .frame(width: 100, height: 100)
-
-                    Image(systemName: "doc.zipper")
-                        .font(.system(size: 40))
-                        .foregroundStyle(Color.accentColor)
-                }
-
-                // Title and description
-                headerSection
-
-                // CTA Button
-                importButton
-                    .padding(.top, 8)
-            }
-            .padding(.horizontal, 32)
-
-            Spacer()
-            Spacer()
-        }
-    }
-
-    private var headerSection: some View {
-        VStack(spacing: 8) {
-            Text("Compress PDFs")
-                .font(.title2.bold())
-
-            Text("Reduce file size while maintaining quality.\nAll processing happens on your device.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .lineSpacing(2)
-        }
-    }
-
-    private var importButton: some View {
+    private var heroCard: some View {
         @Bindable var state = appState
 
-        return Button {
-            state.showingDocumentPicker = true
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title2)
-                Text("Select PDF")
-                    .font(.headline)
+        return VStack(spacing: 20) {
+            // Icon in circle
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.1))
+                    .frame(width: 72, height: 72)
+
+                Image(systemName: "arrow.down.doc")
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(.white)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Color.accentColor)
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal)
-    }
 
-    private var fabButton: some View {
-        @Bindable var state = appState
+            // Title and subtitle
+            VStack(spacing: 8) {
+                Text("Reduce PDF Size")
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
 
-        return Button {
-            state.showingDocumentPicker = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(Color.accentColor)
-                .clipShape(Circle())
-                .shadow(color: Color.accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var recentDocumentsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Recent Documents")
-                    .font(.headline)
-                Spacer()
-                if appState.importedDocuments.count > 3 {
-                    Button("See All") {
-                        // Could navigate to full list
-                    }
+                Text("Make your documents easier to share\nwithout losing quality.")
                     .font(.subheadline)
-                }
+                    .foregroundStyle(.white.opacity(0.9))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+                    .shadow(color: .black.opacity(0.5), radius: 3, x: 0, y: 1)
             }
-            .padding(.horizontal)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(appState.importedDocuments.prefix(5)) { document in
-                        DocumentCard(document: document)
-                            .onTapGesture {
-                                appState.startCompression(for: document)
-                            }
-                    }
+            // CTA Button
+            Button {
+                state.showingDocumentPicker = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "doc.badge.plus")
+                        .font(.body.weight(.semibold))
+                    Text("Select PDF File")
+                        .font(.headline)
                 }
-                .padding(.horizontal)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .foregroundStyle(.white)
+                .minoGlassAccentButton()
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         }
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        .background(
+            ZStack {
+                Image("MinoHeroImage")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+
+                // Dark overlay for text readability
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.5),
+                        Color.black.opacity(0.3),
+                        Color.black.opacity(0.4)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(Color.minoCardBorder, lineWidth: 1)
+        )
     }
+
+    // MARK: - Compressed Files Section
 
     private var compressedFilesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Section header
             HStack {
-                Text("Compressed Files")
-                    .font(.headline)
+                Text("RECENT ACTIVITY")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .tracking(0.5)
 
                 Spacer()
 
                 Button("Clear All") {
                     showingClearAllConfirmation = true
                 }
-                .font(.subheadline)
-                .foregroundStyle(.red)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Color.minoAccent)
             }
-            .padding(.horizontal)
 
-            VStack(spacing: 8) {
+            // List items
+            VStack(spacing: 10) {
                 ForEach(appState.compressionService.recentResults) { result in
-                    CompressedFileCard(result: result)
-                        .onTapGesture {
-                            appState.showResults(result)
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                appState.compressionService.deleteResult(result)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-
-                            ShareLink(item: result.outputURL) {
-                                Label("Share", systemImage: "square.and.arrow.up")
-                            }
-                        }
-                }
-                .onDelete { indexSet in
-                    let resultsToDelete = indexSet.map { appState.compressionService.recentResults[$0] }
-                    for result in resultsToDelete {
+                    CompressedFileCard(result: result) {
                         appState.compressionService.deleteResult(result)
+                    }
+                    .onTapGesture {
+                        appState.showResults(result)
                     }
                 }
             }
-            .padding(.horizontal)
         }
     }
 
@@ -252,24 +199,29 @@ struct DocumentCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: "doc.fill")
-                .font(.title)
-                .foregroundStyle(Color.accentColor)
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.minoAccent.opacity(0.15))
+                    .frame(width: 36, height: 36)
+
+                Image(systemName: "doc.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.minoAccent)
+            }
 
             Text(document.name)
-                .font(.caption)
-                .fontWeight(.medium)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.white)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
 
             Text(document.shortDescription)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.5))
         }
-        .padding()
-        .frame(width: 130, height: 130, alignment: .topLeading)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(12)
+        .frame(width: 130, height: 120, alignment: .topLeading)
+        .minoGlass(in: 12)
     }
 }
 
@@ -277,42 +229,89 @@ struct DocumentCard: View {
 
 struct CompressedFileCard: View {
     let result: CompressionResult
+    var onDelete: (() -> Void)? = nil
+
+    @State private var showingExportPicker = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "doc.zipper")
-                .font(.title2)
-                .foregroundStyle(Color.minoAccent)
-                .frame(width: 36)
+        HStack(spacing: 14) {
+            // PDF Icon in rounded square
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.minoAccent.opacity(0.15))
+                    .frame(width: 44, height: 44)
 
+                Image(systemName: "doc.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color.minoAccent)
+            }
+
+            // File info
             VStack(alignment: .leading, spacing: 4) {
                 Text(result.outputFileName)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white)
                     .lineLimit(1)
 
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Text(result.formattedOriginalSize)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.5))
                     Image(systemName: "arrow.right")
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.white.opacity(0.3))
                     Text(result.formattedCompressedSize)
-                        .foregroundStyle(Color.minoSuccess)
+                        .foregroundStyle(.white.opacity(0.7))
                 }
                 .font(.caption)
             }
 
             Spacer()
 
+            // Reduction badge (pill)
             Text("-\(result.formattedReduction)")
-                .font(.subheadline)
-                .fontWeight(.semibold)
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.minoSuccess)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.minoSuccess.opacity(0.15))
+                .clipShape(Capsule())
+
+            // Menu button
+            Menu {
+                ShareLink(item: result.outputURL) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+
+                Button {
+                    showingExportPicker = true
+                } label: {
+                    Label("Save to Files", systemImage: "folder")
+                }
+
+                Divider()
+
+                if let onDelete = onDelete {
+                    Button(role: .destructive) {
+                        onDelete()
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.body)
+                    .foregroundStyle(.white.opacity(0.6))
+                    .frame(width: 32, height: 32)
+            }
         }
-        .padding()
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(14)
+        .minoGlass(in: 14)
+        .contentShape(Rectangle())
+        .sheet(isPresented: $showingExportPicker) {
+            DocumentExporter(url: result.outputURL) { _ in
+                showingExportPicker = false
+            }
+        }
     }
 }
 
@@ -321,4 +320,5 @@ struct CompressedFileCard: View {
         HomeView()
     }
     .environment(AppState())
+    .preferredColorScheme(.dark)
 }

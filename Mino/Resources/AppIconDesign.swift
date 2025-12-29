@@ -12,19 +12,19 @@ import SwiftUI
 struct AppIconDesign: View {
     let size: CGFloat
 
-    // Color palette matching the app theme
-    private let primaryColor = Color(red: 0.18, green: 0.32, blue: 0.52)
-    private let secondaryColor = Color(red: 0.25, green: 0.45, blue: 0.65)
-    private let accentColor = Color(red: 0.20, green: 0.68, blue: 0.68)
-    private let accentLight = Color(red: 0.30, green: 0.78, blue: 0.78)
+    // Vibrant gradient background colors - more visible contrast
+    private let gradientStart = Color(red: 0.12, green: 0.22, blue: 0.45) // Brighter blue (top-left)
+    private let gradientEnd = Color(red: 0.08, green: 0.35, blue: 0.42) // Teal (bottom-right)
+    private let documentColor = Color.white
+    private let arrowColor = Color(red: 0.25, green: 0.75, blue: 0.75) // Bright teal
 
     var body: some View {
         Canvas { context, canvasSize in
             let scale = canvasSize.width / 1024
             let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
 
-            // Background gradient
-            let backgroundGradient = Gradient(colors: [primaryColor, secondaryColor])
+            // Gradient background
+            let backgroundGradient = Gradient(colors: [gradientStart, gradientEnd])
             context.fill(
                 Path(CGRect(origin: .zero, size: canvasSize)),
                 with: .linearGradient(
@@ -34,134 +34,75 @@ struct AppIconDesign: View {
                 )
             )
 
-            // Document shape (rounded rectangle) - centered
-            let docWidth: CGFloat = 480 * scale
-            let docHeight: CGFloat = 620 * scale
-            let docX = center.x - docWidth / 2
-            let docY = center.y - docHeight / 2
+            // Squeezed document shape - BIGGER
+            let docWidth: CGFloat = 420 * scale
+            let docHeight: CGFloat = 540 * scale
+            let curveDepth: CGFloat = 60 * scale
+            let cornerRadius: CGFloat = 30 * scale
 
-            // Document shadow/glow
-            context.addFilter(.shadow(color: .black.opacity(0.3), radius: 20 * scale, x: 0, y: 10 * scale))
+            let docLeft = center.x - docWidth / 2
+            let docRight = center.x + docWidth / 2
+            let docTop = center.y - docHeight / 2
+            let docBottom = center.y + docHeight / 2
 
-            // Document background
-            let docRect = CGRect(x: docX, y: docY, width: docWidth, height: docHeight)
-            let docPath = Path(roundedRect: docRect, cornerRadius: 40 * scale)
+            // Create document path
+            var docPath = Path()
+            docPath.move(to: CGPoint(x: docLeft + cornerRadius, y: docTop))
+            docPath.addLine(to: CGPoint(x: docRight - cornerRadius, y: docTop))
+            docPath.addQuadCurve(to: CGPoint(x: docRight, y: docTop + cornerRadius), control: CGPoint(x: docRight, y: docTop))
+            docPath.addQuadCurve(to: CGPoint(x: docRight, y: docBottom - cornerRadius), control: CGPoint(x: docRight - curveDepth, y: center.y))
+            docPath.addQuadCurve(to: CGPoint(x: docRight - cornerRadius, y: docBottom), control: CGPoint(x: docRight, y: docBottom))
+            docPath.addLine(to: CGPoint(x: docLeft + cornerRadius, y: docBottom))
+            docPath.addQuadCurve(to: CGPoint(x: docLeft, y: docBottom - cornerRadius), control: CGPoint(x: docLeft, y: docBottom))
+            docPath.addQuadCurve(to: CGPoint(x: docLeft, y: docTop + cornerRadius), control: CGPoint(x: docLeft + curveDepth, y: center.y))
+            docPath.addQuadCurve(to: CGPoint(x: docLeft + cornerRadius, y: docTop), control: CGPoint(x: docLeft, y: docTop))
+            docPath.closeSubpath()
 
-            context.fill(docPath, with: .color(.white))
+            // PDF text for cutout
+            let pdfText = Text("PDF")
+                .font(.system(size: 150 * scale, weight: .black, design: .rounded))
+                .foregroundColor(.black)
 
-            // Reset shadow
-            context.addFilter(.shadow(color: .clear, radius: 0, x: 0, y: 0))
+            // Draw document with shadow, then cutout text in a layer
+            context.addFilter(.shadow(color: .black.opacity(0.5), radius: 25 * scale, x: 0, y: 10 * scale))
+            context.drawLayer { layerContext in
+                // Fill document
+                layerContext.fill(docPath, with: .color(documentColor))
 
-            // Folded corner
-            let foldSize: CGFloat = 100 * scale
-            var foldPath = Path()
-            foldPath.move(to: CGPoint(x: docX + docWidth - foldSize, y: docY))
-            foldPath.addLine(to: CGPoint(x: docX + docWidth, y: docY + foldSize))
-            foldPath.addLine(to: CGPoint(x: docX + docWidth, y: docY))
-            foldPath.closeSubpath()
-
-            context.fill(foldPath, with: .color(Color(white: 0.9)))
-
-            // Fold crease line
-            var creasePath = Path()
-            creasePath.move(to: CGPoint(x: docX + docWidth - foldSize, y: docY))
-            creasePath.addLine(to: CGPoint(x: docX + docWidth, y: docY + foldSize))
-
-            context.stroke(creasePath, with: .color(Color(white: 0.75)), lineWidth: 2 * scale)
-
-            // Zipper track (vertical line down the middle)
-            let zipperX = center.x
-            let zipperTop = docY + 120 * scale
-            let zipperBottom = docY + docHeight - 80 * scale
-
-            // Zipper track background
-            var zipperTrack = Path()
-            zipperTrack.addRoundedRect(
-                in: CGRect(
-                    x: zipperX - 20 * scale,
-                    y: zipperTop,
-                    width: 40 * scale,
-                    height: zipperBottom - zipperTop
-                ),
-                cornerSize: CGSize(width: 20 * scale, height: 20 * scale)
-            )
-
-            let zipperGradient = Gradient(colors: [accentColor, accentLight])
-            context.fill(
-                zipperTrack,
-                with: .linearGradient(
-                    zipperGradient,
-                    startPoint: CGPoint(x: zipperX, y: zipperTop),
-                    endPoint: CGPoint(x: zipperX, y: zipperBottom)
-                )
-            )
-
-            // Zipper teeth
-            let toothCount = 8
-            let toothSpacing = (zipperBottom - zipperTop - 80 * scale) / CGFloat(toothCount - 1)
-
-            for i in 0..<toothCount {
-                let toothY = zipperTop + 40 * scale + CGFloat(i) * toothSpacing
-
-                // Left tooth
-                var leftTooth = Path()
-                leftTooth.addRoundedRect(
-                    in: CGRect(
-                        x: zipperX - 50 * scale,
-                        y: toothY - 8 * scale,
-                        width: 35 * scale,
-                        height: 16 * scale
-                    ),
-                    cornerSize: CGSize(width: 4 * scale, height: 4 * scale)
-                )
-                context.fill(leftTooth, with: .color(Color(white: 0.85)))
-
-                // Right tooth
-                var rightTooth = Path()
-                rightTooth.addRoundedRect(
-                    in: CGRect(
-                        x: zipperX + 15 * scale,
-                        y: toothY - 8 * scale,
-                        width: 35 * scale,
-                        height: 16 * scale
-                    ),
-                    cornerSize: CGSize(width: 4 * scale, height: 4 * scale)
-                )
-                context.fill(rightTooth, with: .color(Color(white: 0.85)))
+                // Cut out PDF text (no shadow on this)
+                layerContext.blendMode = .destinationOut
+                layerContext.draw(pdfText, at: CGPoint(x: center.x, y: center.y + 10 * scale))
             }
-
-            // Zipper pull
-            let pullY = zipperTop + 60 * scale
-            var pullPath = Path()
-            pullPath.addEllipse(in: CGRect(
-                x: zipperX - 28 * scale,
-                y: pullY - 28 * scale,
-                width: 56 * scale,
-                height: 56 * scale
-            ))
-
-            context.addFilter(.shadow(color: .black.opacity(0.2), radius: 4 * scale, x: 0, y: 2 * scale))
-            context.fill(pullPath, with: .color(.white))
             context.addFilter(.shadow(color: .clear, radius: 0, x: 0, y: 0))
 
-            // Pull ring
-            var ringPath = Path()
-            ringPath.addEllipse(in: CGRect(
-                x: zipperX - 16 * scale,
-                y: pullY - 16 * scale,
-                width: 32 * scale,
-                height: 32 * scale
-            ))
+            // Left arrow - THICKER
+            let arrowLength: CGFloat = 140 * scale
+            let arrowHeadSize: CGFloat = 65 * scale
+            let arrowY = center.y
+            let leftArrowTip = docLeft - 20 * scale
+            let leftArrowStart = leftArrowTip - arrowLength
 
-            context.stroke(
-                ringPath,
-                with: .linearGradient(
-                    zipperGradient,
-                    startPoint: CGPoint(x: zipperX - 16 * scale, y: pullY),
-                    endPoint: CGPoint(x: zipperX + 16 * scale, y: pullY)
-                ),
-                lineWidth: 6 * scale
-            )
+            var leftArrowPath = Path()
+            leftArrowPath.move(to: CGPoint(x: leftArrowStart, y: arrowY))
+            leftArrowPath.addLine(to: CGPoint(x: leftArrowTip, y: arrowY))
+            leftArrowPath.move(to: CGPoint(x: leftArrowTip - arrowHeadSize, y: arrowY - arrowHeadSize * 0.55))
+            leftArrowPath.addLine(to: CGPoint(x: leftArrowTip, y: arrowY))
+            leftArrowPath.addLine(to: CGPoint(x: leftArrowTip - arrowHeadSize, y: arrowY + arrowHeadSize * 0.55))
+
+            context.stroke(leftArrowPath, with: .color(arrowColor), style: StrokeStyle(lineWidth: 28 * scale, lineCap: .round, lineJoin: .round))
+
+            // Right arrow - THICKER
+            let rightArrowTip = docRight + 20 * scale
+            let rightArrowStart = rightArrowTip + arrowLength
+
+            var rightArrowPath = Path()
+            rightArrowPath.move(to: CGPoint(x: rightArrowStart, y: arrowY))
+            rightArrowPath.addLine(to: CGPoint(x: rightArrowTip, y: arrowY))
+            rightArrowPath.move(to: CGPoint(x: rightArrowTip + arrowHeadSize, y: arrowY - arrowHeadSize * 0.55))
+            rightArrowPath.addLine(to: CGPoint(x: rightArrowTip, y: arrowY))
+            rightArrowPath.addLine(to: CGPoint(x: rightArrowTip + arrowHeadSize, y: arrowY + arrowHeadSize * 0.55))
+
+            context.stroke(rightArrowPath, with: .color(arrowColor), style: StrokeStyle(lineWidth: 28 * scale, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
     }
@@ -172,9 +113,10 @@ struct AppIconDesign: View {
 struct AppIconDesignDark: View {
     let size: CGFloat
 
-    private let backgroundColor = Color(red: 0.08, green: 0.08, blue: 0.12)
-    private let accentColor = Color(red: 0.25, green: 0.75, blue: 0.75)
-    private let accentLight = Color(red: 0.35, green: 0.85, blue: 0.85)
+    // Pure black background for dark mode
+    private let backgroundColor = Color.black
+    private let documentColor = Color(red: 0.92, green: 0.92, blue: 0.94)
+    private let arrowColor = Color(red: 0.25, green: 0.75, blue: 0.75)
 
     var body: some View {
         Canvas { context, canvasSize in
@@ -187,92 +129,71 @@ struct AppIconDesignDark: View {
                 with: .color(backgroundColor)
             )
 
-            // Document shape - centered
-            let docWidth: CGFloat = 480 * scale
-            let docHeight: CGFloat = 620 * scale
-            let docX = center.x - docWidth / 2
-            let docY = center.y - docHeight / 2
+            // Squeezed document shape - BIGGER
+            let docWidth: CGFloat = 420 * scale
+            let docHeight: CGFloat = 540 * scale
+            let curveDepth: CGFloat = 60 * scale
+            let cornerRadius: CGFloat = 30 * scale
 
-            let docRect = CGRect(x: docX, y: docY, width: docWidth, height: docHeight)
-            let docPath = Path(roundedRect: docRect, cornerRadius: 40 * scale)
+            let docLeft = center.x - docWidth / 2
+            let docRight = center.x + docWidth / 2
+            let docTop = center.y - docHeight / 2
+            let docBottom = center.y + docHeight / 2
 
-            // Document with subtle border
-            context.fill(docPath, with: .color(Color(white: 0.15)))
-            context.stroke(docPath, with: .color(Color(white: 0.25)), lineWidth: 2 * scale)
+            var docPath = Path()
+            docPath.move(to: CGPoint(x: docLeft + cornerRadius, y: docTop))
+            docPath.addLine(to: CGPoint(x: docRight - cornerRadius, y: docTop))
+            docPath.addQuadCurve(to: CGPoint(x: docRight, y: docTop + cornerRadius), control: CGPoint(x: docRight, y: docTop))
+            docPath.addQuadCurve(to: CGPoint(x: docRight, y: docBottom - cornerRadius), control: CGPoint(x: docRight - curveDepth, y: center.y))
+            docPath.addQuadCurve(to: CGPoint(x: docRight - cornerRadius, y: docBottom), control: CGPoint(x: docRight, y: docBottom))
+            docPath.addLine(to: CGPoint(x: docLeft + cornerRadius, y: docBottom))
+            docPath.addQuadCurve(to: CGPoint(x: docLeft, y: docBottom - cornerRadius), control: CGPoint(x: docLeft, y: docBottom))
+            docPath.addQuadCurve(to: CGPoint(x: docLeft, y: docTop + cornerRadius), control: CGPoint(x: docLeft + curveDepth, y: center.y))
+            docPath.addQuadCurve(to: CGPoint(x: docLeft + cornerRadius, y: docTop), control: CGPoint(x: docLeft, y: docTop))
+            docPath.closeSubpath()
 
-            // Folded corner
-            let foldSize: CGFloat = 100 * scale
-            var foldPath = Path()
-            foldPath.move(to: CGPoint(x: docX + docWidth - foldSize, y: docY))
-            foldPath.addLine(to: CGPoint(x: docX + docWidth, y: docY + foldSize))
-            foldPath.addLine(to: CGPoint(x: docX + docWidth, y: docY))
-            foldPath.closeSubpath()
+            // PDF text for cutout
+            let pdfText = Text("PDF")
+                .font(.system(size: 150 * scale, weight: .black, design: .rounded))
+                .foregroundColor(.black)
 
-            context.fill(foldPath, with: .color(Color(white: 0.2)))
-
-            // Zipper track
-            let zipperX = center.x
-            let zipperTop = docY + 120 * scale
-            let zipperBottom = docY + docHeight - 80 * scale
-
-            var zipperTrack = Path()
-            zipperTrack.addRoundedRect(
-                in: CGRect(
-                    x: zipperX - 20 * scale,
-                    y: zipperTop,
-                    width: 40 * scale,
-                    height: zipperBottom - zipperTop
-                ),
-                cornerSize: CGSize(width: 20 * scale, height: 20 * scale)
-            )
-
-            let zipperGradient = Gradient(colors: [accentColor, accentLight])
-            context.fill(
-                zipperTrack,
-                with: .linearGradient(
-                    zipperGradient,
-                    startPoint: CGPoint(x: zipperX, y: zipperTop),
-                    endPoint: CGPoint(x: zipperX, y: zipperBottom)
-                )
-            )
-
-            // Zipper teeth
-            let toothCount = 8
-            let toothSpacing = (zipperBottom - zipperTop - 80 * scale) / CGFloat(toothCount - 1)
-
-            for i in 0..<toothCount {
-                let toothY = zipperTop + 40 * scale + CGFloat(i) * toothSpacing
-
-                var leftTooth = Path()
-                leftTooth.addRoundedRect(
-                    in: CGRect(x: zipperX - 50 * scale, y: toothY - 8 * scale, width: 35 * scale, height: 16 * scale),
-                    cornerSize: CGSize(width: 4 * scale, height: 4 * scale)
-                )
-                context.fill(leftTooth, with: .color(Color(white: 0.3)))
-
-                var rightTooth = Path()
-                rightTooth.addRoundedRect(
-                    in: CGRect(x: zipperX + 15 * scale, y: toothY - 8 * scale, width: 35 * scale, height: 16 * scale),
-                    cornerSize: CGSize(width: 4 * scale, height: 4 * scale)
-                )
-                context.fill(rightTooth, with: .color(Color(white: 0.3)))
+            // Document with glow, then cutout text in a layer
+            context.addFilter(.shadow(color: arrowColor.opacity(0.4), radius: 30 * scale, x: 0, y: 0))
+            context.drawLayer { layerContext in
+                layerContext.fill(docPath, with: .color(documentColor))
+                layerContext.blendMode = .destinationOut
+                layerContext.draw(pdfText, at: CGPoint(x: center.x, y: center.y + 10 * scale))
             }
+            context.addFilter(.shadow(color: .clear, radius: 0, x: 0, y: 0))
 
-            // Zipper pull
-            let pullY = zipperTop + 60 * scale
-            var pullPath = Path()
-            pullPath.addEllipse(in: CGRect(
-                x: zipperX - 28 * scale, y: pullY - 28 * scale, width: 56 * scale, height: 56 * scale
-            ))
+            // Left arrow - THICKER
+            let arrowLength: CGFloat = 140 * scale
+            let arrowHeadSize: CGFloat = 65 * scale
+            let arrowY = center.y
+            let leftArrowTip = docLeft - 20 * scale
+            let leftArrowStart = leftArrowTip - arrowLength
 
-            context.fill(pullPath, with: .color(Color(white: 0.2)))
+            var leftArrowPath = Path()
+            leftArrowPath.move(to: CGPoint(x: leftArrowStart, y: arrowY))
+            leftArrowPath.addLine(to: CGPoint(x: leftArrowTip, y: arrowY))
+            leftArrowPath.move(to: CGPoint(x: leftArrowTip - arrowHeadSize, y: arrowY - arrowHeadSize * 0.55))
+            leftArrowPath.addLine(to: CGPoint(x: leftArrowTip, y: arrowY))
+            leftArrowPath.addLine(to: CGPoint(x: leftArrowTip - arrowHeadSize, y: arrowY + arrowHeadSize * 0.55))
 
-            var ringPath = Path()
-            ringPath.addEllipse(in: CGRect(
-                x: zipperX - 16 * scale, y: pullY - 16 * scale, width: 32 * scale, height: 32 * scale
-            ))
+            context.stroke(leftArrowPath, with: .color(arrowColor), style: StrokeStyle(lineWidth: 28 * scale, lineCap: .round, lineJoin: .round))
 
-            context.stroke(ringPath, with: .color(accentLight), lineWidth: 6 * scale)
+            // Right arrow - THICKER
+            let rightArrowTip = docRight + 20 * scale
+            let rightArrowStart = rightArrowTip + arrowLength
+
+            var rightArrowPath = Path()
+            rightArrowPath.move(to: CGPoint(x: rightArrowStart, y: arrowY))
+            rightArrowPath.addLine(to: CGPoint(x: rightArrowTip, y: arrowY))
+            rightArrowPath.move(to: CGPoint(x: rightArrowTip + arrowHeadSize, y: arrowY - arrowHeadSize * 0.55))
+            rightArrowPath.addLine(to: CGPoint(x: rightArrowTip, y: arrowY))
+            rightArrowPath.addLine(to: CGPoint(x: rightArrowTip + arrowHeadSize, y: arrowY + arrowHeadSize * 0.55))
+
+            context.stroke(rightArrowPath, with: .color(arrowColor), style: StrokeStyle(lineWidth: 28 * scale, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
     }
@@ -294,74 +215,69 @@ struct AppIconDesignTinted: View {
                 with: .color(Color(white: 0.12))
             )
 
-            // Document shape - centered
-            let docWidth: CGFloat = 480 * scale
-            let docHeight: CGFloat = 620 * scale
-            let docX = center.x - docWidth / 2
-            let docY = center.y - docHeight / 2
+            // Squeezed document shape - BIGGER, filled white
+            let docWidth: CGFloat = 420 * scale
+            let docHeight: CGFloat = 540 * scale
+            let curveDepth: CGFloat = 60 * scale
+            let cornerRadius: CGFloat = 30 * scale
 
-            let docRect = CGRect(x: docX, y: docY, width: docWidth, height: docHeight)
-            let docPath = Path(roundedRect: docRect, cornerRadius: 40 * scale)
+            let docLeft = center.x - docWidth / 2
+            let docRight = center.x + docWidth / 2
+            let docTop = center.y - docHeight / 2
+            let docBottom = center.y + docHeight / 2
 
-            context.stroke(docPath, with: .color(.white), lineWidth: 4 * scale)
+            var docPath = Path()
+            docPath.move(to: CGPoint(x: docLeft + cornerRadius, y: docTop))
+            docPath.addLine(to: CGPoint(x: docRight - cornerRadius, y: docTop))
+            docPath.addQuadCurve(to: CGPoint(x: docRight, y: docTop + cornerRadius), control: CGPoint(x: docRight, y: docTop))
+            docPath.addQuadCurve(to: CGPoint(x: docRight, y: docBottom - cornerRadius), control: CGPoint(x: docRight - curveDepth, y: center.y))
+            docPath.addQuadCurve(to: CGPoint(x: docRight - cornerRadius, y: docBottom), control: CGPoint(x: docRight, y: docBottom))
+            docPath.addLine(to: CGPoint(x: docLeft + cornerRadius, y: docBottom))
+            docPath.addQuadCurve(to: CGPoint(x: docLeft, y: docBottom - cornerRadius), control: CGPoint(x: docLeft, y: docBottom))
+            docPath.addQuadCurve(to: CGPoint(x: docLeft, y: docTop + cornerRadius), control: CGPoint(x: docLeft + curveDepth, y: center.y))
+            docPath.addQuadCurve(to: CGPoint(x: docLeft + cornerRadius, y: docTop), control: CGPoint(x: docLeft, y: docTop))
+            docPath.closeSubpath()
 
-            // Folded corner
-            let foldSize: CGFloat = 100 * scale
-            var creasePath = Path()
-            creasePath.move(to: CGPoint(x: docX + docWidth - foldSize, y: docY))
-            creasePath.addLine(to: CGPoint(x: docX + docWidth, y: docY + foldSize))
-            context.stroke(creasePath, with: .color(.white), lineWidth: 3 * scale)
+            // Document filled
+            context.fill(docPath, with: .color(.white))
 
-            // Zipper track
-            let zipperX = center.x
-            let zipperTop = docY + 120 * scale
-            let zipperBottom = docY + docHeight - 80 * scale
+            // "PDF" text as cutout
+            let pdfText = Text("PDF")
+                .font(.system(size: 150 * scale, weight: .black, design: .rounded))
+                .foregroundColor(.black)
 
-            var zipperTrack = Path()
-            zipperTrack.addRoundedRect(
-                in: CGRect(x: zipperX - 20 * scale, y: zipperTop, width: 40 * scale, height: zipperBottom - zipperTop),
-                cornerSize: CGSize(width: 20 * scale, height: 20 * scale)
-            )
+            context.blendMode = .destinationOut
+            context.draw(pdfText, at: CGPoint(x: center.x, y: center.y + 10 * scale))
+            context.blendMode = .normal
 
-            context.fill(zipperTrack, with: .color(.white))
+            // Left arrow - THICKER
+            let arrowLength: CGFloat = 140 * scale
+            let arrowHeadSize: CGFloat = 65 * scale
+            let arrowY = center.y
+            let leftArrowTip = docLeft - 20 * scale
+            let leftArrowStart = leftArrowTip - arrowLength
 
-            // Zipper teeth
-            let toothCount = 8
-            let toothSpacing = (zipperBottom - zipperTop - 80 * scale) / CGFloat(toothCount - 1)
+            var leftArrowPath = Path()
+            leftArrowPath.move(to: CGPoint(x: leftArrowStart, y: arrowY))
+            leftArrowPath.addLine(to: CGPoint(x: leftArrowTip, y: arrowY))
+            leftArrowPath.move(to: CGPoint(x: leftArrowTip - arrowHeadSize, y: arrowY - arrowHeadSize * 0.55))
+            leftArrowPath.addLine(to: CGPoint(x: leftArrowTip, y: arrowY))
+            leftArrowPath.addLine(to: CGPoint(x: leftArrowTip - arrowHeadSize, y: arrowY + arrowHeadSize * 0.55))
 
-            for i in 0..<toothCount {
-                let toothY = zipperTop + 40 * scale + CGFloat(i) * toothSpacing
+            context.stroke(leftArrowPath, with: .color(.white), style: StrokeStyle(lineWidth: 26 * scale, lineCap: .round, lineJoin: .round))
 
-                var leftTooth = Path()
-                leftTooth.addRoundedRect(
-                    in: CGRect(x: zipperX - 50 * scale, y: toothY - 8 * scale, width: 35 * scale, height: 16 * scale),
-                    cornerSize: CGSize(width: 4 * scale, height: 4 * scale)
-                )
-                context.fill(leftTooth, with: .color(.white.opacity(0.6)))
+            // Right arrow - THICKER
+            let rightArrowTip = docRight + 20 * scale
+            let rightArrowStart = rightArrowTip + arrowLength
 
-                var rightTooth = Path()
-                rightTooth.addRoundedRect(
-                    in: CGRect(x: zipperX + 15 * scale, y: toothY - 8 * scale, width: 35 * scale, height: 16 * scale),
-                    cornerSize: CGSize(width: 4 * scale, height: 4 * scale)
-                )
-                context.fill(rightTooth, with: .color(.white.opacity(0.6)))
-            }
+            var rightArrowPath = Path()
+            rightArrowPath.move(to: CGPoint(x: rightArrowStart, y: arrowY))
+            rightArrowPath.addLine(to: CGPoint(x: rightArrowTip, y: arrowY))
+            rightArrowPath.move(to: CGPoint(x: rightArrowTip + arrowHeadSize, y: arrowY - arrowHeadSize * 0.55))
+            rightArrowPath.addLine(to: CGPoint(x: rightArrowTip, y: arrowY))
+            rightArrowPath.addLine(to: CGPoint(x: rightArrowTip + arrowHeadSize, y: arrowY + arrowHeadSize * 0.55))
 
-            // Zipper pull
-            let pullY = zipperTop + 60 * scale
-            var pullPath = Path()
-            pullPath.addEllipse(in: CGRect(
-                x: zipperX - 28 * scale, y: pullY - 28 * scale, width: 56 * scale, height: 56 * scale
-            ))
-
-            context.fill(pullPath, with: .color(Color(white: 0.12)))
-            context.stroke(pullPath, with: .color(.white), lineWidth: 4 * scale)
-
-            var ringPath = Path()
-            ringPath.addEllipse(in: CGRect(
-                x: zipperX - 14 * scale, y: pullY - 14 * scale, width: 28 * scale, height: 28 * scale
-            ))
-            context.stroke(ringPath, with: .color(.white), lineWidth: 4 * scale)
+            context.stroke(rightArrowPath, with: .color(.white), style: StrokeStyle(lineWidth: 26 * scale, lineCap: .round, lineJoin: .round))
         }
         .frame(width: size, height: size)
     }
@@ -431,6 +347,7 @@ struct AppIconExportView: View {
                         .background(Color.accentColor)
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal)
