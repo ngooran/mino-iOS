@@ -358,6 +358,7 @@ struct SplitView: View {
                 .padding(.vertical, 16)
                 .foregroundStyle(.white)
                 .minoGlassAccentButton()
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(isSplitting || !isValidInput)

@@ -118,6 +118,7 @@ struct MergeView: View {
                 .padding(.vertical, 14)
                 .foregroundStyle(.white)
                 .minoGlassAccentButton()
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 40)
@@ -162,7 +163,9 @@ struct MergeView: View {
                             .foregroundStyle(Color.minoAccent)
                         Text("Add More Files")
                             .foregroundStyle(Color.minoAccent)
+                        Spacer()
                     }
+                    .contentShape(Rectangle())
                 }
             }
         }
@@ -216,6 +219,7 @@ struct MergeView: View {
                 .padding(.vertical, 16)
                 .foregroundStyle(.white)
                 .minoGlassAccentButton()
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(selectedDocuments.count < 2 || isMerging)
@@ -403,6 +407,7 @@ struct MergeResultView: View {
                         .padding(.vertical, 16)
                         .foregroundStyle(.white)
                         .minoGlassAccentButton()
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
@@ -419,6 +424,7 @@ struct MergeResultView: View {
                         .foregroundStyle(.white)
                         .background(Color.white.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }

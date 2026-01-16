@@ -12,6 +12,7 @@ struct GeneratedFilesView: View {
 
     @State private var selectedCategory: FileCategory = .compressed
     @State private var fileToPreview: PreviewFile?
+    @State private var showingDeleteAllConfirm = false
 
     enum FileCategory: String, CaseIterable {
         case compressed = "Compressed"
@@ -35,6 +36,30 @@ struct GeneratedFilesView: View {
         }
     }
 
+    /// Whether the current category has files
+    private var currentCategoryHasFiles: Bool {
+        switch selectedCategory {
+        case .compressed:
+            return !appState.compressionService.recentResults.isEmpty
+        case .merged:
+            return !appState.mergeService.recentResults.isEmpty
+        case .split:
+            return !appState.splitService.recentResults.isEmpty
+        }
+    }
+
+    /// File count for current category
+    private var currentCategoryFileCount: Int {
+        switch selectedCategory {
+        case .compressed:
+            return appState.compressionService.recentResults.count
+        case .merged:
+            return appState.mergeService.recentResults.count
+        case .split:
+            return appState.splitService.recentResults.count
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Segmented category picker
@@ -46,10 +71,50 @@ struct GeneratedFilesView: View {
             // File list
             fileList
         }
-        .background(Color.minoBackground)
+        .minoHeroBackground()
         .minoToolbarStyle()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if currentCategoryHasFiles {
+                    Button(role: .destructive) {
+                        showingDeleteAllConfirm = true
+                    } label: {
+                        Text("Delete All")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.minoError)
+                    }
+                }
+            }
+        }
+        .confirmationDialog(
+            "Delete All \(selectedCategory.rawValue) Files",
+            isPresented: $showingDeleteAllConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Delete \(currentCategoryFileCount) Files", role: .destructive) {
+                withAnimation {
+                    deleteAllInCurrentCategory()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete all \(selectedCategory.rawValue.lowercased()) files. This action cannot be undone.")
+        }
         .fullScreenCover(item: $fileToPreview) { file in
             PDFViewerView(documentURL: file.url)
+        }
+    }
+
+    // MARK: - Delete All
+
+    private func deleteAllInCurrentCategory() {
+        switch selectedCategory {
+        case .compressed:
+            appState.compressionService.clearAllResults()
+        case .merged:
+            appState.mergeService.clearAllResults()
+        case .split:
+            appState.splitService.clearAllResults()
         }
     }
 
@@ -59,7 +124,6 @@ struct GeneratedFilesView: View {
         HStack(spacing: 0) {
             ForEach(FileCategory.allCases, id: \.self) { category in
                 let isSelected = selectedCategory == category
-                let count = fileCount(for: category)
 
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -78,6 +142,7 @@ struct GeneratedFilesView: View {
                                     .matchedGeometryEffect(id: "segment", in: segmentNamespace)
                             }
                         }
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -237,17 +302,6 @@ struct GeneratedFilesView: View {
 
     // MARK: - Helpers
 
-    private func fileCount(for category: FileCategory) -> Int {
-        switch category {
-        case .compressed:
-            return appState.compressionService.recentResults.count
-        case .merged:
-            return appState.mergeService.recentResults.count
-        case .split:
-            return appState.splitService.recentResults.count
-        }
-    }
-
     private func openViewer(url: URL) {
         fileToPreview = PreviewFile(url: url)
     }
@@ -356,6 +410,7 @@ struct FileCard: View {
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
             )
+            .contentShape(Rectangle())
         }
         .buttonStyle(FileCardButtonStyle())
         .sheet(isPresented: $showingExportPicker) {

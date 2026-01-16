@@ -15,14 +15,43 @@ struct AboutView: View {
     private let agplURL = URL(string: "https://www.gnu.org/licenses/agpl-3.0.html")!
 
     @State private var showingIconExport = false
-
-    private var historyManager: HistoryManager { HistoryManager.shared }
+    @State private var showingStatistics = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // Statistics section
-                statisticsSection
+                // Quick Actions section
+                AboutSection(title: "Quick Actions") {
+                    VStack(spacing: 0) {
+                        Button {
+                            showingStatistics = true
+                        } label: {
+                            HStack(spacing: 14) {
+                                Image(systemName: "chart.bar.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(Color.minoAccent)
+                                    .frame(width: 28)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Statistics")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.white)
+                                    Text("View compression history and stats")
+                                        .font(.caption)
+                                        .foregroundStyle(.white.opacity(0.5))
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                    }
+                }
 
                 // About section
                 AboutSection(title: "About") {
@@ -129,7 +158,8 @@ struct AboutView: View {
                     }
                 }
 
-                // Developer section
+                // Developer section (DEBUG only)
+                #if DEBUG
                 AboutSection(title: "Developer") {
                     Button {
                         showingIconExport = true
@@ -141,76 +171,35 @@ struct AboutView: View {
                                 .foregroundStyle(Color.minoAccent)
                             Spacer()
                         }
+                        .contentShape(Rectangle())
                     }
                 }
+                #endif
 
                 Spacer(minLength: 100)
             }
             .padding()
         }
-        .background(Color.minoBackground)
+        .minoHeroBackground()
         .minoToolbarStyle()
         .sheet(isPresented: $showingIconExport) {
             AppIconExportView()
         }
-    }
-
-    // MARK: - Statistics Section
-
-    private var statisticsSection: some View {
-        AboutSection(title: "Statistics") {
-            VStack(spacing: 16) {
-                // Main stats grid
-                HStack(spacing: 12) {
-                    StatisticCard(
-                        icon: "doc.fill",
-                        value: "\(historyManager.totalFilesCompressed)",
-                        label: "Files Compressed"
-                    )
-
-                    StatisticCard(
-                        icon: "arrow.down.circle.fill",
-                        value: historyManager.formattedTotalSaved,
-                        label: "Space Saved"
-                    )
-                }
-
-                HStack(spacing: 12) {
-                    StatisticCard(
-                        icon: "percent",
-                        value: historyManager.formattedAverageReduction,
-                        label: "Avg. Reduction"
-                    )
-
-                    StatisticCard(
-                        icon: "doc.badge.plus",
-                        value: "\(totalGeneratedFiles)",
-                        label: "Files Generated"
-                    )
-                }
-
-                // Clear history button
-                if historyManager.totalFilesCompressed > 0 {
-                    Button {
-                        historyManager.clearHistory()
-                    } label: {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("Clear Statistics")
+        .sheet(isPresented: $showingStatistics) {
+            NavigationStack {
+                StatisticsView()
+                    .navigationTitle("Statistics")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                showingStatistics = false
+                            }
                         }
-                        .font(.subheadline)
-                        .foregroundStyle(Color.minoError)
                     }
-                    .padding(.top, 4)
-                }
             }
+            .environment(appState)
         }
-    }
-
-    private var totalGeneratedFiles: Int {
-        appState.compressionService.recentResults.count +
-        appState.mergeService.recentResults.count +
-        appState.splitService.recentResults.count
     }
 
     // MARK: - Views
@@ -309,34 +298,6 @@ struct AboutLinkRow: View {
             }
             .padding(.vertical, 12)
         }
-    }
-}
-
-// MARK: - Statistic Card
-
-struct StatisticCard: View {
-    let icon: String
-    let value: String
-    let label: String
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundStyle(Color.minoAccent)
-
-            Text(value)
-                .font(.title3.bold().monospacedDigit())
-                .foregroundStyle(.white)
-
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.5))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(Color.minoAccent.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 

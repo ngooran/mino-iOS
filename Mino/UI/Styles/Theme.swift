@@ -273,6 +273,59 @@ struct MinoSecondaryButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Hero Background
+
+/// Background with the MinoHeroImage as a subtle element at the bottom
+struct MinoHeroBackgroundModifier: ViewModifier {
+    var imageOpacity: Double = 0.4
+    var height: CGFloat = 300
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                ZStack {
+                    // Base background color
+                    Color.minoBackground
+
+                    // Hero image at the bottom
+                    VStack {
+                        Spacer()
+
+                        Image("MinoHeroImage")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: height)
+                            .clipped()
+                            .mask(
+                                // Gradient mask to fade out at top
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: .clear, location: 0),
+                                        .init(color: .clear, location: 0.1),
+                                        .init(color: .white.opacity(0.3), location: 0.3),
+                                        .init(color: .white.opacity(0.7), location: 0.5),
+                                        .init(color: .white, location: 0.7),
+                                        .init(color: .white, location: 1.0)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .opacity(imageOpacity)
+                    }
+                }
+                .ignoresSafeArea()
+            }
+    }
+}
+
+extension View {
+    /// Replaces background with minoBackground + subtle hero image at bottom
+    func minoHeroBackground(imageOpacity: Double = 0.4, height: CGFloat = 300) -> some View {
+        modifier(MinoHeroBackgroundModifier(imageOpacity: imageOpacity, height: height))
+    }
+}
+
 // MARK: - View Modifiers
 
 /// Glass card styling modifier

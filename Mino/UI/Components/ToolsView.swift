@@ -27,7 +27,7 @@ struct ToolsView: View {
             }
             .padding()
         }
-        .background(Color.minoBackground)
+        .minoHeroBackground()
         .minoToolbarStyle()
     }
 
@@ -60,11 +60,11 @@ struct ToolsView: View {
 
     // MARK: - Compress Card
 
-    private var compressCard: some View {
-        @Bindable var state = appState
+    @State private var showingCompressPicker = false
 
-        return Button {
-            state.showingDocumentPicker = true
+    private var compressCard: some View {
+        Button {
+            showingCompressPicker = true
         } label: {
             HStack(spacing: 16) {
                 // Icon
@@ -84,7 +84,7 @@ struct ToolsView: View {
                         .font(.headline)
                         .foregroundStyle(.white)
 
-                    Text("Reduce file size while maintaining quality")
+                    Text("Select one or multiple PDFs to compress")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
                         .lineLimit(2)
@@ -101,6 +101,31 @@ struct ToolsView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .sheet(isPresented: $showingCompressPicker) {
+            MultiDocumentPicker { urls in
+                Task {
+                    await handleCompressSelection(urls: urls)
+                }
+            } onCancel: {
+                showingCompressPicker = false
+            }
+        }
+    }
+
+    private func handleCompressSelection(urls: [URL]) async {
+        showingCompressPicker = false
+
+        var documents: [PDFDocumentInfo] = []
+        for url in urls {
+            if let doc = try? await appState.documentImporter.importDocument(from: url) {
+                documents.append(doc)
+            }
+        }
+
+        guard !documents.isEmpty else { return }
+
+        // Use unified compression flow for both single and multiple files
+        appState.startCompressionForDocuments(documents)
     }
 
     // MARK: - Merge Card

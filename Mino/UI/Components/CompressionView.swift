@@ -11,7 +11,7 @@ struct CompressionView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
-    let document: PDFDocumentInfo
+    let documents: [PDFDocumentInfo]
 
     @State private var selectedQuality: CompressionQuality = .medium
     @State private var isAdvancedMode = false
@@ -19,9 +19,23 @@ struct CompressionView: View {
     @State private var isCompressing = false
     @State private var currentPhase: CompressionPhase = .opening
 
+    /// Whether this is a batch compression (multiple files)
+    private var isBatch: Bool { documents.count > 1 }
+
     /// Current settings based on mode
     private var currentSettings: CompressionSettings {
         isAdvancedMode ? customSettings : selectedQuality.settings
+    }
+
+    /// Total pages across all documents
+    private var totalPages: Int {
+        documents.reduce(0) { $0 + $1.pageCount }
+    }
+
+    /// Total size of all documents
+    private var totalSize: String {
+        let bytes = documents.reduce(Int64(0)) { $0 + $1.fileSize }
+        return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 
     var body: some View {
@@ -31,8 +45,12 @@ struct CompressionView: View {
                 VStack(spacing: 0) {
                     ScrollView {
                         VStack(spacing: 24) {
-                            // Document info
-                            DocumentInfoHeader(document: document)
+                            // Document info - single or list
+                            if isBatch {
+                                DocumentListHeader(documents: documents)
+                            } else if let document = documents.first {
+                                DocumentInfoHeader(document: document)
+                            }
 
                             Divider()
                                 .background(Color.minoCardBorder)
@@ -66,24 +84,31 @@ struct CompressionView: View {
 
                 // Compression overlay
                 if isCompressing {
-                    CompressionOverlay(
-                        currentPhase: currentPhase,
-                        fileName: document.name
-                    )
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    if isBatch {
+                        BatchCompressionOverlay()
+                            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    } else if let document = documents.first {
+                        CompressionOverlay(
+                            currentPhase: currentPhase,
+                            fileName: document.name
+                        )
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    }
                 }
             }
             .background(Color.minoBackground)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isCompressing)
-            .navigationTitle("Compress PDF")
+            .navigationTitle(isBatch ? "Compress \(documents.count) PDFs" : "Compress PDF")
             .navigationBarTitleDisplayMode(.inline)
             .minoToolbarStyle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(isCompressing ? "Cancel" : "Close") {
+                        if isCompressing {
+                            appState.batchCompressionService.cancelBatch()
+                        }
                         dismiss()
                     }
-                    .disabled(isCompressing)
                     .foregroundStyle(Color.minoAccent)
                 }
             }
@@ -122,9 +147,9 @@ struct CompressionView: View {
             startCompression()
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: "arrow.down.circle.fill")
+                Image(systemName: isBatch ? "bolt.fill" : "arrow.down.circle.fill")
                     .font(.title2)
-                Text("Compress PDF")
+                Text(isBatch ? "Compress \(documents.count) PDFs" : "Compress PDF")
                     .font(.headline)
             }
             .frame(maxWidth: .infinity)
@@ -140,8 +165,18 @@ struct CompressionView: View {
     // MARK: - Actions
 
     private func startCompression() {
-        // Show overlay immediately
         isCompressing = true
+        HapticManager.shared.compressionStart()
+
+        if isBatch {
+            startBatchCompression()
+        } else {
+            startSingleCompression()
+        }
+    }
+
+    private func startSingleCompression() {
+        guard let document = documents.first else { return }
         currentPhase = .opening
 
         Task {
@@ -171,10 +206,41 @@ struct CompressionView: View {
                 try? await Task.sleep(nanoseconds: 600_000_000)
 
                 isCompressing = false
+                HapticManager.shared.compressionComplete()
                 dismiss()
                 appState.showResults(result)
             } catch {
                 isCompressing = false
+                HapticManager.shared.error()
+                appState.showError(error)
+            }
+        }
+    }
+
+    private func startBatchCompression() {
+        Task {
+            do {
+                let results = try await appState.batchCompressionService.startBatch(
+                    documents: documents,
+                    settings: currentSettings
+                )
+
+                // Add all results to compression service so they show in Files tab
+                for result in results {
+                    appState.compressionService.addBatchResult(result)
+                }
+
+                isCompressing = false
+                HapticManager.shared.compressionComplete()
+                dismiss()
+
+                // Show summary for batch
+                if !results.isEmpty {
+                    appState.showBatchResults(results)
+                }
+            } catch {
+                isCompressing = false
+                HapticManager.shared.error()
                 appState.showError(error)
             }
         }
@@ -648,6 +714,331 @@ struct DocumentInfoHeader: View {
     }
 }
 
+// MARK: - Document List Header (for batch compression)
+
+struct DocumentListHeader: View {
+    let documents: [PDFDocumentInfo]
+
+    private var totalPages: Int {
+        documents.reduce(0) { $0 + $1.pageCount }
+    }
+
+    private var totalSize: String {
+        let bytes = documents.reduce(Int64(0)) { $0 + $1.fileSize }
+        return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Summary header
+            HStack {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.minoAccent.opacity(0.15))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: "doc.on.doc.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.minoAccent)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(documents.count) PDFs Selected")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+
+                    Text("\(totalPages) pages • \(totalSize)")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+
+                Spacer()
+            }
+            .padding()
+
+            Divider()
+                .background(Color.minoCardBorder)
+
+            // Document list
+            VStack(spacing: 0) {
+                ForEach(documents) { document in
+                    DocumentListRow(document: document)
+                }
+            }
+        }
+        .background(Color.minoCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.minoCardBorder, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Document List Row
+
+struct DocumentListRow: View {
+    let document: PDFDocumentInfo
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "doc.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(Color.minoAccent.opacity(0.6))
+                .frame(width: 24)
+
+            Text(document.name)
+                .font(.subheadline)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+
+            Spacer()
+
+            Text(document.formattedSize)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.4))
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+    }
+}
+
+// MARK: - Batch Compression Overlay
+
+struct BatchCompressionOverlay: View {
+    @Environment(AppState.self) private var appState
+
+    private var queue: BatchCompressionQueue? {
+        appState.batchCompressionService.currentQueue
+    }
+
+    private var progress: Double {
+        guard let queue = queue, queue.count > 0 else { return 0 }
+        return Double(queue.completedCount) / Double(queue.count)
+    }
+
+    var body: some View {
+        ZStack {
+            // Dimmed background
+            Color.black.opacity(0.6)
+                .ignoresSafeArea()
+
+            // Modal card
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 16) {
+                    // Spinning icon
+                    ZStack {
+                        Circle()
+                            .fill(Color.minoAccent.opacity(0.15))
+                            .frame(width: 64, height: 64)
+
+                        SpinningDocIcon()
+                    }
+
+                    // Title and progress text
+                    VStack(spacing: 4) {
+                        Text("Compressing PDFs")
+                            .font(.title3.bold())
+                            .foregroundStyle(.white)
+
+                        if let queue = queue {
+                            Text("\(queue.completedCount) of \(queue.count) files completed")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.6))
+                        }
+                    }
+
+                    // Overall progress bar
+                    VStack(spacing: 6) {
+                        ProgressView(value: progress)
+                            .tint(Color.minoAccent)
+
+                        Text("\(Int(progress * 100))%")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
+                    .padding(.horizontal)
+                }
+                .padding(.top, 24)
+                .padding(.bottom, 16)
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
+
+                // File list
+                if let queue = queue {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(queue.items.enumerated()), id: \.element.id) { index, item in
+                                    BatchFileProgressRow(
+                                        index: index + 1,
+                                        item: item
+                                    )
+                                    .id(item.id)
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 280)
+                        .onChange(of: queue.currentIndex) { _, newIndex in
+                            if let newIndex = newIndex,
+                               let item = queue.item(at: newIndex) {
+                                withAnimation {
+                                    proxy.scrollTo(item.id, anchor: .center)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: 340)
+            .background {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.3), radius: 30, y: 10)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.3), .white.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+        }
+    }
+}
+
+// MARK: - Batch File Progress Row
+
+struct BatchFileProgressRow: View {
+    let index: Int
+    let item: BatchCompressionItem
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Status icon
+            ZStack {
+                Circle()
+                    .fill(statusColor.opacity(0.15))
+                    .frame(width: 32, height: 32)
+
+                if item.state.isActive {
+                    // Spinning indicator for active
+                    Circle()
+                        .trim(from: 0, to: 0.7)
+                        .stroke(Color.minoAccent, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                        .frame(width: 18, height: 18)
+                        .rotationEffect(.degrees(rotationAngle))
+                        .onAppear {
+                            withAnimation(.linear(duration: 0.8).repeatForever(autoreverses: false)) {
+                                rotationAngle = 360
+                            }
+                        }
+                } else {
+                    Image(systemName: statusIcon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(statusColor)
+                }
+            }
+
+            // File info
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.document.name)
+                    .font(.subheadline.weight(item.state.isActive ? .semibold : .regular))
+                    .foregroundStyle(item.state.isActive ? .white : .white.opacity(0.8))
+                    .lineLimit(1)
+
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(statusTextColor)
+            }
+
+            Spacer()
+
+            // Reduction badge for completed
+            if case .completed(let result) = item.state {
+                Text("-\(result.formattedReduction)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.minoSuccess)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.minoSuccess.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(item.state.isActive ? Color.minoAccent.opacity(0.1) : Color.clear)
+    }
+
+    @State private var rotationAngle: Double = 0
+
+    private var statusColor: Color {
+        switch item.state {
+        case .pending:
+            return .white.opacity(0.3)
+        case .compressing:
+            return Color.minoAccent
+        case .completed:
+            return Color.minoSuccess
+        case .failed:
+            return Color.minoError
+        case .skipped:
+            return .white.opacity(0.3)
+        }
+    }
+
+    private var statusIcon: String {
+        switch item.state {
+        case .pending:
+            return "clock"
+        case .compressing:
+            return "arrow.down.circle"
+        case .completed:
+            return "checkmark"
+        case .failed:
+            return "xmark"
+        case .skipped:
+            return "forward.fill"
+        }
+    }
+
+    private var statusText: String {
+        switch item.state {
+        case .pending:
+            return "Waiting..."
+        case .compressing:
+            return "Compressing..."
+        case .completed(let result):
+            return "\(result.formattedOriginalSize) → \(result.formattedCompressedSize)"
+        case .failed(let error):
+            return error
+        case .skipped:
+            return "Skipped"
+        }
+    }
+
+    private var statusTextColor: Color {
+        switch item.state {
+        case .pending:
+            return .white.opacity(0.4)
+        case .compressing:
+            return Color.minoAccent
+        case .completed:
+            return .white.opacity(0.5)
+        case .failed:
+            return Color.minoError.opacity(0.8)
+        case .skipped:
+            return .white.opacity(0.4)
+        }
+    }
+}
+
 // MARK: - Quality Selector
 
 struct QualitySelector: View {
@@ -727,7 +1118,7 @@ struct QualityOptionRow: View {
         pageCount: 10
     )
 
-    return CompressionView(document: document)
+    return CompressionView(documents: [document])
         .environment(AppState())
         .preferredColorScheme(.dark)
 }

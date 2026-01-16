@@ -104,6 +104,11 @@ final class CompressionService {
 
     // MARK: - Result Management
 
+    /// Adds a result from batch compression
+    func addBatchResult(_ result: CompressionResult) {
+        addToRecentResults(result)
+    }
+
     /// Deletes a single compression result and its file
     func deleteResult(_ result: CompressionResult) {
         // Remove file from disk

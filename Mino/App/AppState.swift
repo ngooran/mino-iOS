@@ -38,8 +38,11 @@ final class AppState {
     /// List of imported documents
     var importedDocuments: [PDFDocumentInfo] = []
 
-    /// Currently selected document for compression
+    /// Currently selected document for compression (single file)
     var selectedDocument: PDFDocumentInfo?
+
+    /// Documents to compress (unified for single and batch)
+    var documentsToCompress: [PDFDocumentInfo] = []
 
     /// Selected compression quality
     var selectedQuality: CompressionQuality = .medium
@@ -52,10 +55,13 @@ final class AppState {
     /// Whether the compression view is showing
     var showingCompressionView = false
 
-    /// Whether the results view is showing
+    /// Whether the results view is showing (single file)
     var showingResultsView = false
 
-    /// The current compression result to display
+    /// Whether the batch results view is showing
+    var showingBatchResultsView = false
+
+    /// The current compression result to display (single file)
     var currentResult: CompressionResult?
 
     // MARK: - Tools Navigation State
@@ -134,5 +140,24 @@ final class AppState {
         if let document = selectedDocument {
             HistoryManager.shared.addEntry(from: result, originalFileName: document.name)
         }
+    }
+
+    /// Shows results for batch compression
+    func showBatchResults(_ results: [CompressionResult]) {
+        // Track all in history
+        for (index, result) in results.enumerated() {
+            if index < documentsToCompress.count {
+                HistoryManager.shared.addEntry(from: result, originalFileName: documentsToCompress[index].name)
+            }
+        }
+
+        // Show the batch results view
+        showingBatchResultsView = true
+    }
+
+    /// Starts compression for documents (single or batch)
+    func startCompressionForDocuments(_ documents: [PDFDocumentInfo]) {
+        documentsToCompress = documents
+        showingCompressionView = true
     }
 }

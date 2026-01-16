@@ -100,8 +100,12 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $state.showingCompressionView) {
-            if let document = state.selectedDocument {
-                CompressionView(document: document)
+            if !state.documentsToCompress.isEmpty {
+                CompressionView(documents: state.documentsToCompress)
+                    .environment(appState)
+            } else if let document = state.selectedDocument {
+                // Fallback for legacy single document flow
+                CompressionView(documents: [document])
                     .environment(appState)
             }
         }
@@ -109,6 +113,14 @@ struct ContentView: View {
             if let result = state.currentResult {
                 ResultsView(result: result)
                     .environment(appState)
+            }
+        }
+        .sheet(isPresented: $state.showingBatchResultsView) {
+            if let queue = state.batchCompressionService.currentQueue {
+                BatchResultsView(queue: queue) {
+                    state.showingBatchResultsView = false
+                }
+                .environment(appState)
             }
         }
         .alert("Error", isPresented: $state.showingError) {
@@ -130,10 +142,6 @@ struct ContentView: View {
                 SplitView(document: document)
                     .environment(appState)
             }
-        }
-        .sheet(isPresented: $state.showingBatchCompressionView) {
-            BatchCompressionView(documents: state.documentsForBatchCompression)
-                .environment(appState)
         }
         .sheet(isPresented: $state.showingDocumentPickerForSplit) {
             DocumentPicker { url in
@@ -194,8 +202,7 @@ struct ContentView: View {
 
         if !documents.isEmpty {
             appState.showingMultiDocumentPicker = false
-            appState.documentsForBatchCompression = documents
-            appState.showingBatchCompressionView = true
+            appState.startCompressionForDocuments(documents)
         }
     }
 }

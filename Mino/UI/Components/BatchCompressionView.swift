@@ -14,11 +14,18 @@ struct BatchCompressionView: View {
     let documents: [PDFDocumentInfo]
 
     @State private var selectedQuality: CompressionQuality = .medium
+    @State private var isAdvancedMode = false
+    @State private var customSettings = CompressionSettings.default
     @State private var isCompressing = false
     @State private var showingResults = false
 
     private var queue: BatchCompressionQueue? {
         appState.batchCompressionService.currentQueue
+    }
+
+    /// Current settings based on mode
+    private var currentSettings: CompressionSettings {
+        isAdvancedMode ? customSettings : selectedQuality.settings
     }
 
     var body: some View {
@@ -51,6 +58,10 @@ struct BatchCompressionView: View {
                 }
             }
             .minoToolbarStyle()
+            .onAppear {
+                // Clear any previous queue when view appears with new documents
+                appState.batchCompressionService.clearQueue()
+            }
             .sheet(isPresented: $showingResults) {
                 if let queue = queue {
                     BatchResultsView(queue: queue) {
@@ -95,14 +106,16 @@ struct BatchCompressionView: View {
                 if let queue = queue {
                     ForEach(queue.items) { item in
                         BatchDocumentRow(item: item)
+                            .listRowSeparator(.hidden)
                     }
                 } else {
                     ForEach(documents) { document in
                         PendingDocumentRow(document: document)
+                            .listRowSeparator(.hidden)
                     }
                 }
             } header: {
-                Text("\(documents.count) FILES")
+                Text("\(queue?.items.count ?? documents.count) FILES")
             }
         }
         .listStyle(.insetGrouped)
@@ -113,25 +126,50 @@ struct BatchCompressionView: View {
 
     private var bottomBar: some View {
         VStack(spacing: 16) {
-            // Quality selector
-            VStack(alignment: .leading, spacing: 8) {
-                Text("COMPRESSION QUALITY")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.5))
-                    .tracking(0.5)
+            // Advanced mode toggle
+            HStack {
+                Text("Advanced Settings")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.6))
 
-                HStack(spacing: 10) {
-                    ForEach(CompressionQuality.allCases, id: \.self) { quality in
-                        QualityButton(
-                            quality: quality,
-                            isSelected: selectedQuality == quality
-                        ) {
-                            selectedQuality = quality
+                Spacer()
+
+                Toggle("", isOn: $isAdvancedMode)
+                    .labelsHidden()
+                    .tint(Color.minoAccent)
+                    .onChange(of: isAdvancedMode) { _, newValue in
+                        if newValue {
+                            customSettings = selectedQuality.settings
+                            customSettings.preset = nil
+                        }
+                    }
+            }
+            .padding(.horizontal)
+
+            // Quality selector or advanced settings
+            if isAdvancedMode {
+                AdvancedSettingsView(settings: $customSettings)
+                    .padding(.horizontal)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("COMPRESSION QUALITY")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .tracking(0.5)
+
+                    HStack(spacing: 10) {
+                        ForEach(CompressionQuality.allCases, id: \.self) { quality in
+                            QualityButton(
+                                quality: quality,
+                                isSelected: selectedQuality == quality
+                            ) {
+                                selectedQuality = quality
+                            }
                         }
                     }
                 }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
 
             // Summary
             HStack {
@@ -158,6 +196,7 @@ struct BatchCompressionView: View {
                 .padding(.vertical, 16)
                 .foregroundStyle(.white)
                 .minoGlassAccentButton()
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .padding(.horizontal)
@@ -184,10 +223,15 @@ struct BatchCompressionView: View {
         HapticManager.shared.compressionStart()
 
         do {
-            _ = try await appState.batchCompressionService.startBatch(
+            let results = try await appState.batchCompressionService.startBatch(
                 documents: documents,
-                quality: selectedQuality
+                settings: currentSettings
             )
+
+            // Add results to compression service so they show in Files tab
+            for result in results {
+                appState.compressionService.addBatchResult(result)
+            }
 
             isCompressing = false
             HapticManager.shared.compressionComplete()
@@ -222,6 +266,7 @@ struct QualityButton: View {
             .foregroundStyle(.white)
             .background(isSelected ? Color.minoAccent : Color.white.opacity(0.1))
             .clipShape(RoundedRectangle(cornerRadius: 10))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -378,6 +423,8 @@ struct BatchResultsView: View {
     let queue: BatchCompressionQueue
     let onDone: () -> Void
 
+    @State private var fileToPreview: PreviewFile?
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
@@ -416,13 +463,21 @@ struct BatchResultsView: View {
                 .padding(.horizontal)
 
                 // Results list
-                List(queue.results) { result in
-                    CompressedFileCard(result: result)
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(queue.results) { result in
+                            Button {
+                                fileToPreview = PreviewFile(url: result.outputURL)
+                            } label: {
+                                CompressedFileCard(result: result)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(BatchResultCardButtonStyle())
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 20)
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
             }
             .background(Color.minoBackground)
             .navigationBarTitleDisplayMode(.inline)
@@ -434,7 +489,21 @@ struct BatchResultsView: View {
                 }
             }
             .minoToolbarStyle()
+            .fullScreenCover(item: $fileToPreview) { file in
+                PDFViewerView(documentURL: file.url)
+            }
         }
+    }
+}
+
+// MARK: - Batch Result Card Button Style
+
+struct BatchResultCardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 
