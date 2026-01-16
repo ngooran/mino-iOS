@@ -355,6 +355,7 @@ struct MergeResultView: View {
     let onDone: () -> Void
 
     @State private var showingExportPicker = false
+    @State private var showingPDFViewer = false
 
     var body: some View {
         NavigationStack {
@@ -397,10 +398,13 @@ struct MergeResultView: View {
 
                 // Action buttons
                 VStack(spacing: 12) {
-                    ShareLink(item: result.outputURL) {
+                    // View PDF - primary action
+                    Button {
+                        showingPDFViewer = true
+                    } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "square.and.arrow.up")
-                            Text("Share")
+                            Image(systemName: "doc.text.magnifyingglass")
+                            Text("View PDF")
                         }
                         .font(.headline)
                         .frame(maxWidth: .infinity)
@@ -411,22 +415,40 @@ struct MergeResultView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Button {
-                        showingExportPicker = true
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "folder")
-                            Text("Save to Files")
+                    // Secondary actions row
+                    HStack(spacing: 12) {
+                        ShareLink(item: result.outputURL) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("Share")
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .foregroundStyle(.white)
+                            .background(Color.white.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .contentShape(Rectangle())
                         }
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .foregroundStyle(.white)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+
+                        Button {
+                            showingExportPicker = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "folder")
+                                Text("Save to Files")
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .foregroundStyle(.white)
+                            .background(Color.white.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal)
             }
@@ -445,6 +467,9 @@ struct MergeResultView: View {
                 DocumentExporter(url: result.outputURL) { _ in
                     showingExportPicker = false
                 }
+            }
+            .fullScreenCover(isPresented: $showingPDFViewer) {
+                PDFViewerView(documentURL: result.outputURL)
             }
         }
     }
