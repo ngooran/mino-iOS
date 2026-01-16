@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import StoreKit
+import UIKit
 
 @Observable
 final class HistoryManager {
@@ -17,6 +19,16 @@ final class HistoryManager {
 
     private let storageKey = "compressionHistory"
     private let maxEntries = 100
+
+    // MARK: - Review Request Properties
+
+    private let goodOperationsKey = "goodOperationsCount"
+    private let lastReviewRequestKey = "lastReviewRequestDate"
+    private let minimumGoodOperations = 2
+    private let monthsBetweenRequests = 4
+
+    /// Minimum reduction percentage to count as a "good" compression
+    private let minimumGoodReduction: Double = 15.0
 
     // MARK: - Computed Statistics
 
@@ -118,5 +130,71 @@ final class HistoryManager {
         } catch {
             print("Failed to save history: \(error)")
         }
+    }
+
+    // MARK: - Review Request
+
+    /// Current count of good operations
+    private var goodOperationsCount: Int {
+        get { UserDefaults.standard.integer(forKey: goodOperationsKey) }
+        set { UserDefaults.standard.set(newValue, forKey: goodOperationsKey) }
+    }
+
+    /// Date of last review request
+    private var lastReviewRequestDate: Date? {
+        get { UserDefaults.standard.object(forKey: lastReviewRequestKey) as? Date }
+        set { UserDefaults.standard.set(newValue, forKey: lastReviewRequestKey) }
+    }
+
+    /// Records a good compression operation (>15% reduction)
+    func recordGoodCompression(reductionPercentage: Double) {
+        guard reductionPercentage >= minimumGoodReduction else { return }
+        goodOperationsCount += 1
+    }
+
+    /// Records a successful merge operation
+    func recordGoodMerge() {
+        goodOperationsCount += 1
+    }
+
+    /// Records a successful split operation
+    func recordGoodSplit() {
+        goodOperationsCount += 1
+    }
+
+    /// Checks if conditions are met and requests a review if appropriate
+    func requestReviewIfAppropriate() {
+        guard shouldRequestReview() else { return }
+
+        lastReviewRequestDate = Date()
+
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            await MainActor.run {
+                if let scene = UIApplication.shared.connectedScenes
+                    .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                    AppStore.requestReview(in: scene)
+                }
+            }
+        }
+    }
+
+    /// Determines if we should request a review
+    private func shouldRequestReview() -> Bool {
+        // Need at least minimum good operations
+        guard goodOperationsCount >= minimumGoodOperations else { return false }
+
+        // Check if we've never requested before
+        guard let lastRequest = lastReviewRequestDate else {
+            return true
+        }
+
+        // Check if enough months have passed
+        let calendar = Calendar.current
+        if let monthsAgo = calendar.date(byAdding: .month, value: -monthsBetweenRequests, to: Date()) {
+            return lastRequest < monthsAgo
+        }
+
+        return false
     }
 }

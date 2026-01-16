@@ -68,6 +68,9 @@ struct ResultsView: View {
 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
+                        // Record good compression and potentially request review
+                        HistoryManager.shared.recordGoodCompression(reductionPercentage: result.reductionPercentage)
+                        HistoryManager.shared.requestReviewIfAppropriate()
                         dismiss()
                     }
                     .foregroundStyle(Color.minoAccent)

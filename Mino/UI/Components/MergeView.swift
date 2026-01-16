@@ -458,6 +458,9 @@ struct MergeResultView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
+                        // Record good merge and potentially request review
+                        HistoryManager.shared.recordGoodMerge()
+                        HistoryManager.shared.requestReviewIfAppropriate()
                         onDone()
                     }
                 }

@@ -484,6 +484,11 @@ struct BatchResultsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
+                        // Record good compressions and potentially request review
+                        for result in queue.results {
+                            HistoryManager.shared.recordGoodCompression(reductionPercentage: result.reductionPercentage)
+                        }
+                        HistoryManager.shared.requestReviewIfAppropriate()
                         onDone()
                     }
                 }

@@ -514,6 +514,9 @@ struct SplitResultsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
+                        // Record good split and potentially request review
+                        HistoryManager.shared.recordGoodSplit()
+                        HistoryManager.shared.requestReviewIfAppropriate()
                         onDone()
                     }
                 }

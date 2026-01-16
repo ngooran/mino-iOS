@@ -13,6 +13,8 @@ struct AboutView: View {
     private let sourceCodeURL = URL(string: "https://github.com/ngooran/mino-iOS")!
     private let mupdfURL = URL(string: "https://mupdf.com")!
     private let agplURL = URL(string: "https://www.gnu.org/licenses/agpl-3.0.html")!
+    private let appStoreReviewURL = URL(string: "https://apps.apple.com/app/id6757166913?action=write-review")!
+    private let moreAppsURL = URL(string: "https://apps.apple.com/us/developer/navid-gooranourimi/id884947829")!
 
     @State private var showingIconExport = false
     @State private var showingStatistics = false
@@ -49,6 +51,62 @@ struct AboutView: View {
                             }
                             .padding(.vertical, 12)
                             .contentShape(Rectangle())
+                        }
+
+                        Divider()
+                            .background(Color.minoCardBorder)
+
+                        Link(destination: appStoreReviewURL) {
+                            HStack(spacing: 14) {
+                                Image(systemName: "star.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(.yellow)
+                                    .frame(width: 28)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Rate App")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.white)
+                                    Text("Leave a review on the App Store")
+                                        .font(.caption)
+                                        .foregroundStyle(.white.opacity(0.5))
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                            .padding(.vertical, 12)
+                        }
+
+                        Divider()
+                            .background(Color.minoCardBorder)
+
+                        Link(destination: moreAppsURL) {
+                            HStack(spacing: 14) {
+                                Image(systemName: "square.stack.3d.up.fill")
+                                    .font(.title3)
+                                    .foregroundStyle(Color.minoAccent)
+                                    .frame(width: 28)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("More Apps")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.white)
+                                    Text("Check out our other apps")
+                                        .font(.caption)
+                                        .foregroundStyle(.white.opacity(0.5))
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.5))
+                            }
+                            .padding(.vertical, 12)
                         }
                     }
                 }
