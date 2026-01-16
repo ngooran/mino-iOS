@@ -90,6 +90,7 @@ struct ContentView: View {
             .tag(Tab.about)
         }
         .tint(Color.minoAccent)
+        .preferredColorScheme(.dark)
         .sheet(isPresented: $state.showingDocumentPicker) {
             DocumentPicker { url in
                 Task {
