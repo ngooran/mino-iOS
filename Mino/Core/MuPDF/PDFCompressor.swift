@@ -195,6 +195,25 @@ struct CompressionResult: Sendable, Identifiable, Codable {
         self.timestamp = Date()
     }
 
+    /// Full initializer for restoring from persistence
+    nonisolated init(
+        id: UUID,
+        outputURL: URL,
+        originalSize: Int64,
+        compressedSize: Int64,
+        settings: CompressionSettings,
+        duration: TimeInterval,
+        timestamp: Date
+    ) {
+        self.id = id
+        self.outputURL = outputURL
+        self.originalSize = originalSize
+        self.compressedSize = compressedSize
+        self.settings = settings
+        self.duration = duration
+        self.timestamp = timestamp
+    }
+
     /// Legacy initializer for compatibility
     nonisolated init(
         outputURL: URL,
@@ -384,10 +403,10 @@ final class PDFCompressor: @unchecked Sendable {
 
         let originalName = originalURL.deletingPathExtension().lastPathComponent
         let timestamp = Int(Date().timeIntervalSince1970)
-        let suffix = settings.displayName.lowercased()
 
+        // Format: Compressed_DocumentName_1234567890.pdf
         return documentsDir
-            .appendingPathComponent("\(originalName)_\(suffix)_\(timestamp)")
+            .appendingPathComponent("Compressed_\(originalName)_\(timestamp)")
             .appendingPathExtension("pdf")
     }
 

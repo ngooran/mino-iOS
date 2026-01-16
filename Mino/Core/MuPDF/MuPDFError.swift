@@ -20,6 +20,15 @@ enum MuPDFError: Error, LocalizedError {
     case accessDenied(path: String)
     case unknownError(String)
 
+    // Merge/Split specific errors
+    case documentCreationFailed
+    case graftMapFailed
+    case pageGraftFailed(page: Int, reason: String)
+    case mergeFailed(reason: String)
+    case splitFailed(reason: String)
+    case invalidPageRange(start: Int, end: Int, pageCount: Int)
+    case pageDeleteFailed(page: Int, reason: String)
+
     var errorDescription: String? {
         switch self {
         case .contextCreationFailed:
@@ -48,6 +57,20 @@ enum MuPDFError: Error, LocalizedError {
             return "Access denied: \(file)"
         case .unknownError(let message):
             return message
+        case .documentCreationFailed:
+            return "Failed to create new PDF document"
+        case .graftMapFailed:
+            return "Failed to initialize page copy operation"
+        case .pageGraftFailed(let page, let reason):
+            return "Failed to copy page \(page + 1): \(reason)"
+        case .mergeFailed(let reason):
+            return "Failed to merge PDFs: \(reason)"
+        case .splitFailed(let reason):
+            return "Failed to split PDF: \(reason)"
+        case .invalidPageRange(let start, let end, let pageCount):
+            return "Invalid page range \(start)-\(end) for document with \(pageCount) pages"
+        case .pageDeleteFailed(let page, let reason):
+            return "Failed to delete page \(page + 1): \(reason)"
         }
     }
 
@@ -63,6 +86,14 @@ enum MuPDFError: Error, LocalizedError {
             return "Check that you have permission to write to this location."
         case .fileNotFound:
             return "Verify the file exists and try again."
+        case .documentCreationFailed, .graftMapFailed:
+            return "Try closing other apps and try again."
+        case .pageGraftFailed, .mergeFailed:
+            return "Try with fewer or smaller PDFs."
+        case .splitFailed, .pageDeleteFailed:
+            return "Verify the PDF is not corrupted and try again."
+        case .invalidPageRange:
+            return "Select a valid page range within the document."
         default:
             return nil
         }

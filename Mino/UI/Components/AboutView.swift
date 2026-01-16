@@ -2,21 +2,28 @@
 //  AboutView.swift
 //  Mino
 //
-//  About screen with app info and licensing
+//  About screen with app info, statistics, and licensing
 //
 
 import SwiftUI
 
 struct AboutView: View {
+    @Environment(AppState.self) private var appState
+
     private let sourceCodeURL = URL(string: "https://github.com/ngooran/mino-iOS")!
     private let mupdfURL = URL(string: "https://mupdf.com")!
     private let agplURL = URL(string: "https://www.gnu.org/licenses/agpl-3.0.html")!
 
     @State private var showingIconExport = false
 
+    private var historyManager: HistoryManager { HistoryManager.shared }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // Statistics section
+                statisticsSection
+
                 // About section
                 AboutSection(title: "About") {
                     VStack(alignment: .leading, spacing: 12) {
@@ -148,6 +155,64 @@ struct AboutView: View {
         }
     }
 
+    // MARK: - Statistics Section
+
+    private var statisticsSection: some View {
+        AboutSection(title: "Statistics") {
+            VStack(spacing: 16) {
+                // Main stats grid
+                HStack(spacing: 12) {
+                    StatisticCard(
+                        icon: "doc.fill",
+                        value: "\(historyManager.totalFilesCompressed)",
+                        label: "Files Compressed"
+                    )
+
+                    StatisticCard(
+                        icon: "arrow.down.circle.fill",
+                        value: historyManager.formattedTotalSaved,
+                        label: "Space Saved"
+                    )
+                }
+
+                HStack(spacing: 12) {
+                    StatisticCard(
+                        icon: "percent",
+                        value: historyManager.formattedAverageReduction,
+                        label: "Avg. Reduction"
+                    )
+
+                    StatisticCard(
+                        icon: "doc.badge.plus",
+                        value: "\(totalGeneratedFiles)",
+                        label: "Files Generated"
+                    )
+                }
+
+                // Clear history button
+                if historyManager.totalFilesCompressed > 0 {
+                    Button {
+                        historyManager.clearHistory()
+                    } label: {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Clear Statistics")
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(Color.minoError)
+                    }
+                    .padding(.top, 4)
+                }
+            }
+        }
+    }
+
+    private var totalGeneratedFiles: Int {
+        appState.compressionService.recentResults.count +
+        appState.mergeService.recentResults.count +
+        appState.splitService.recentResults.count
+    }
+
     // MARK: - Views
 
     private func creditRow(name: String, role: String, license: String) -> some View {
@@ -247,9 +312,38 @@ struct AboutLinkRow: View {
     }
 }
 
+// MARK: - Statistic Card
+
+struct StatisticCard: View {
+    let icon: String
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundStyle(Color.minoAccent)
+
+            Text(value)
+                .font(.title3.bold().monospacedDigit())
+                .foregroundStyle(.white)
+
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.5))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(Color.minoAccent.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+}
+
 #Preview {
     NavigationStack {
         AboutView()
+            .environment(AppState())
     }
     .preferredColorScheme(.dark)
 }

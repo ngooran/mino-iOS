@@ -356,3 +356,185 @@ int mino_pixmap_stride(fz_context *ctx, fz_pixmap *pix) {
     if (!ctx || !pix) return 0;
     return fz_pixmap_stride(ctx, pix);
 }
+
+// MARK: - PDF Merge/Split Operations
+
+// Create a new empty PDF document
+pdf_document* mino_create_pdf_document(fz_context *ctx) {
+    if (!ctx) {
+        set_error("Invalid context");
+        return NULL;
+    }
+
+    mino_clear_error();
+    pdf_document *doc = NULL;
+
+    fz_try(ctx) {
+        doc = pdf_create_document(ctx);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return NULL;
+    }
+
+    return doc;
+}
+
+// Drop/close a PDF document
+void mino_drop_pdf_document(fz_context *ctx, pdf_document *doc) {
+    if (ctx && doc) {
+        pdf_drop_document(ctx, doc);
+    }
+}
+
+// Create a graft map for efficient multi-page copying
+pdf_graft_map* mino_new_graft_map(fz_context *ctx, pdf_document *dst) {
+    if (!ctx || !dst) {
+        set_error("Invalid context or destination document");
+        return NULL;
+    }
+
+    mino_clear_error();
+    pdf_graft_map *map = NULL;
+
+    fz_try(ctx) {
+        map = pdf_new_graft_map(ctx, dst);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return NULL;
+    }
+
+    return map;
+}
+
+// Drop/free a graft map
+void mino_drop_graft_map(fz_context *ctx, pdf_graft_map *map) {
+    if (ctx && map) {
+        pdf_drop_graft_map(ctx, map);
+    }
+}
+
+// Graft (copy) a page from source to destination document
+int mino_graft_page(
+    fz_context *ctx,
+    pdf_graft_map *map,
+    int page_to,
+    pdf_document *src,
+    int page_from
+) {
+    if (!ctx || !map || !src) {
+        set_error("Invalid parameters for page graft");
+        return -1;
+    }
+
+    mino_clear_error();
+
+    fz_try(ctx) {
+        pdf_graft_mapped_page(ctx, map, page_to, src, page_from);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+
+    return 0;
+}
+
+// Delete a single page from a PDF document
+int mino_delete_page(fz_context *ctx, pdf_document *doc, int page) {
+    if (!ctx || !doc) {
+        set_error("Invalid context or document");
+        return -1;
+    }
+
+    mino_clear_error();
+
+    fz_try(ctx) {
+        pdf_delete_page(ctx, doc, page);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+
+    return 0;
+}
+
+// Delete a range of pages from a PDF document
+int mino_delete_page_range(fz_context *ctx, pdf_document *doc, int start, int end) {
+    if (!ctx || !doc) {
+        set_error("Invalid context or document");
+        return -1;
+    }
+
+    if (start < 0 || end < start) {
+        set_error("Invalid page range");
+        return -1;
+    }
+
+    mino_clear_error();
+
+    fz_try(ctx) {
+        pdf_delete_page_range(ctx, doc, start, end);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+
+    return 0;
+}
+
+// Save a PDF document to file (without image recompression)
+int mino_save_pdf(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *output_path,
+    int garbage_level
+) {
+    if (!ctx || !doc || !output_path) {
+        set_error("Invalid parameters for save");
+        return -1;
+    }
+
+    mino_clear_error();
+
+    fz_try(ctx) {
+        pdf_write_options opts = pdf_default_write_options;
+        opts.do_garbage = garbage_level;
+        opts.do_compress = 1;
+        opts.do_compress_images = 0;  // Don't recompress images
+        opts.do_compress_fonts = 1;
+        opts.do_clean = 1;
+        opts.do_sanitize = 0;
+        opts.do_linear = 0;
+        opts.do_appearance = 0;
+
+        pdf_save_document(ctx, doc, output_path, &opts);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+
+    return 0;
+}
+
+// Get page count from a pdf_document
+int mino_pdf_count_pages(fz_context *ctx, pdf_document *doc) {
+    if (!ctx || !doc) {
+        return -1;
+    }
+
+    int count = 0;
+    fz_try(ctx) {
+        count = pdf_count_pages(ctx, doc);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+
+    return count;
+}

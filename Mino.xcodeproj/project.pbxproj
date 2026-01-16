@@ -54,19 +54,17 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		17EXCEP012EFDA700005B228 /* Mino Exceptions */ = {
+		17EXCEP012EFDA700005B228 /* Exceptions for "Mino" folder in "Mino" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Mino.entitlements,
 			);
 			target = 173B52452EFD9129005B2280 /* Mino */;
 		};
-		17EXCEP022EFDA700005B228 /* MinoShare Exceptions */ = {
+		17EXCEP022EFDA700005B228 /* Exceptions for "MinoShare" folder in "MinoShare" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				MinoShare.entitlements,
 			);
 			target = 17SHARE0082EFDA600005B228 /* MinoShare */;
 		};
@@ -76,7 +74,7 @@
 		173B52482EFD9129005B2280 /* Mino */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				17EXCEP012EFDA700005B228 /* Mino Exceptions */,
+				17EXCEP012EFDA700005B228 /* Exceptions for "Mino" folder in "Mino" target */,
 			);
 			path = Mino;
 			sourceTree = "<group>";
@@ -84,7 +82,7 @@
 		17SHARE0052EFDA600005B228 /* MinoShare */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				17EXCEP022EFDA700005B228 /* MinoShare Exceptions */,
+				17EXCEP022EFDA700005B228 /* Exceptions for "MinoShare" folder in "MinoShare" target */,
 			);
 			path = MinoShare;
 			sourceTree = "<group>";

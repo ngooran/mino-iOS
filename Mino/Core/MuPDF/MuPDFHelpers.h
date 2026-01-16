@@ -76,6 +76,56 @@ int mino_pixmap_stride(fz_context *ctx, fz_pixmap *pix);
 const char* mino_get_last_error(void);
 void mino_clear_error(void);
 
+// MARK: - PDF Merge/Split Operations
+
+// Create a new empty PDF document
+pdf_document* mino_create_pdf_document(fz_context *ctx);
+
+// Drop/close a PDF document (not the generic fz_document)
+void mino_drop_pdf_document(fz_context *ctx, pdf_document *doc);
+
+// Create a graft map for efficient multi-page copying
+pdf_graft_map* mino_new_graft_map(fz_context *ctx, pdf_document *dst);
+
+// Drop/free a graft map
+void mino_drop_graft_map(fz_context *ctx, pdf_graft_map *map);
+
+// Graft (copy) a page from source to destination document
+// page_to: destination page index (-1 to append at end)
+// page_from: source page index (0-based)
+// Returns 0 on success, -1 on error
+int mino_graft_page(
+    fz_context *ctx,
+    pdf_graft_map *map,
+    int page_to,
+    pdf_document *src,
+    int page_from
+);
+
+// Delete a single page from a PDF document
+// page: 0-based page index
+// Returns 0 on success, -1 on error
+int mino_delete_page(fz_context *ctx, pdf_document *doc, int page);
+
+// Delete a range of pages from a PDF document
+// start: first page to delete (0-based, inclusive)
+// end: last page to delete (0-based, exclusive)
+// Returns 0 on success, -1 on error
+int mino_delete_page_range(fz_context *ctx, pdf_document *doc, int start, int end);
+
+// Save a PDF document to file (without image recompression)
+// garbage_level: 0-4 for garbage collection level
+// Returns 0 on success, -1 on error
+int mino_save_pdf(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *output_path,
+    int garbage_level
+);
+
+// Get page count from a pdf_document (not fz_document)
+int mino_pdf_count_pages(fz_context *ctx, pdf_document *doc);
+
 #ifdef __cplusplus
 }
 #endif

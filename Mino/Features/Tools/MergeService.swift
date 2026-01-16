@@ -1,36 +1,36 @@
 //
-//  CompressionService.swift
+//  MergeService.swift
 //  Mino
 //
-//  Service for managing PDF compression operations
+//  Service for managing PDF merge operations
 //
 
 import Foundation
 
-/// Service that manages PDF compression jobs
+/// Service that manages PDF merge jobs
 @Observable
 @MainActor
-final class CompressionService {
+final class MergeService {
 
     // MARK: - Properties
 
-    /// The compression engine
-    private let compressor = PDFCompressor()
+    /// The merge engine
+    private let merger = PDFMerger()
 
-    /// The current compression job
-    private(set) var currentJob: CompressionJob?
+    /// The current merge job
+    private(set) var currentJob: MergeJob?
 
-    /// Recent compression results (persisted)
-    private(set) var recentResults: [CompressionResult] = []
+    /// Recent merge results (persisted)
+    private(set) var recentResults: [MergeResult] = []
 
-    /// Whether compression is in progress
-    private(set) var isCompressing = false
+    /// Whether a merge is in progress
+    private(set) var isMerging = false
 
     /// Maximum number of recent results to keep
     private let maxRecentResults = 50
 
     /// Storage key for persistence
-    private let storageKey = "compressionResults"
+    private let storageKey = "mergeResults"
 
     // MARK: - Initialization
 
@@ -38,63 +38,61 @@ final class CompressionService {
         loadResults()
     }
 
-    // MARK: - Compression
+    // MARK: - Merge Operations
 
-    /// Compresses a document with specified settings
-    func compress(
-        document: PDFDocumentInfo,
-        settings: CompressionSettings
-    ) async throws -> CompressionResult {
+    /// Merges multiple documents into a single PDF
+    func merge(
+        documents: [PDFDocumentInfo],
+        outputName: String
+    ) async throws -> MergeResult {
+        guard documents.count >= 2 else {
+            throw MuPDFError.invalidParameters
+        }
+
         // Create job
-        let job = CompressionJob(document: document, settings: settings)
+        let job = MergeJob(sourceDocuments: documents, outputName: outputName)
         currentJob = job
-        isCompressing = true
+        isMerging = true
 
         // Start
         job.updateState(.preparing)
 
         // Generate output URL
-        let outputURL = PDFCompressor.generateOutputURL(for: document.url, settings: settings)
+        let outputURL = PDFMerger.generateOutputURL(outputName: outputName)
 
         do {
-            // Update state
-            job.updateState(.compressing(progress: 0.5, phase: "Compressing..."))
-
             // Capture values for detached task
-            let compressor = self.compressor
-            let documentURL = document.url
+            let merger = self.merger
+            let sourceURLs = documents.map { $0.url }
 
-            // Perform compression on background thread
+            // Perform merge on background thread with progress updates
             let result = try await Task.detached(priority: .userInitiated) {
-                try compressor.compress(
-                    documentURL: documentURL,
-                    settings: settings,
-                    outputURL: outputURL
+                try merger.merge(
+                    sources: sourceURLs,
+                    outputURL: outputURL,
+                    progressHandler: { progress, currentFile in
+                        Task { @MainActor in
+                            job.updateState(.merging(progress: progress, currentFile: currentFile))
+                        }
+                    }
                 )
             }.value
 
             // Update job state
-            job.updateState(.completed(result: result))
+            job.updateState(.completed)
+            job.setResult(result)
 
             // Add to recent results and persist
             addToRecentResults(result)
 
-            isCompressing = false
+            isMerging = false
             return result
 
         } catch {
             job.updateState(.failed(error: error.localizedDescription))
-            isCompressing = false
+            isMerging = false
             throw error
         }
-    }
-
-    /// Compresses a document with specified quality preset
-    func compress(
-        document: PDFDocumentInfo,
-        quality: CompressionQuality
-    ) async throws -> CompressionResult {
-        try await compress(document: document, settings: quality.settings)
     }
 
     /// Clears the current job
@@ -104,8 +102,8 @@ final class CompressionService {
 
     // MARK: - Result Management
 
-    /// Deletes a single compression result and its file
-    func deleteResult(_ result: CompressionResult) {
+    /// Deletes a single merge result and its file
+    func deleteResult(_ result: MergeResult) {
         // Remove file from disk
         try? FileManager.default.removeItem(at: result.outputURL)
         // Remove from list
@@ -114,36 +112,20 @@ final class CompressionService {
         persistResults()
     }
 
-    /// Deletes multiple compression results
-    func deleteResults(_ results: [CompressionResult]) {
-        for result in results {
-            try? FileManager.default.removeItem(at: result.outputURL)
-        }
-        let idsToRemove = Set(results.map { $0.id })
-        recentResults.removeAll { idsToRemove.contains($0.id) }
-        persistResults()
-    }
-
     /// Clears all recent results and their files
     func clearAllResults() {
-        // Remove all files
         for result in recentResults {
             try? FileManager.default.removeItem(at: result.outputURL)
         }
-        // Clear list
         recentResults.removeAll()
-        // Persist changes
         persistResults()
-        // Also clear statistics
-        HistoryManager.shared.clearHistory()
     }
 
     // MARK: - Private Methods
 
-    private func addToRecentResults(_ result: CompressionResult) {
+    private func addToRecentResults(_ result: MergeResult) {
         recentResults.insert(result, at: 0)
         if recentResults.count > maxRecentResults {
-            // Remove old results beyond limit (and their files)
             let removed = Array(recentResults.suffix(from: maxRecentResults))
             for old in removed {
                 try? FileManager.default.removeItem(at: old.outputURL)
@@ -158,10 +140,10 @@ final class CompressionService {
     /// Storage struct that uses relative paths (survives app container changes)
     private struct StoredResult: Codable {
         let id: UUID
-        let relativePath: String  // e.g., "Compressed/file.pdf"
-        let originalSize: Int64
-        let compressedSize: Int64
-        let settings: CompressionSettings
+        let relativePath: String
+        let sourceCount: Int
+        let totalPages: Int
+        let outputSize: Int64
         let duration: TimeInterval
         let timestamp: Date
     }
@@ -177,39 +159,35 @@ final class CompressionService {
 
         do {
             let stored = try JSONDecoder().decode([StoredResult].self, from: data)
-            // Reconstruct full URLs and filter to existing files
-            recentResults = stored.compactMap { item -> CompressionResult? in
+            recentResults = stored.compactMap { item -> MergeResult? in
                 let fullURL = documentsDirectory
                     .appendingPathComponent(item.relativePath)
                     .standardizedFileURL
                 guard FileManager.default.fileExists(atPath: fullURL.path) else {
                     return nil
                 }
-                return CompressionResult(
+                return MergeResult(
                     id: item.id,
                     outputURL: fullURL,
-                    originalSize: item.originalSize,
-                    compressedSize: item.compressedSize,
-                    settings: item.settings,
+                    sourceCount: item.sourceCount,
+                    totalPages: item.totalPages,
+                    outputSize: item.outputSize,
                     duration: item.duration,
                     timestamp: item.timestamp
                 )
             }
-            // If some files were missing, update persistence
             if recentResults.count != stored.count {
                 persistResults()
             }
         } catch {
-            print("Failed to load compression results: \(error)")
+            print("Failed to load merge results: \(error)")
         }
     }
 
     private func persistResults() {
         do {
             let docsPath = documentsDirectory.standardizedFileURL.path
-            // Convert to storage format with relative paths
             let stored = recentResults.map { result -> StoredResult in
-                // Extract relative path using standardized paths
                 let fullPath = result.outputURL.standardizedFileURL.path
                 let relativePath: String
                 if fullPath.hasPrefix(docsPath + "/") {
@@ -217,15 +195,14 @@ final class CompressionService {
                 } else if fullPath.hasPrefix(docsPath) {
                     relativePath = String(fullPath.dropFirst(docsPath.count))
                 } else {
-                    // Fallback: just use the last path components
                     relativePath = result.outputURL.lastPathComponent
                 }
                 return StoredResult(
                     id: result.id,
                     relativePath: relativePath,
-                    originalSize: result.originalSize,
-                    compressedSize: result.compressedSize,
-                    settings: result.settings,
+                    sourceCount: result.sourceCount,
+                    totalPages: result.totalPages,
+                    outputSize: result.outputSize,
                     duration: result.duration,
                     timestamp: result.timestamp
                 )
@@ -233,7 +210,7 @@ final class CompressionService {
             let data = try JSONEncoder().encode(stored)
             UserDefaults.standard.set(data, forKey: storageKey)
         } catch {
-            print("Failed to save compression results: \(error)")
+            print("Failed to save merge results: \(error)")
         }
     }
 }

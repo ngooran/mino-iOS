@@ -24,6 +24,15 @@ final class AppState {
     /// Export service
     let exportService = ExportService()
 
+    /// Merge service
+    let mergeService = MergeService()
+
+    /// Split service
+    let splitService = SplitService()
+
+    /// Batch compression service
+    let batchCompressionService = BatchCompressionService()
+
     // MARK: - Document State
 
     /// List of imported documents
@@ -48,6 +57,31 @@ final class AppState {
 
     /// The current compression result to display
     var currentResult: CompressionResult?
+
+    // MARK: - Tools Navigation State
+
+    /// Whether the merge view is showing
+    var showingMergeView = false
+
+    /// Whether the split view is showing
+    var showingSplitView = false
+
+    /// Whether the batch compression view is showing
+    var showingBatchCompressionView = false
+
+    /// Whether showing document picker for split
+    var showingDocumentPickerForSplit = false
+
+    /// Whether showing multi-document picker (for batch or merge)
+    var showingMultiDocumentPicker = false
+
+    // MARK: - Tools Data State
+
+    /// Document selected for splitting
+    var documentForSplit: PDFDocumentInfo?
+
+    /// Documents selected for batch compression
+    var documentsForBatchCompression: [PDFDocumentInfo] = []
 
     // MARK: - Error Handling
 

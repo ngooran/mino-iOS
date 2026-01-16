@@ -1,36 +1,36 @@
 //
-//  CompressionService.swift
+//  SplitService.swift
 //  Mino
 //
-//  Service for managing PDF compression operations
+//  Service for managing PDF split operations
 //
 
 import Foundation
 
-/// Service that manages PDF compression jobs
+/// Service that manages PDF split jobs
 @Observable
 @MainActor
-final class CompressionService {
+final class SplitService {
 
     // MARK: - Properties
 
-    /// The compression engine
-    private let compressor = PDFCompressor()
+    /// The split engine
+    private let splitter = PDFSplitter()
 
-    /// The current compression job
-    private(set) var currentJob: CompressionJob?
+    /// The current split job
+    private(set) var currentJob: SplitJob?
 
-    /// Recent compression results (persisted)
-    private(set) var recentResults: [CompressionResult] = []
+    /// Recent split results (persisted)
+    private(set) var recentResults: [SplitResult] = []
 
-    /// Whether compression is in progress
-    private(set) var isCompressing = false
+    /// Whether a split is in progress
+    private(set) var isSplitting = false
 
     /// Maximum number of recent results to keep
-    private let maxRecentResults = 50
+    private let maxRecentResults = 100
 
     /// Storage key for persistence
-    private let storageKey = "compressionResults"
+    private let storageKey = "splitResults"
 
     // MARK: - Initialization
 
@@ -38,63 +38,115 @@ final class CompressionService {
         loadResults()
     }
 
-    // MARK: - Compression
+    // MARK: - Split Operations
 
-    /// Compresses a document with specified settings
-    func compress(
-        document: PDFDocumentInfo,
-        settings: CompressionSettings
-    ) async throws -> CompressionResult {
+    /// Extracts a page range from a document
+    func extractRange(
+        from document: PDFDocumentInfo,
+        range: PageRange
+    ) async throws -> SplitResult {
         // Create job
-        let job = CompressionJob(document: document, settings: settings)
+        let job = SplitJob(sourceDocument: document, range: range)
         currentJob = job
-        isCompressing = true
+        isSplitting = true
 
         // Start
         job.updateState(.preparing)
 
         // Generate output URL
-        let outputURL = PDFCompressor.generateOutputURL(for: document.url, settings: settings)
+        let outputURL = PDFSplitter.generateOutputURL(for: document.url, range: range)
 
         do {
-            // Update state
-            job.updateState(.compressing(progress: 0.5, phase: "Compressing..."))
-
             // Capture values for detached task
-            let compressor = self.compressor
-            let documentURL = document.url
+            let splitter = self.splitter
+            let sourceURL = document.url
 
-            // Perform compression on background thread
+            // Update state
+            job.updateState(.splitting(progress: 0.5, currentPage: range.start, totalPages: range.pageCount))
+
+            // Perform extraction on background thread
             let result = try await Task.detached(priority: .userInitiated) {
-                try compressor.compress(
-                    documentURL: documentURL,
-                    settings: settings,
+                try splitter.extractRange(
+                    sourceURL: sourceURL,
+                    range: range,
                     outputURL: outputURL
                 )
             }.value
 
             // Update job state
-            job.updateState(.completed(result: result))
+            job.updateState(.completed)
+            job.addResult(result)
 
             // Add to recent results and persist
             addToRecentResults(result)
 
-            isCompressing = false
+            isSplitting = false
             return result
 
         } catch {
             job.updateState(.failed(error: error.localizedDescription))
-            isCompressing = false
+            isSplitting = false
             throw error
         }
     }
 
-    /// Compresses a document with specified quality preset
-    func compress(
+    /// Splits a document at a specific page into two files
+    func splitAtPage(
         document: PDFDocumentInfo,
-        quality: CompressionQuality
-    ) async throws -> CompressionResult {
-        try await compress(document: document, settings: quality.settings)
+        splitPage: Int
+    ) async throws -> [SplitResult] {
+        // Create job
+        let job = SplitJob(sourceDocument: document, splitMode: .splitAtPage(splitPage))
+        currentJob = job
+        isSplitting = true
+
+        // Start
+        job.updateState(.preparing)
+
+        // Generate output URLs
+        let outputURLs = PDFSplitter.generateSplitAtPageURLs(
+            for: document.url,
+            splitPage: splitPage,
+            totalPages: document.pageCount
+        )
+
+        do {
+            // Capture values for detached task
+            let splitter = self.splitter
+            let sourceURL = document.url
+
+            // Update state
+            job.updateState(.splitting(progress: 0.5, currentPage: splitPage, totalPages: document.pageCount))
+
+            // Perform split on background thread
+            let results = try await Task.detached(priority: .userInitiated) {
+                try splitter.splitAtPage(
+                    sourceURL: sourceURL,
+                    splitPage: splitPage,
+                    outputURL1: outputURLs.part1,
+                    outputURL2: outputURLs.part2
+                )
+            }.value
+
+            // Update job state
+            job.updateState(.completed)
+            for result in results {
+                job.addResult(result)
+            }
+
+            // Add to recent results and persist
+            for result in results {
+                addToRecentResults(result)
+            }
+
+            isSplitting = false
+            return results
+
+        } catch {
+            job.updateState(.failed(error: error.localizedDescription))
+            isSplitting = false
+            throw error
+        }
     }
 
     /// Clears the current job
@@ -104,18 +156,15 @@ final class CompressionService {
 
     // MARK: - Result Management
 
-    /// Deletes a single compression result and its file
-    func deleteResult(_ result: CompressionResult) {
-        // Remove file from disk
+    /// Deletes a single split result and its file
+    func deleteResult(_ result: SplitResult) {
         try? FileManager.default.removeItem(at: result.outputURL)
-        // Remove from list
         recentResults.removeAll { $0.id == result.id }
-        // Persist changes
         persistResults()
     }
 
-    /// Deletes multiple compression results
-    func deleteResults(_ results: [CompressionResult]) {
+    /// Deletes multiple split results
+    func deleteResults(_ results: [SplitResult]) {
         for result in results {
             try? FileManager.default.removeItem(at: result.outputURL)
         }
@@ -126,24 +175,18 @@ final class CompressionService {
 
     /// Clears all recent results and their files
     func clearAllResults() {
-        // Remove all files
         for result in recentResults {
             try? FileManager.default.removeItem(at: result.outputURL)
         }
-        // Clear list
         recentResults.removeAll()
-        // Persist changes
         persistResults()
-        // Also clear statistics
-        HistoryManager.shared.clearHistory()
     }
 
     // MARK: - Private Methods
 
-    private func addToRecentResults(_ result: CompressionResult) {
+    private func addToRecentResults(_ result: SplitResult) {
         recentResults.insert(result, at: 0)
         if recentResults.count > maxRecentResults {
-            // Remove old results beyond limit (and their files)
             let removed = Array(recentResults.suffix(from: maxRecentResults))
             for old in removed {
                 try? FileManager.default.removeItem(at: old.outputURL)
@@ -158,11 +201,10 @@ final class CompressionService {
     /// Storage struct that uses relative paths (survives app container changes)
     private struct StoredResult: Codable {
         let id: UUID
-        let relativePath: String  // e.g., "Compressed/file.pdf"
-        let originalSize: Int64
-        let compressedSize: Int64
-        let settings: CompressionSettings
-        let duration: TimeInterval
+        let relativePath: String
+        let pageRange: String
+        let pageCount: Int
+        let outputSize: Int64
         let timestamp: Date
     }
 
@@ -177,39 +219,34 @@ final class CompressionService {
 
         do {
             let stored = try JSONDecoder().decode([StoredResult].self, from: data)
-            // Reconstruct full URLs and filter to existing files
-            recentResults = stored.compactMap { item -> CompressionResult? in
+            recentResults = stored.compactMap { item -> SplitResult? in
                 let fullURL = documentsDirectory
                     .appendingPathComponent(item.relativePath)
                     .standardizedFileURL
                 guard FileManager.default.fileExists(atPath: fullURL.path) else {
                     return nil
                 }
-                return CompressionResult(
+                return SplitResult(
                     id: item.id,
                     outputURL: fullURL,
-                    originalSize: item.originalSize,
-                    compressedSize: item.compressedSize,
-                    settings: item.settings,
-                    duration: item.duration,
+                    pageRange: item.pageRange,
+                    pageCount: item.pageCount,
+                    outputSize: item.outputSize,
                     timestamp: item.timestamp
                 )
             }
-            // If some files were missing, update persistence
             if recentResults.count != stored.count {
                 persistResults()
             }
         } catch {
-            print("Failed to load compression results: \(error)")
+            print("Failed to load split results: \(error)")
         }
     }
 
     private func persistResults() {
         do {
             let docsPath = documentsDirectory.standardizedFileURL.path
-            // Convert to storage format with relative paths
             let stored = recentResults.map { result -> StoredResult in
-                // Extract relative path using standardized paths
                 let fullPath = result.outputURL.standardizedFileURL.path
                 let relativePath: String
                 if fullPath.hasPrefix(docsPath + "/") {
@@ -217,23 +254,21 @@ final class CompressionService {
                 } else if fullPath.hasPrefix(docsPath) {
                     relativePath = String(fullPath.dropFirst(docsPath.count))
                 } else {
-                    // Fallback: just use the last path components
                     relativePath = result.outputURL.lastPathComponent
                 }
                 return StoredResult(
                     id: result.id,
                     relativePath: relativePath,
-                    originalSize: result.originalSize,
-                    compressedSize: result.compressedSize,
-                    settings: result.settings,
-                    duration: result.duration,
+                    pageRange: result.pageRange,
+                    pageCount: result.pageCount,
+                    outputSize: result.outputSize,
                     timestamp: result.timestamp
                 )
             }
             let data = try JSONEncoder().encode(stored)
             UserDefaults.standard.set(data, forKey: storageKey)
         } catch {
-            print("Failed to save compression results: \(error)")
+            print("Failed to save split results: \(error)")
         }
     }
 }

@@ -10,11 +10,11 @@ import SwiftUI
 struct ContentView: View {
     @Environment(AppState.self) private var appState
 
-    @State private var selectedTab: Tab = .home
+    @State private var selectedTab: Tab = .tools
 
     enum Tab {
-        case home
-        case statistics
+        case tools
+        case files
         case about
     }
 
@@ -56,27 +56,27 @@ struct ContentView: View {
         @Bindable var state = appState
 
         TabView(selection: $selectedTab) {
-            // Home Tab
+            // Tools Tab
             NavigationStack {
-                HomeView()
+                ToolsView()
                     .navigationTitle("Mino")
                     .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
-                Label("Home", systemImage: "house.fill")
+                Label("Tools", systemImage: "wrench.and.screwdriver.fill")
             }
-            .tag(Tab.home)
+            .tag(Tab.tools)
 
-            // Statistics Tab
+            // Files Tab
             NavigationStack {
-                StatisticsView()
-                    .navigationTitle("Statistics")
+                GeneratedFilesView()
+                    .navigationTitle("Files")
                     .navigationBarTitleDisplayMode(.inline)
             }
             .tabItem {
-                Label("Statistics", systemImage: "chart.bar.fill")
+                Label("Files", systemImage: "folder.fill")
             }
-            .tag(Tab.statistics)
+            .tag(Tab.files)
 
             // About Tab
             NavigationStack {
@@ -120,6 +120,39 @@ struct ContentView: View {
                 Text(error.localizedDescription)
             }
         }
+        // MARK: - Tools Sheets
+        .sheet(isPresented: $state.showingMergeView) {
+            MergeView()
+                .environment(appState)
+        }
+        .sheet(isPresented: $state.showingSplitView) {
+            if let document = state.documentForSplit {
+                SplitView(document: document)
+                    .environment(appState)
+            }
+        }
+        .sheet(isPresented: $state.showingBatchCompressionView) {
+            BatchCompressionView(documents: state.documentsForBatchCompression)
+                .environment(appState)
+        }
+        .sheet(isPresented: $state.showingDocumentPickerForSplit) {
+            DocumentPicker { url in
+                Task {
+                    await importDocumentForSplit(from: url)
+                }
+            } onCancel: {
+                state.showingDocumentPickerForSplit = false
+            }
+        }
+        .sheet(isPresented: $state.showingMultiDocumentPicker) {
+            MultiDocumentPicker { urls in
+                Task {
+                    await importDocumentsForBatch(urls)
+                }
+            } onCancel: {
+                state.showingMultiDocumentPicker = false
+            }
+        }
     }
 
     // MARK: - Actions
@@ -132,6 +165,37 @@ struct ContentView: View {
             appState.startCompression(for: document)
         } catch {
             appState.showError(error)
+        }
+    }
+
+    private func importDocumentForSplit(from url: URL) async {
+        do {
+            let document = try await appState.documentImporter.importDocument(from: url)
+            appState.addImportedDocument(document)
+            appState.showingDocumentPickerForSplit = false
+            appState.documentForSplit = document
+            appState.showingSplitView = true
+        } catch {
+            appState.showError(error)
+        }
+    }
+
+    private func importDocumentsForBatch(_ urls: [URL]) async {
+        var documents: [PDFDocumentInfo] = []
+        for url in urls {
+            do {
+                let document = try await appState.documentImporter.importDocument(from: url)
+                appState.addImportedDocument(document)
+                documents.append(document)
+            } catch {
+                appState.showError(error)
+            }
+        }
+
+        if !documents.isEmpty {
+            appState.showingMultiDocumentPicker = false
+            appState.documentsForBatchCompression = documents
+            appState.showingBatchCompressionView = true
         }
     }
 }
