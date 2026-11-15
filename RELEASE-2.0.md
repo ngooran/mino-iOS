@@ -65,7 +65,7 @@ Code-level details are in [CLAUDE.md](CLAUDE.md). App Store texts are in [AppSto
 Every step that touches App Store Connect is outward-facing. Do it deliberately, one step at a time.
 
 ### Step 1: Decide the open questions
-- [ ] **Free limit:** confirm 3 compressions a day (`FreeUsage.dailyLimit`). It is a placeholder that was never confirmed.
+- [x] **Free limit:** 3 a day (`FreeUsage.dailyLimit`), confirmed on 15 Nov 2026 as part of the roadmap's free/Pro split. The price stays €4.99.
 - [ ] **Localizations:** ship 2.0 in English only, or add the languages planned in AppStoreMetadata.md (de-DE, es-ES, fr-FR, pt-BR)? The app has no string catalog yet, so translation is a separate project. Recommendation: ship 2.0 in English and localize in 2.1.
 
 ### Step 2: Test on real hardware with TestFlight
@@ -125,7 +125,7 @@ The short window between the two can only give a few people free Pro, which is h
 - [ ] Merge `redesign-2.0` into `main` and tag `v2.0`.
 - [ ] Watch for 1.x buyers saying Pro didn't unlock (the grandfathering path can't be tested before release).
 - [ ] Check conversion in App Store Connect analytics: downloads before and after, and Pro purchase rate. Then reconsider the free limit and price.
-- [ ] Plan 2.1: localizations, any TestFlight leftovers, and the optional A/B tests from AppStoreMetadata.md.
+- [ ] Start 2.1 from [ROADMAP.md](ROADMAP.md): 10 new tools in four releases (2.1–2.4), with the free/Pro split, price path and App Store plan.
 
 ---
 

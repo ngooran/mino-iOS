@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Release status and the remaining steps for 2.0 (App Store Connect, TestFlight, pricing switch) are in [RELEASE-2.0.md](RELEASE-2.0.md). App Store texts are in [AppStoreMetadata.md](AppStoreMetadata.md).
+Release status and the remaining steps for 2.0 (App Store Connect, TestFlight, pricing switch) are in [RELEASE-2.0.md](RELEASE-2.0.md). App Store texts are in [AppStoreMetadata.md](AppStoreMetadata.md). The plan after 2.0 (10 new tools, releases 2.1–2.4) is in [ROADMAP.md](ROADMAP.md).
 
 ## Build Commands
 
