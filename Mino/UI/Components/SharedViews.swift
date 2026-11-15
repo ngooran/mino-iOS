@@ -46,7 +46,7 @@ struct DocumentRow: View {
                 Text(document.name)
                     .font(thumbnailWidth > 40 ? .headline : .subheadline.weight(.semibold))
                     .lineLimit(2)
-                Text("\(document.formattedPageCount) · \(document.formattedSize)")
+                Text(verbatim: "\(document.formattedPageCount) · \(document.formattedSize)")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -152,7 +152,7 @@ struct TaskFailedView: View {
     }
 }
 
-/// "Free compressions left today" with a link to Mino Pro. Hidden for Pro users.
+/// "Free actions left today" with a link to Mino Pro. Hidden for Pro users.
 struct FreeAllowanceView: View {
     @Environment(AppState.self) private var appState
 
@@ -163,12 +163,12 @@ struct FreeAllowanceView: View {
                 HStack(spacing: 3) {
                     ForEach(0..<FreeUsage.dailyLimit, id: \.self) { index in
                         Circle()
-                            .fill(index < FreeUsage.dailyLimit - remaining ? Color.accentColor : Color.secondary.opacity(0.25))
+                            .fill(index < remaining ? Color.accentColor : Color.secondary.opacity(0.25))
                             .frame(width: 7, height: 7)
                     }
                 }
                 .accessibilityHidden(true)
-                Text(remaining == 1 ? "1 free compression left today" : "\(remaining) free compressions left today")
+                Text("\(remaining) free actions left today")
                     .foregroundStyle(.secondary)
                 Button("Get Pro") { appState.showPaywall(.general) }
                     .fontWeight(.semibold)

@@ -139,11 +139,11 @@ final class PDFMerger: @unchecked Sendable {
     /// Generates a default output name from source documents,
     /// e.g. "Lease Agreement + Tax Return" or "Lease Agreement + 2 more".
     static func suggestedOutputName(from sources: [PDFDocumentInfo]) -> String {
-        guard let first = sources.first else { return "Merged" }
+        guard let first = sources.first else { return String(localized: "Merged") }
         switch sources.count {
         case 1: return first.name
         case 2: return "\(first.name) + \(sources[1].name)"
-        default: return "\(first.name) + \(sources.count - 1) more"
+        default: return String(localized: "\(first.name) + \(sources.count - 1) more")
         }
     }
 }

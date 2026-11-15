@@ -39,7 +39,7 @@ private struct CompressContent: View {
                 TaskFailedView(message: message) { session.phase = .configure }
             }
         }
-        .navigationTitle(session.phase == .configure ? "Compress" : "")
+        .navigationTitle(session.phase == .configure ? Tool.compress.title : "")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(session.phase != .configure)
         .toolbar {
@@ -100,7 +100,13 @@ private struct CompressContent: View {
             Button {
                 appState.compress(session)
             } label: {
-                ActionLabel(title: session.isBatch ? "Compress \(session.documents.count) PDFs" : "Compress")
+                HStack(spacing: 8) {
+                    Text(session.isBatch ? String(localized: "Compress \(session.documents.count) PDFs") : String(localized: "Compress"))
+                    if session.isBatch && !appState.isPro { ProBadge() }
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
             }
             .primaryButtonStyle()
             .keyboardShortcut(.defaultAction)
@@ -110,14 +116,14 @@ private struct CompressContent: View {
     private func detail(for quality: CompressionQuality) -> String {
         if let estimate = session.estimates[quality] {
             if Double(estimate) >= Double(session.totalSize) * 0.97 {
-                return "About the same size · \(quality.useCase)"
+                return String(localized: "About the same size · \(quality.useCase)")
             }
-            return "About \(ByteCountFormatter.string(fromByteCount: estimate, countStyle: .file)) · \(quality.useCase)"
+            return String(localized: "About \(ByteCountFormatter.string(fromByteCount: estimate, countStyle: .file)) · \(quality.useCase)")
         }
         if session.isEstimating {
-            return "Estimating size… · \(quality.useCase)"
+            return String(localized: "Estimating size… · \(quality.useCase)")
         }
-        return "Usually \(quality.expectedReduction) smaller · \(quality.useCase)"
+        return String(localized: "Usually \(quality.expectedReduction) smaller · \(quality.useCase)")
     }
 
     private var customRow: some View {
@@ -183,19 +189,19 @@ private struct CompressContent: View {
         let detail: String
         let progress: Double?
         if session.isBatch, let batch, batch.total > 0 {
-            detail = "\(batch.done) of \(batch.total) PDFs"
+            detail = String(localized: "\(batch.done) of \(batch.total) PDFs")
             progress = Double(batch.done) / Double(batch.total)
         } else {
             detail = session.documents.first?.name ?? ""
             progress = nil
         }
-        return WorkingView(title: "Compressing…", detail: detail, progress: progress)
+        return WorkingView(title: String(localized: "Compressing…"), detail: detail, progress: progress)
             .background(Color.groupedBackground)
             .bottomActions {
                 Button {
                     appState.cancelCompression(session)
                 } label: {
-                    ActionLabel(title: "Cancel")
+                    ActionLabel(title: String(localized: "Cancel"))
                 }
                 .secondaryButtonStyle()
                 .keyboardShortcut(.cancelAction)
@@ -271,6 +277,13 @@ private struct CompressResultView: View {
                         Label("Preview", systemImage: "eye")
                     }
                 }
+                if session.results.count == 1, let result = session.results.first {
+                    Button {
+                        appState.showToolPicker(for: FileItem(result))
+                    } label: {
+                        Label("Continue with Another Tool", systemImage: "arrow.right")
+                    }
+                }
                 Button {
                     appState.closeTask()
                     appState.chooseFilesToCompress()
@@ -279,9 +292,8 @@ private struct CompressResultView: View {
                 }
             } footer: {
                 if !appState.isPro {
-                    let remaining = appState.usage.remaining
                     HStack(spacing: 4) {
-                        Text(remaining == 1 ? "1 free compression left today." : "\(remaining) free compressions left today.")
+                        Text("\(appState.usage.remaining) free actions left today.")
                         Button("Go unlimited") { appState.showPaywall(.general) }
                             .font(.footnote.weight(.semibold))
                     }
@@ -305,7 +317,7 @@ private struct CompressResultView: View {
         .listStyle(.insetGrouped)
         .bottomActions {
             ShareLink(items: urls) {
-                ActionLabel(title: "Share", systemImage: "square.and.arrow.up")
+                ActionLabel(title: String(localized: "Share"), systemImage: "square.and.arrow.up")
             }
             .primaryButtonStyle()
         }
@@ -321,9 +333,9 @@ private struct CompressResultView: View {
         let percent = session.reductionPercent
         let name = session.results.count == 1 ? FileItem(session.results[0]).name : "\(session.results.count) PDFs compressed"
         if percent > 0 {
-            ResultHeader(headline: "\(percent)% smaller", detail: name)
+            ResultHeader(headline: String(localized: "\(percent)% smaller"), detail: name)
         } else {
-            ResultHeader(headline: "Already small", detail: "\(name) was already well optimized, so there was little to remove.")
+            ResultHeader(headline: String(localized: "Already small"), detail: String(localized: "\(name) was already well optimized, so there was little to remove."))
         }
     }
 

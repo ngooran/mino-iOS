@@ -19,6 +19,8 @@ final class AppState {
     let batchCompressionService = BatchCompressionService()
     let mergeService = MergeService()
     let splitService = SplitService()
+    /// Results of the tools added after 2.0.
+    let toolResults = ToolResultStore()
     let store = ProStore()
     let usage = FreeUsage()
 
@@ -34,6 +36,10 @@ final class AppState {
     var compressSession: CompressSession?
     var mergeSession: MergeSession?
     var splitSession: SplitSession?
+    var photosSession: PhotosToPDFSession?
+    var imagesSession: PDFToImagesSession?
+    var organizeSession: OrganizeSession?
+    var protectSession: ProtectSession?
 
     // MARK: - Presentation
 
@@ -44,7 +50,14 @@ final class AppState {
         }
     }
     /// The most recent picker target; read when the picker returns.
-    private(set) var lastImportTarget: ImportTarget = .compress
+    private(set) var lastImportTarget: ImportTarget = .open
+    /// Text in the Home search field.
+    var toolQuery = ""
+    /// Non-nil while the "What do you want to do?" sheet is showing.
+    var toolPicker: ToolPickerContext?
+    /// Non-nil while the password prompt for a locked PDF is showing.
+    var passwordRequest: PasswordRequest?
+    private var passwordContinuation: CheckedContinuation<String?, Never>?
     /// Non-nil while the Mino Pro sheet is showing.
     var paywallReason: PaywallReason?
     /// Message for the error alert.
@@ -69,23 +82,19 @@ final class AppState {
         let compressed = compressionService.recentResults.map(FileItem.init)
         let merged = mergeService.recentResults.map(FileItem.init)
         let split = splitService.recentResults.map(FileItem.init)
-        return (compressed + merged + split).sorted { $0.date > $1.date }
+        let tools = toolResults.results.map(FileItem.init)
+        return (compressed + merged + split + tools).sorted { $0.date > $1.date }
     }
 
     func delete(_ item: FileItem) {
-        switch item.kind {
-        case .compressed:
-            if let result = compressionService.recentResults.first(where: { $0.id == item.id }) {
-                compressionService.deleteResult(result)
-            }
-        case .merged:
-            if let result = mergeService.recentResults.first(where: { $0.id == item.id }) {
-                mergeService.deleteResult(result)
-            }
-        case .split:
-            if let result = splitService.recentResults.first(where: { $0.id == item.id }) {
-                splitService.deleteResult(result)
-            }
+        if let result = compressionService.recentResults.first(where: { $0.id == item.id }) {
+            compressionService.deleteResult(result)
+        } else if let result = mergeService.recentResults.first(where: { $0.id == item.id }) {
+            mergeService.deleteResult(result)
+        } else if let result = splitService.recentResults.first(where: { $0.id == item.id }) {
+            splitService.deleteResult(result)
+        } else {
+            toolResults.delete(id: item.id)
         }
         for tab in AppTab.allCases {
             setPath(path(for: tab).filter { $0 != .preview(item) }, for: tab)
@@ -159,32 +168,97 @@ final class AppState {
 
     // MARK: - Entry points
 
+    /// Opens a tool from Home, search or a menu. Tools that need a file ask for one first.
+    func open(_ tool: Tool) {
+        switch tool {
+        case .merge:
+            openMerge()
+        case .photosToPDF:
+            openPhotosToPDF()
+        default:
+            importTarget = .tool(tool)
+        }
+    }
+
+    /// "Open PDF": choose a file, then a tool.
+    func openPDF() {
+        importTarget = .open
+    }
+
+    /// Starts a tool with PDFs that are already imported.
+    func start(_ tool: Tool, with documents: [PDFDocumentInfo]) {
+        guard let first = documents.first else { return }
+        switch tool {
+        case .compress:
+            startCompressSession(with: documents)
+        case .merge:
+            addToMerge(documents)
+        case .split:
+            startSplitSession(with: first)
+        case .pdfToImages:
+            imagesSession?.state.cancel()
+            imagesSession = PDFToImagesSession(document: first)
+            show(tool.route)
+        case .organize:
+            organizeSession?.state.cancel()
+            organizeSession = OrganizeSession(document: first)
+            show(tool.route)
+        case .protect:
+            protectSession?.state.cancel()
+            protectSession = ProtectSession(document: first)
+            show(tool.route)
+        case .photosToPDF, .scan, .officeToPDF, .fillSign, .edit, .pdfToWord, .ocr:
+            break
+        }
+    }
+
     func chooseFilesToCompress() {
-        importTarget = .compress
+        importTarget = .tool(.compress)
     }
 
     func openMerge() {
-        guard requirePro(.merge, then: { [weak self] in self?.openMerge() }) else { return }
         if mergeSession == nil || mergeSession?.phase != .configure {
             mergeSession = MergeSession()
         }
         show(.merge)
         if mergeSession?.documents.isEmpty == true {
-            importTarget = .merge
+            importTarget = .mergeAdd
         }
     }
 
     func openSplit() {
-        guard requirePro(.split, then: { [weak self] in self?.openSplit() }) else { return }
-        importTarget = .split
+        importTarget = .tool(.split)
     }
 
     func addFilesToMerge() {
-        importTarget = .merge
+        importTarget = .mergeAdd
     }
 
     func chooseFileToSplit() {
-        importTarget = .split
+        importTarget = .tool(.split)
+    }
+
+    // MARK: - Tool picker
+
+    /// Shows "What do you want to do?" for imported PDFs.
+    func showToolPicker(for documents: [PDFDocumentInfo]) {
+        guard !documents.isEmpty else { return }
+        toolPicker = ToolPickerContext(documents: documents)
+    }
+
+    /// Shows the tool picker for a generated PDF (Files, or "Continue with another tool").
+    func showToolPicker(for item: FileItem) {
+        guard item.isPDF else { return }
+        Task {
+            let documents = await importDocuments([item.url])
+            showToolPicker(for: documents)
+        }
+    }
+
+    /// Runs when a tool is chosen in the picker sheet.
+    func pick(_ tool: Tool, from context: ToolPickerContext) {
+        toolPicker = nil
+        start(tool, with: tool == .compress || tool == .merge ? context.documents : Array(context.documents.prefix(1)))
     }
 
     // MARK: - Import
@@ -198,56 +272,115 @@ final class AppState {
         }
     }
 
-    /// PDFs arriving from drag and drop, "Open in Mino" or the share extension.
-    /// They go to Merge when the merge screen is open, otherwise to Compress.
+    /// Files arriving from drag and drop, "Open in Mino" or the share extension.
     func handleIncoming(_ urls: [URL]) {
         Task { await receive(urls) }
     }
 
-    /// Imports incoming PDFs and opens the right screen. Returns when the copies are made.
+    /// Imports incoming files and opens the right screen. Returns when the copies are made.
+    /// - PDFs join the merge list when it is open; otherwise the tool picker shows.
+    /// - Images go to Photos to PDF.
     func receive(_ urls: [URL]) async {
-        let pdfs = urls.filter { $0.pathExtension.lowercased() == "pdf" }
-        guard !pdfs.isEmpty else { return }
-        let mergeIsOpen = selectedTab == .home && homePath.last == .merge && mergeSession?.phase == .configure
-        await importAndRoute(pdfs, target: mergeIsOpen ? .merge : .compress)
+        let pdfs = urls.filter { ImportTypes.classify($0) == .pdf }
+        let images = urls.filter { ImportTypes.classify($0) == .image }
+
+        if !pdfs.isEmpty {
+            let mergeIsOpen = selectedTab == .home && homePath.last == .merge && mergeSession?.phase == .configure
+            await importAndRoute(pdfs, target: mergeIsOpen ? .mergeAdd : .open)
+        } else if !images.isEmpty, Tool.photosToPDF.isAvailable {
+            await importAndRoute(images, target: .tool(.photosToPDF))
+        }
     }
 
     private func importAndRoute(_ urls: [URL], target: ImportTarget) async {
+        if target == .tool(.photosToPDF) {
+            openPhotosToPDF(askingForPhotos: false)
+            await addPhotos(from: urls)
+            return
+        }
+
+        let documents = await importDocuments(urls)
+        guard !documents.isEmpty else { return }
+
+        switch target {
+        case .open:
+            showToolPicker(for: documents)
+        case .mergeAdd:
+            addToMerge(documents)
+        case .insertPages:
+            organizeSession?.insertPages(of: documents[0])
+        case .tool(let tool):
+            start(tool, with: documents)
+        }
+    }
+
+    /// Copies PDFs in, asking for the password of each locked one. Files that
+    /// can't be opened are reported in one alert.
+    func importDocuments(_ urls: [URL]) async -> [PDFDocumentInfo] {
         isImporting = true
         defer { isImporting = false }
 
         var documents: [PDFDocumentInfo] = []
         var failures: [String] = []
         for url in urls {
+            let name = url.deletingPathExtension().lastPathComponent
             do {
                 documents.append(try await documentImporter.importDocument(from: url))
+            } catch ImportError.passwordRequired(let copy) {
+                isImporting = false
+                if let document = await unlock(copy: copy, name: name) {
+                    documents.append(document)
+                }
+                isImporting = true
             } catch {
-                failures.append(url.deletingPathExtension().lastPathComponent)
+                failures.append(name)
             }
         }
         if !failures.isEmpty {
             errorMessage = failures.count == 1
-                ? "“\(failures[0])” couldn't be opened. Make sure it's a PDF that isn't password protected."
-                : "\(failures.count) files couldn't be opened. Make sure they're PDFs that aren't password protected."
+                ? String(localized: "“\(failures[0])” couldn't be opened. Make sure it's a PDF that isn't damaged.")
+                : String(localized: "\(failures.count) files couldn't be opened. Make sure they're PDFs that aren't damaged.")
         }
-        guard !documents.isEmpty else { return }
+        return documents
+    }
 
-        switch target {
-        case .compress:
-            startCompressSession(with: documents)
-        case .merge:
-            if !isPro {
-                requirePro(.merge) { [weak self] in self?.addToMerge(documents) }
-                return
+    // MARK: - Locked PDFs
+
+    /// Asks for the password until it is right or the person cancels.
+    private func unlock(copy: URL, name: String) async -> PDFDocumentInfo? {
+        var failed = false
+        while true {
+            guard let password = await askPassword(fileName: name, failed: failed) else {
+                documentImporter.discard(copy: copy)
+                return nil
             }
-            addToMerge(documents)
-        case .split:
-            if !isPro {
-                requirePro(.split) { [weak self] in self?.startSplitSession(with: documents[0]) }
-                return
+            do {
+                return try await documentImporter.unlock(copy: copy, password: password)
+            } catch ImportError.wrongPassword {
+                failed = true
+                // Let the alert finish closing before it shows again.
+                try? await Task.sleep(for: .milliseconds(350))
+            } catch {
+                documentImporter.discard(copy: copy)
+                errorMessage = String(localized: "“\(name)” couldn't be unlocked.")
+                return nil
             }
-            startSplitSession(with: documents[0])
         }
+    }
+
+    private func askPassword(fileName: String, failed: Bool) async -> String? {
+        await withCheckedContinuation { continuation in
+            passwordContinuation = continuation
+            passwordRequest = PasswordRequest(fileName: fileName, failed: failed)
+        }
+    }
+
+    /// Called by the password prompt. Nil cancels.
+    func submitPassword(_ password: String?) {
+        passwordRequest = nil
+        let continuation = passwordContinuation
+        passwordContinuation = nil
+        continuation?.resume(returning: password)
     }
 
     private func addToMerge(_ documents: [PDFDocumentInfo]) {
@@ -264,14 +397,243 @@ final class AppState {
         show(.split)
     }
 
+    // MARK: - Running tools
+
+    /// Checks whether the person may run `tool` now. When not, shows Mino Pro
+    /// and remembers `retry` for after the purchase.
+    func mayRun(_ tool: Tool, extra: PaywallReason? = nil, retry: @escaping () -> Void) -> Bool {
+        if isPro { return true }
+        if tool.access == .pro {
+            return requirePro(.tool(tool), then: retry)
+        }
+        if let extra {
+            return requirePro(extra, then: retry)
+        }
+        if usage.remaining == 0 {
+            return requirePro(.dailyLimit, then: retry)
+        }
+        return true
+    }
+
+    /// Runs a tool's engine off the main thread and files its result.
+    ///
+    /// The caller checks `mayRun` first. `work` receives a progress callback
+    /// (0...1) and returns the files it wrote.
+    func run(
+        _ tool: Tool,
+        state: TaskState,
+        work: @escaping @Sendable (_ progress: @escaping @Sendable (Double) -> Void) throws -> ToolOutput
+    ) {
+        state.phase = .working
+        state.progress = nil
+        state.result = nil
+        state.resultText = nil
+        HapticManager.shared.compressionStart()
+
+        state.task = Task {
+            let worker = Task.detached(priority: .userInitiated) {
+                try work { value in
+                    Task { @MainActor in
+                        if state.phase == .working { state.progress = value }
+                    }
+                }
+            }
+            let outcome = await withTaskCancellationHandler {
+                await worker.result
+            } onCancel: {
+                worker.cancel()
+            }
+
+            switch outcome {
+            case .success(let output):
+                if Task.isCancelled {
+                    output.urls.forEach(OutputLocation.removeFile(at:))
+                    state.phase = .configure
+                    return
+                }
+                let result = toolResults.add(output, tool: tool)
+                state.result = FileItem(result)
+                state.resultText = output.text
+                state.phase = .done
+                if !isPro { usage.recordUse() }
+                HapticManager.shared.compressionComplete()
+                HistoryManager.shared.recordGoodOperation()
+                HistoryManager.shared.requestReviewIfAppropriate()
+            case .failure(let error):
+                if error is CancellationError || Task.isCancelled {
+                    state.phase = .configure
+                } else {
+                    state.phase = .failed(error.localizedDescription)
+                    HapticManager.shared.error()
+                }
+            }
+        }
+    }
+
+    /// Closes a finished or abandoned tool and returns to Home.
+    func finish(_ tool: Tool) {
+        switch tool {
+        case .photosToPDF: photosSession = nil
+        case .pdfToImages: imagesSession = nil
+        case .organize: organizeSession = nil
+        case .protect: protectSession = nil
+        case .merge: mergeSession = nil
+        case .split: splitSession = nil
+        default: break
+        }
+        closeTask()
+    }
+
+    // MARK: - Photos to PDF
+
+    func openPhotosToPDF(askingForPhotos: Bool = true) {
+        if photosSession == nil || photosSession?.state.phase != .configure {
+            photosSession = PhotosToPDFSession()
+        }
+        show(Tool.photosToPDF.route)
+    }
+
+    /// Copies image files in and appends them to the photo list.
+    func addPhotos(from urls: [URL]) async {
+        guard let session = photosSession else { return }
+        session.isLoading = true
+        defer { session.isLoading = false }
+        var skipped = 0
+        for url in urls {
+            guard let copy = try? await documentImporter.importFile(from: url) else {
+                skipped += 1
+                continue
+            }
+            if let photo = await Task.detached(operation: { PhotoInput.load(from: copy) }).value {
+                session.photos.append(photo)
+            } else {
+                skipped += 1
+            }
+        }
+        if skipped > 0 {
+            errorMessage = String(localized: "\(skipped) files aren't images Mino can read, so they were left out.")
+        }
+    }
+
+    /// Adds images that are already inside the working folder (from the photo picker).
+    func addPhotoFiles(_ urls: [URL]) async {
+        guard let session = photosSession else { return }
+        for url in urls {
+            if let photo = await Task.detached(operation: { PhotoInput.load(from: url) }).value {
+                session.photos.append(photo)
+            }
+        }
+    }
+
+    func createPDF(_ session: PhotosToPDFSession) {
+        guard !session.photos.isEmpty else { return }
+        guard mayRun(.photosToPDF, retry: { [weak self] in self?.createPDF(session) }) else { return }
+        let photos = session.photos
+        let pageSize = session.pageSize
+        let margin = session.margin
+        let name = String(localized: "Photos \(OutputLocation.shortDate())")
+        run(.photosToPDF, state: session.state) { progress in
+            let output = OutputLocation.url(folder: "Converted", fileName: name)
+            do {
+                let pages = try PhotosToPDFEngine.makePDF(
+                    photos: photos, pageSize: pageSize, margin: margin, outputURL: output, progress: progress
+                )
+                return ToolOutput(urls: [output], kind: .converted, pageCount: pages)
+            } catch {
+                OutputLocation.removeFile(at: output)
+                throw error
+            }
+        }
+    }
+
+    // MARK: - PDF to Images
+
+    func exportImages(_ session: PDFToImagesSession) {
+        let pages = session.pages
+        guard !pages.isEmpty else { return }
+        guard mayRun(.pdfToImages, retry: { [weak self] in self?.exportImages(session) }) else { return }
+        let document = session.document
+        let format = session.format
+        let dpi = session.resolution.dpi
+        run(.pdfToImages, state: session.state) { progress in
+            let directory = OutputLocation.directory(folder: "Images")
+            do {
+                let urls = try PDFToImagesEngine.export(
+                    documentURL: document.url, pages: pages, format: format, dpi: dpi,
+                    baseName: document.name, directory: directory, progress: progress
+                )
+                let detail = String(localized: "\(urls.count) \(format.title) images")
+                return ToolOutput(urls: urls, kind: .converted, pageCount: urls.count, detail: detail)
+            } catch {
+                try? FileManager.default.removeItem(at: directory)
+                throw error
+            }
+        }
+    }
+
+    // MARK: - Organize Pages
+
+    func addPagesToOrganize() {
+        importTarget = .insertPages
+    }
+
+    func saveOrganized(_ session: OrganizeSession) {
+        guard !session.pages.isEmpty else { return }
+        guard mayRun(.organize, retry: { [weak self] in self?.saveOrganized(session) }) else { return }
+        let document = session.document
+        let pages = session.pages
+        let name = String(localized: "\(document.name) (edited)")
+        run(.organize, state: session.state) { _ in
+            let output = OutputLocation.url(folder: "Edited", fileName: name)
+            do {
+                let count = try PageOrganizer.save(documentURL: document.url, pages: pages, outputURL: output)
+                return ToolOutput(urls: [output], kind: .edited, pageCount: count)
+            } catch {
+                OutputLocation.removeFile(at: output)
+                throw error
+            }
+        }
+    }
+
+    // MARK: - Protect & Unlock
+
+    func protect(_ session: ProtectSession) {
+        guard session.canRun else { return }
+        guard mayRun(.protect, retry: { [weak self] in self?.protect(session) }) else { return }
+        let document = session.document
+        let mode = session.mode
+        let password = session.password
+        let allowPrinting = session.allowPrinting
+        let allowCopying = session.allowCopying
+        let permissionsPassword = document.wasLocked ? nil : session.permissionsPassword
+        let name = mode == .protect
+            ? String(localized: "\(document.name) (protected)")
+            : String(localized: "\(document.name) (unlocked)")
+        run(.protect, state: session.state) { _ in
+            let output = OutputLocation.url(folder: "Protected", fileName: name)
+            do {
+                switch mode {
+                case .protect:
+                    try PDFProtector.protect(
+                        documentURL: document.url, password: password,
+                        allowPrinting: allowPrinting, allowCopying: allowCopying, outputURL: output
+                    )
+                    return ToolOutput(urls: [output], kind: .protected, pageCount: document.pageCount, detail: String(localized: "Password added"))
+                case .unlock:
+                    try PDFProtector.unlock(documentURL: document.url, password: permissionsPassword, outputURL: output)
+                    return ToolOutput(urls: [output], kind: .protected, pageCount: document.pageCount, detail: String(localized: "Password removed"))
+                }
+            } catch {
+                OutputLocation.removeFile(at: output)
+                throw error
+            }
+        }
+    }
+
     // MARK: - Compress
 
     func startCompressSession(with documents: [PDFDocumentInfo]) {
         guard !documents.isEmpty else { return }
-        if documents.count > 1 && !isPro {
-            requirePro(.batch) { [weak self] in self?.startCompressSession(with: documents) }
-            return
-        }
         compressSession?.estimateTask?.cancel()
         let session = CompressSession(documents: documents, quality: defaultQuality)
         compressSession = session
@@ -361,7 +723,7 @@ final class AppState {
                 }
 
                 guard !results.isEmpty else {
-                    session.phase = .failed("None of the PDFs could be compressed. They may be damaged or password protected.")
+                    session.phase = .failed(String(localized: "None of the PDFs could be compressed. They may be damaged."))
                     HapticManager.shared.error()
                     return
                 }
@@ -400,7 +762,7 @@ final class AppState {
 
     func merge(_ session: MergeSession) {
         guard session.documents.count >= 2 else { return }
-        guard requirePro(.merge, then: { [weak self] in self?.merge(session) }) else { return }
+        guard requirePro(.tool(.merge), then: { [weak self] in self?.merge(session) }) else { return }
         session.phase = .working
         let documents = session.documents
         Task {
@@ -424,7 +786,7 @@ final class AppState {
     // MARK: - Split
 
     func split(_ session: SplitSession) {
-        guard requirePro(.split, then: { [weak self] in self?.split(session) }) else { return }
+        guard requirePro(.tool(.split), then: { [weak self] in self?.split(session) }) else { return }
         if session.mode == .choosePages && session.selectedPages.isEmpty { return }
         session.phase = .working
         session.completedPages = 0
@@ -461,8 +823,26 @@ final class AppState {
     }
 }
 
+/// The PDFs the tool picker sheet is offering tools for.
+struct ToolPickerContext: Identifiable {
+    let id = UUID()
+    let documents: [PDFDocumentInfo]
+
+    /// Tools that fit: all PDF tools for one file, the multi-file ones for several.
+    var tools: [Tool] { documents.count > 1 ? Tool.multiPDFTools : Tool.pdfTools }
+}
+
+/// A locked PDF waiting for its password.
+struct PasswordRequest: Identifiable {
+    let id = UUID()
+    let fileName: String
+    /// The previous attempt was wrong.
+    let failed: Bool
+}
+
 /// Keys for values stored with @AppStorage.
-enum SettingsKeys {
+nonisolated enum SettingsKeys {
     static let defaultQuality = "defaultQuality"
     static let appearance = "appearance"
+    static let photoPageSize = "photoPageSize"
 }

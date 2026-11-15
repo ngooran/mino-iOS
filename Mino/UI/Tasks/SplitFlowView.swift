@@ -46,7 +46,7 @@ private struct SplitContent: View {
                 TaskFailedView(message: message) { session.phase = .configure }
             }
         }
-        .navigationTitle(session.phase == .configure ? "Split" : "")
+        .navigationTitle(session.phase == .configure ? Tool.split.title : "")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(session.phase != .configure)
         .toolbar {
@@ -83,7 +83,7 @@ private struct SplitContent: View {
                         .contentTransition(.opacity)
                     Spacer()
                     if session.mode == .choosePages {
-                        Button(session.selectedPages.count == pageCount ? "Deselect All" : "Select All") {
+                        Button(session.selectedPages.count == pageCount ? String(localized: "Deselect All") : String(localized: "Select All")) {
                             if session.selectedPages.count == pageCount {
                                 session.selectedPages.removeAll()
                             } else {
@@ -95,11 +95,12 @@ private struct SplitContent: View {
                 }
                 .padding(.horizontal, 4)
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 92, maximum: 150), spacing: 12)], spacing: 14) {
-                    ForEach(1...pageCount, id: \.self) { page in
-                        pageCell(page)
-                    }
-                }
+                PageSelectionGrid(
+                    loader: loader,
+                    pageCount: pageCount,
+                    selection: $session.selectedPages,
+                    isEnabled: session.mode == .choosePages
+                )
             }
             .padding(16)
         }
@@ -108,7 +109,7 @@ private struct SplitContent: View {
             Button {
                 appState.split(session)
             } label: {
-                ActionLabel(title: actionTitle)
+                ToolActionLabel(title: actionTitle, tool: .split)
             }
             .primaryButtonStyle()
             .disabled(session.mode == .choosePages && session.selectedPages.isEmpty)
@@ -119,62 +120,23 @@ private struct SplitContent: View {
     private var hint: String {
         switch session.mode {
         case .everyPage:
-            return "Each page becomes its own PDF."
+            return String(localized: "Each page becomes its own PDF.")
         case .choosePages:
-            if session.selectedPages.isEmpty { return "Tap the pages you want to keep." }
-            let noun = session.selectedPages.count == 1 ? "page" : "pages"
-            return "Selected: \(noun) \(session.selectionText)"
+            if session.selectedPages.isEmpty { return String(localized: "Tap the pages you want to keep.") }
+            return session.selectedPages.count == 1
+                ? String(localized: "Selected: page \(session.selectionText)")
+                : String(localized: "Selected: pages \(session.selectionText)")
         }
     }
 
     private var actionTitle: String {
         switch session.mode {
         case .everyPage:
-            return "Split into \(pageCount) PDFs"
+            return String(localized: "Split into \(pageCount) PDFs")
         case .choosePages:
             let count = session.selectedPages.count
-            return count == 1 ? "Extract 1 Page" : "Extract \(count) Pages"
+            return count == 1 ? String(localized: "Extract 1 Page") : String(localized: "Extract \(count) Pages")
         }
-    }
-
-    private func pageCell(_ page: Int) -> some View {
-        let selected = session.mode == .choosePages && session.selectedPages.contains(page)
-        return Button {
-            if selected {
-                session.selectedPages.remove(page)
-            } else {
-                session.selectedPages.insert(page)
-            }
-            HapticManager.shared.selectionChanged()
-        } label: {
-            VStack(spacing: 6) {
-                PageThumbnail(loader: loader, page: page)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .strokeBorder(selected ? Color.accentColor : Color.black.opacity(0.12), lineWidth: selected ? 3 : 0.5)
-                    }
-                    .overlay(alignment: .bottomTrailing) {
-                        if selected {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.title3)
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.white, Color.accentColor)
-                                .padding(6)
-                        }
-                    }
-                    .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
-                Text("\(page)")
-                    .font(.caption.weight(selected ? .semibold : .regular))
-                    .foregroundStyle(selected ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                    .monospacedDigit()
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(session.mode == .everyPage)
-        .hoverEffect(.lift)
-        .accessibilityLabel("Page \(page)")
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     // MARK: - Working
@@ -182,8 +144,8 @@ private struct SplitContent: View {
     private var workingView: some View {
         let everyPage = session.mode == .everyPage
         return WorkingView(
-            title: "Splitting…",
-            detail: everyPage ? "Page \(session.completedPages) of \(pageCount)" : session.document.name,
+            title: String(localized: "Splitting…"),
+            detail: everyPage ? String(localized: "Page \(session.completedPages) of \(pageCount)") : session.document.name,
             progress: everyPage ? Double(session.completedPages) / Double(pageCount) : nil
         )
         .background(Color.groupedBackground)
@@ -192,7 +154,7 @@ private struct SplitContent: View {
                 Button {
                     appState.cancelSplit(session)
                 } label: {
-                    ActionLabel(title: "Cancel")
+                    ActionLabel(title: String(localized: "Cancel"))
                 }
                 .secondaryButtonStyle()
             }
@@ -206,11 +168,11 @@ private struct SplitContent: View {
         let headline: String
         let detail: String
         if session.results.count == 1, let result = session.results.first {
-            headline = result.pageCount == 1 ? "1 page extracted" : "\(result.pageCount) pages extracted"
+            headline = String(localized: "\(result.pageCount) pages extracted")
             detail = FileItem(result).name
         } else {
-            headline = "\(session.results.count) PDFs created"
-            detail = "From \(session.document.name)"
+            headline = String(localized: "\(session.results.count) PDFs created")
+            detail = String(localized: "From \(session.document.name)")
         }
 
         return List {
@@ -227,6 +189,11 @@ private struct SplitContent: View {
                         appState.homePath.append(.preview(FileItem(result)))
                     } label: {
                         Label("Preview", systemImage: "eye")
+                    }
+                    Button {
+                        appState.showToolPicker(for: FileItem(result))
+                    } label: {
+                        Label("Continue with Another Tool", systemImage: "arrow.right")
                     }
                 }
             }
@@ -248,16 +215,13 @@ private struct SplitContent: View {
         .listStyle(.insetGrouped)
         .bottomActions {
             ShareLink(items: urls) {
-                ActionLabel(title: session.results.count > 1 ? "Share All" : "Share", systemImage: "square.and.arrow.up")
+                ActionLabel(title: session.results.count > 1 ? String(localized: "Share All") : String(localized: "Share"), systemImage: "square.and.arrow.up")
             }
             .primaryButtonStyle()
         }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    appState.splitSession = nil
-                    appState.closeTask()
-                }
+                Button("Done") { appState.finish(.split) }
             }
         }
     }

@@ -43,7 +43,7 @@ struct RootView: View {
                 get: { appState.importTarget != nil },
                 set: { if !$0 { appState.importTarget = nil } }
             ),
-            allowedContentTypes: [.pdf],
+            allowedContentTypes: appState.lastImportTarget.contentTypes,
             allowsMultipleSelection: appState.lastImportTarget.allowsMultipleSelection
         ) { result in
             appState.handleImporterResult(result, target: appState.lastImportTarget)
@@ -51,6 +51,10 @@ struct RootView: View {
         .sheet(item: $state.paywallReason, onDismiss: { appState.paywallDismissed() }) { reason in
             PaywallView(reason: reason)
         }
+        .sheet(item: $state.toolPicker) { context in
+            ToolPickerSheet(context: context)
+        }
+        .modifier(PasswordPrompt())
         .alert(
             "Can't Open File",
             isPresented: Binding(
@@ -69,7 +73,7 @@ struct RootView: View {
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
         }
-        .dropDestination(for: DroppedPDF.self) { items, _ in
+        .dropDestination(for: DroppedFile.self) { items, _ in
             appState.handleIncoming(items.map(\.url))
             return !items.isEmpty
         }
@@ -195,8 +199,63 @@ struct RouteView: View {
         case .compress: CompressFlowView()
         case .merge: MergeFlowView()
         case .split: SplitFlowView()
+        case .tool(let tool): ToolRouteView(tool: tool)
         case .preview(let item): FilePreviewView(item: item)
         case .statistics: StatisticsView()
+        }
+    }
+}
+
+/// The screen of a tool added after 2.0.
+private struct ToolRouteView: View {
+    let tool: Tool
+
+    var body: some View {
+        switch tool {
+        case .photosToPDF: PhotosToPDFFlowView()
+        case .pdfToImages: PDFToImagesFlowView()
+        case .organize: OrganizeFlowView()
+        case .protect: ProtectFlowView()
+        default: NoSessionView(tool: tool)
+        }
+    }
+}
+
+// MARK: - Password prompt
+
+/// Asks for the password of a locked PDF while it is being opened.
+private struct PasswordPrompt: ViewModifier {
+    @Environment(AppState.self) private var appState
+    @State private var password = ""
+
+    func body(content: Content) -> some View {
+        let request = appState.passwordRequest
+        content.alert(
+            "Password Required",
+            isPresented: Binding(
+                get: { appState.passwordRequest != nil },
+                // Dismissed without a button (never by the system today): treat as cancel.
+                set: { if !$0, appState.passwordRequest != nil { appState.submitPassword(nil) } }
+            )
+        ) {
+            SecureField("Password", text: $password)
+                .textContentType(.password)
+            Button("Cancel", role: .cancel) {
+                password = ""
+                appState.submitPassword(nil)
+            }
+            Button("Open") {
+                let entered = password
+                password = ""
+                appState.submitPassword(entered)
+            }
+            .keyboardShortcut(.defaultAction)
+        } message: {
+            if let request {
+                Text(request.failed
+                     ? String(localized: "That password didn't work. Try again to open “\(request.fileName)”.")
+                     : String(localized: "“\(request.fileName)” is locked. Enter its password to open it."))
+            }
         }
     }
 }
@@ -212,9 +271,9 @@ enum AppearanceOption: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .system: return "System"
-        case .light: return "Light"
-        case .dark: return "Dark"
+        case .system: return String(localized: "System")
+        case .light: return String(localized: "Light")
+        case .dark: return String(localized: "Dark")
         }
     }
 
@@ -229,19 +288,23 @@ enum AppearanceOption: String, CaseIterable, Identifiable {
 
 // MARK: - Drag and drop
 
-/// A PDF dropped onto Mino from Files, Mail, Safari or another app.
-struct DroppedPDF: Transferable {
+/// A PDF or an image dropped onto Mino from Files, Mail, Safari, Photos or another app.
+struct DroppedFile: Transferable {
     let url: URL
 
     static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(importedContentType: .pdf) { received in
-            let folder = FileManager.default.temporaryDirectory
-                .appendingPathComponent("Dropped-\(UUID().uuidString)", isDirectory: true)
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let destination = folder.appendingPathComponent(received.file.lastPathComponent)
-            try FileManager.default.copyItem(at: received.file, to: destination)
-            return DroppedPDF(url: destination)
-        }
+        FileRepresentation(importedContentType: .pdf) { try DroppedFile(copying: $0.file) }
+        FileRepresentation(importedContentType: .image) { try DroppedFile(copying: $0.file) }
+    }
+
+    /// The received file only lives until the drop ends, so keep a copy.
+    private init(copying file: URL) throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Dropped-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let destination = folder.appendingPathComponent(file.lastPathComponent)
+        try FileManager.default.copyItem(at: file, to: destination)
+        url = destination
     }
 }
 

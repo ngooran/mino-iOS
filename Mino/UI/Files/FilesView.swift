@@ -10,45 +10,21 @@ import SwiftUI
 struct FilesView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.horizontalSizeClass) private var sizeClass
-    @State private var filter: Filter = .all
+    /// Nil shows every kind.
+    @State private var filter: FileItem.Kind?
     @State private var query = ""
     @State private var pendingDelete: FileItem?
 
-    enum Filter: String, CaseIterable, Identifiable {
-        case all = "All"
-        case compressed = "Compressed"
-        case merged = "Merged"
-        case split = "Split"
-
-        var id: String { rawValue }
-
-        func includes(_ item: FileItem) -> Bool {
-            switch self {
-            case .all: return true
-            case .compressed: return item.kind == .compressed
-            case .merged: return item.kind == .merged
-            case .split: return item.kind == .split
-            }
-        }
-    }
-
     var body: some View {
         let allFiles = appState.files
+        // Only kinds that exist are offered; a filter whose last file was deleted falls back to All.
+        let kinds = FileItem.Kind.allCases.filter { kind in allFiles.contains { $0.kind == kind } }
+        let activeFilter = filter.flatMap { kinds.contains($0) ? $0 : nil }
         let items = allFiles.filter {
-            filter.includes($0) && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query))
+            (activeFilter == nil || $0.kind == activeFilter) && (query.isEmpty || $0.name.localizedCaseInsensitiveContains(query))
         }
 
         List {
-            Section {
-                Picker("Show", selection: $filter) {
-                    ForEach(Filter.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-
             if !items.isEmpty {
                 Section {
                     ForEach(items) { item in
@@ -66,8 +42,25 @@ struct FilesView: View {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
+                        .swipeActions(edge: .leading) {
+                            if item.isPDF {
+                                Button {
+                                    appState.showToolPicker(for: item)
+                                } label: {
+                                    Label("Use a Tool", systemImage: "wand.and.stars")
+                                }
+                                .tint(.accentColor)
+                            }
+                        }
                         .contextMenu {
-                            ShareLink(item: item.url)
+                            if item.isPDF {
+                                Button {
+                                    appState.showToolPicker(for: item)
+                                } label: {
+                                    Label("Use a Tool", systemImage: "wand.and.stars")
+                                }
+                            }
+                            ShareLink(items: item.urls)
                             Button(role: .destructive) {
                                 pendingDelete = item
                             } label: {
@@ -77,7 +70,7 @@ struct FilesView: View {
                     }
                 } footer: {
                     let total = items.reduce(Int64(0)) { $0 + $1.size }
-                    Text("\(items.count) \(items.count == 1 ? "file" : "files") · \(ByteCountFormatter.string(fromByteCount: total, countStyle: .file))")
+                    Text(verbatim: String(localized: "\(items.count) files") + " · " + ByteCountFormatter.string(fromByteCount: total, countStyle: .file))
                 }
             }
         }
@@ -85,21 +78,44 @@ struct FilesView: View {
         .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search")
         .navigationTitle("Files")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            if kinds.count > 1 {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Picker("Show", selection: $filter) {
+                            Label("All Files", systemImage: "tray.full").tag(FileItem.Kind?.none)
+                            ForEach(kinds, id: \.self) { kind in
+                                Label(kind.title, systemImage: kind.systemImage).tag(FileItem.Kind?.some(kind))
+                            }
+                        }
+                    } label: {
+                        Label(
+                            activeFilter?.title ?? String(localized: "Filter"),
+                            systemImage: activeFilter == nil ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill"
+                        )
+                    }
+                }
+            }
+        }
         .overlay {
             if allFiles.isEmpty {
                 ContentUnavailableView {
                     Label("No Files Yet", systemImage: "folder")
                 } description: {
-                    Text("PDFs you compress, merge or split appear here.")
+                    Text("Everything you make with Mino appears here.")
                 } actions: {
-                    Button("Compress a PDF") {
+                    Button("Open PDF") {
                         appState.selectedTab = .home
-                        appState.chooseFilesToCompress()
+                        appState.openPDF()
                     }
                     .secondaryButtonStyle()
                 }
             } else if items.isEmpty {
-                ContentUnavailableView.search(text: query)
+                if query.isEmpty {
+                    ContentUnavailableView("Nothing Here Yet", systemImage: "folder")
+                } else {
+                    ContentUnavailableView.search(text: query)
+                }
             }
         }
         .confirmationDialog(
@@ -131,7 +147,7 @@ struct FilePreviewView: View {
     var body: some View {
         Group {
             if FileManager.default.fileExists(atPath: item.url.path) {
-                QuickLookPreview(url: item.url.standardizedFileURL)
+                QuickLookPreview(urls: item.urls.map(\.standardizedFileURL))
                     .id(item.id)
                     .ignoresSafeArea(edges: .bottom)
             } else {
@@ -141,8 +157,15 @@ struct FilePreviewView: View {
         .navigationTitle(item.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if item.isPDF {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Use a Tool", systemImage: "wand.and.stars") {
+                        appState.showToolPicker(for: item)
+                    }
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
-                ShareLink(item: item.url)
+                ShareLink(items: item.urls)
             }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
@@ -162,7 +185,7 @@ struct FilePreviewView: View {
             }
         }
         .sheet(isPresented: $isExporting) {
-            DocumentExporter(urls: [item.url]) { _ in isExporting = false }
+            DocumentExporter(urls: item.urls) { _ in isExporting = false }
                 .ignoresSafeArea()
         }
         .confirmationDialog("Delete “\(item.name)”?", isPresented: $confirmDelete, titleVisibility: .visible) {

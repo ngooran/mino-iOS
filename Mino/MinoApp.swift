@@ -33,8 +33,10 @@ struct MinoApp: App {
         .commands {
             // Keyboard shortcuts on iPad (and iPhone with a keyboard).
             CommandGroup(replacing: .newItem) {
-                Button("Compress PDF…") { appState.chooseFilesToCompress() }
+                Button("Open PDF…") { appState.openPDF() }
                     .keyboardShortcut("o", modifiers: .command)
+                Button("Compress PDF…") { appState.chooseFilesToCompress() }
+                    .keyboardShortcut("k", modifiers: [.command, .shift])
                 Button("Merge PDFs…") { appState.openMerge() }
                     .keyboardShortcut("m", modifiers: [.command, .shift])
                 Button("Split PDF…") { appState.openSplit() }
@@ -53,28 +55,40 @@ struct MinoApp: App {
         }
         guard url.scheme == SharedConstants.urlScheme,
               url.host == "import",
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
-              let fileParam = components.queryItems?.first(where: { $0.name == "file" })?.value,
-              let fileURL = URL(string: fileParam) else { return }
-        importSharedPDF(from: fileURL)
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: true) else { return }
+        // The share extension passes one `file` item per shared file.
+        let files = (components.queryItems ?? [])
+            .filter { $0.name == "file" }
+            .compactMap { $0.value.flatMap(URL.init(string:)) }
+        guard !files.isEmpty else { return }
+        SharedConstants.sharedDefaults?.removeObject(forKey: SharedConstants.sharedPDFKey)
+        importSharedFiles(files)
     }
 
-    /// Picks up a PDF the share extension left in the App Group container.
+    /// Picks up files the share extension left in the App Group container.
     private func checkForPendingSharedPDF() async {
-        guard let sharedDefaults = SharedConstants.sharedDefaults,
-              let urlString = sharedDefaults.string(forKey: SharedConstants.sharedPDFKey),
-              let fileURL = URL(string: urlString) else {
-            return
-        }
+        guard let sharedDefaults = SharedConstants.sharedDefaults else { return }
+        // One URL per line; builds before 2.1 stored a single URL.
+        let files = (sharedDefaults.string(forKey: SharedConstants.sharedPDFKey) ?? "")
+            .split(separator: "\n")
+            .compactMap { URL(string: String($0)) }
         sharedDefaults.removeObject(forKey: SharedConstants.sharedPDFKey)
-        importSharedPDF(from: fileURL)
+        guard !files.isEmpty else { return }
+        importSharedFiles(files)
     }
 
-    private func importSharedPDF(from url: URL) {
+    private func importSharedFiles(_ urls: [URL]) {
         Task {
-            await appState.receive([url])
-            // The app now has its own copy; remove the shared one.
-            try? FileManager.default.removeItem(at: url)
+            await appState.receive(urls)
+            // The app now has its own copies; remove the shared ones.
+            for url in urls {
+                try? FileManager.default.removeItem(at: url)
+                // Each shared file sits in its own folder (2.1 and later).
+                let folder = url.deletingLastPathComponent()
+                if UUID(uuidString: folder.lastPathComponent) != nil {
+                    try? FileManager.default.removeItem(at: folder)
+                }
+            }
         }
     }
 }

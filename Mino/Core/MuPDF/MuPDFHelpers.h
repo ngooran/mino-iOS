@@ -126,6 +126,69 @@ int mino_save_pdf(
 // Get page count from a pdf_document (not fz_document)
 int mino_pdf_count_pages(fz_context *ctx, pdf_document *doc);
 
+
+// MARK: - Passwords and encryption
+
+// Returns 1 when the document needs a password before it can be read.
+int mino_needs_password(fz_context *ctx, fz_document *doc);
+
+// Tries a password. Returns 0 when it is wrong; otherwise MuPDF's result bits:
+// 1 = no password needed, 2 = user password accepted, 4 = owner password accepted.
+int mino_authenticate(fz_context *ctx, fz_document *doc, const char *password);
+
+// Returns 1 when the document is encrypted (with or without an open password).
+int mino_is_encrypted(fz_context *ctx, pdf_document *doc);
+
+// Saves a copy without encryption. The document must be authenticated first.
+int mino_save_decrypted(fz_context *ctx, pdf_document *doc, const char *output_path);
+
+// Saves a copy encrypted with AES-256.
+// permissions: MuPDF PDF_PERM_* bits that stay allowed.
+int mino_save_encrypted(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *output_path,
+    const char *user_password,
+    const char *owner_password,
+    int permissions
+);
+
+// MARK: - Building pages
+
+// Appends a page of page_w x page_h points showing the image file, placed in
+// the rectangle (x, y, w, h) with y measured from the bottom of the page.
+// JPEG data is embedded as it is. orientation is the EXIF value 1-8.
+int mino_add_image_page(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *image_path,
+    float page_w,
+    float page_h,
+    float x,
+    float y,
+    float w,
+    float h,
+    int orientation
+);
+
+// Appends an empty page.
+int mino_add_blank_page(fz_context *ctx, pdf_document *doc, float width, float height);
+
+// Appends a copy of a page (0-based) that shares the original's content.
+// The copy has no annotations, links or form fields.
+int mino_duplicate_page(fz_context *ctx, pdf_document *doc, int page);
+
+// MARK: - Organizing pages
+
+// Keeps the listed pages (0-based, each at most once) in the given order and
+// removes the others. Bookmarks, links and form fields that belong to the
+// remaining pages are kept; those pointing at removed pages are dropped.
+int mino_rearrange_pages(fz_context *ctx, pdf_document *doc, int count, const int *pages);
+
+// Page rotation in degrees (0, 90, 180, 270), including inherited values.
+int mino_get_page_rotation(fz_context *ctx, pdf_document *doc, int page);
+int mino_set_page_rotation(fz_context *ctx, pdf_document *doc, int page, int rotation);
+
 #ifdef __cplusplus
 }
 #endif

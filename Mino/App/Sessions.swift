@@ -21,20 +21,46 @@ extension CompressionQuality {
     /// Outcome-oriented name shown in the quality picker.
     var title: String {
         switch self {
-        case .low: return "Smallest"
-        case .medium: return "Balanced"
-        case .high: return "Best Quality"
+        case .low: return String(localized: "Smallest")
+        case .medium: return String(localized: "Balanced")
+        case .high: return String(localized: "Best Quality")
         }
     }
 
     /// What the preset is good for.
     var useCase: String {
         switch self {
-        case .low: return "for messages and uploads"
-        case .medium: return "good for email"
-        case .high: return "for printing"
+        case .low: return String(localized: "for messages and uploads")
+        case .medium: return String(localized: "good for email")
+        case .high: return String(localized: "for printing")
         }
     }
+}
+
+// MARK: - Shared task state
+
+/// Progress and outcome of one run of a tool. Every session of the tools
+/// added after 2.0 owns one, and `AppState.run` drives it.
+@Observable
+@MainActor
+final class TaskState {
+    var phase: TaskPhase = .configure
+    /// 0...1 while working, or nil when the tool can't tell.
+    var progress: Double?
+    var result: FileItem?
+    /// Text the tool recognized or extracted, for the result screen.
+    var resultText: String?
+    var task: Task<Void, Never>?
+
+    func cancel() {
+        task?.cancel()
+    }
+}
+
+/// A session of a tool that runs through `AppState.run`.
+@MainActor
+protocol ToolSession: AnyObject {
+    var state: TaskState { get }
 }
 
 // MARK: - Compress
@@ -137,6 +163,199 @@ final class SplitSession {
     /// Selected pages as text, e.g. "1-3, 7".
     var selectionText: String {
         PageRange.ranges(covering: Array(selectedPages)).map(\.displayString).joined(separator: ", ")
+    }
+}
+
+// MARK: - Photos to PDF
+
+@Observable
+@MainActor
+final class PhotosToPDFSession: ToolSession {
+    let state = TaskState()
+    var photos: [PhotoInput] = []
+    var pageSize: PhotoPageSize
+    var margin: PhotoMargin = .none
+    /// Photos are being copied in from the picker.
+    var isLoading = false
+
+    init() {
+        pageSize = PhotoPageSize(rawValue: StorageRoot.defaults.string(forKey: SettingsKeys.photoPageSize) ?? "") ?? .fit
+    }
+
+    /// Drag and drop: the dragged photo takes the place of the one it is dropped on.
+    func move(_ id: PhotoInput.ID, to target: PhotoInput.ID) {
+        guard id != target,
+              let from = photos.firstIndex(where: { $0.id == id }),
+              let to = photos.firstIndex(where: { $0.id == target }) else { return }
+        let photo = photos.remove(at: from)
+        photos.insert(photo, at: to)
+    }
+}
+
+// MARK: - PDF to Images
+
+@Observable
+@MainActor
+final class PDFToImagesSession: ToolSession {
+
+    enum Scope: Hashable {
+        case all
+        case choose
+    }
+
+    let state = TaskState()
+    let document: PDFDocumentInfo
+    var scope: Scope = .all
+    var selectedPages: Set<Int> = []
+    var format: ImageFormat = .jpg
+    var resolution: ImageResolution = .standard
+
+    init(document: PDFDocumentInfo) {
+        self.document = document
+    }
+
+    /// 1-based pages to export, in order.
+    var pages: [Int] {
+        switch scope {
+        case .all: return Array(1...max(1, document.pageCount))
+        case .choose: return selectedPages.sorted()
+        }
+    }
+}
+
+// MARK: - Organize Pages
+
+@Observable
+@MainActor
+final class OrganizeSession: ToolSession {
+    let state = TaskState()
+    let document: PDFDocumentInfo
+    var pages: [OrganizedPage]
+    var selection: Set<OrganizedPage.ID> = []
+    /// PDFs whose pages were inserted, kept so their thumbnails can load.
+    var insertedDocuments: [PDFDocumentInfo] = []
+
+    init(document: PDFDocumentInfo) {
+        self.document = document
+        pages = (0..<max(1, document.pageCount)).map { OrganizedPage(source: .original($0)) }
+    }
+
+    var hasChanges: Bool {
+        pages.count != document.pageCount
+            || pages.enumerated().contains { index, page in page.source != .original(index) || page.rotation != 0 }
+    }
+
+    private var selectedIndices: [Int] {
+        pages.indices.filter { selection.contains(pages[$0].id) }
+    }
+
+    func toggle(_ page: OrganizedPage) {
+        if selection.contains(page.id) {
+            selection.remove(page.id)
+        } else {
+            selection.insert(page.id)
+        }
+    }
+
+    func rotateSelection() {
+        for index in selectedIndices {
+            pages[index].rotation = (pages[index].rotation + 90) % 360
+        }
+    }
+
+    func deleteSelection() {
+        // A PDF needs at least one page.
+        guard selection.count < pages.count else { return }
+        pages.removeAll { selection.contains($0.id) }
+        selection.removeAll()
+    }
+
+    func duplicateSelection() {
+        for index in selectedIndices.reversed() {
+            var copy = pages[index]
+            copy.id = UUID()
+            pages.insert(copy, at: index + 1)
+        }
+    }
+
+    /// Moves the selected pages one place toward the start (-1) or the end (+1).
+    func moveSelection(by direction: Int) {
+        let indices = direction < 0 ? selectedIndices : selectedIndices.reversed()
+        var settled: Set<Int> = []
+        for index in indices {
+            let target = index + direction
+            guard pages.indices.contains(target), !settled.contains(target) else {
+                settled.insert(index)
+                continue
+            }
+            pages.swapAt(index, target)
+            settled.insert(target)
+        }
+    }
+
+    /// Drag and drop: the dragged page takes the place of the one it is dropped on.
+    func move(_ id: OrganizedPage.ID, to target: OrganizedPage.ID) {
+        guard id != target,
+              let from = pages.firstIndex(where: { $0.id == id }),
+              let to = pages.firstIndex(where: { $0.id == target }) else { return }
+        let page = pages.remove(at: from)
+        pages.insert(page, at: to)
+    }
+
+    /// Where new pages go: after the last selected page, or at the end.
+    private var insertionIndex: Int {
+        (selectedIndices.last.map { $0 + 1 }) ?? pages.count
+    }
+
+    func insertBlankPage() {
+        // Match the page it follows, or the first page.
+        let size = document.firstPageSize ?? CGSize(width: 595, height: 842)
+        pages.insert(OrganizedPage(source: .blank(width: size.width, height: size.height)), at: insertionIndex)
+    }
+
+    func insertPages(of other: PDFDocumentInfo) {
+        insertedDocuments.append(other)
+        let new = (0..<other.pageCount).map { OrganizedPage(source: .external(url: other.url, page: $0)) }
+        pages.insert(contentsOf: new, at: insertionIndex)
+    }
+}
+
+// MARK: - Protect & Unlock
+
+@Observable
+@MainActor
+final class ProtectSession: ToolSession {
+
+    enum Mode: Hashable {
+        case protect
+        case unlock
+    }
+
+    let state = TaskState()
+    let document: PDFDocumentInfo
+    var mode: Mode
+    var password = ""
+    var confirmation = ""
+    var allowPrinting = true
+    var allowCopying = true
+    /// Unlock, for a PDF that opens freely but restricts printing or copying.
+    var permissionsPassword = ""
+
+    init(document: PDFDocumentInfo) {
+        self.document = document
+        mode = document.wasLocked || document.hasRestrictions ? .unlock : .protect
+    }
+
+    var passwordsMatch: Bool { !password.isEmpty && password == confirmation }
+
+    /// False when the password has characters that don't work in every PDF app.
+    var passwordIsPortable: Bool { PDFProtector.isPortable(password) }
+
+    var canRun: Bool {
+        switch mode {
+        case .protect: return passwordsMatch && passwordIsPortable
+        case .unlock: return document.wasLocked || (document.hasRestrictions && !permissionsPassword.isEmpty)
+        }
     }
 }
 

@@ -6,7 +6,9 @@
 //  screenshots and layout checks on every device.
 //
 //  xcrun simctl launch booted com.applestan.Mino -demoScreen compress -demoFree
-//  Screens: home, compress, result, merge, split, files, settings, paywall
+//  Screens: home, search, picker, password, compress, result, merge, split,
+//  photos, images, organize, protect, unlock, files, settings, paywall
+//  Add -demoRun to run the tool and show its result.
 //
 
 #if DEBUG
@@ -38,44 +40,99 @@ enum DebugLaunch {
             _ = try? await appState.compressionService.compress(document: seed, settings: CompressionQuality.medium.settings)
         }
 
+        let run = arguments.contains("-demoRun")
+
         switch screen {
+        case "search":
+            appState.toolQuery = value(after: "-demoQuery", in: arguments) ?? "jpg"
+        case "picker":
+            let documents = await appState.importDocuments([lease])
+            appState.showToolPicker(for: documents)
+        case "password":
+            // Shows the password prompt. The sample's password is "mino".
+            await appState.receive([makeLockedPDF()])
         case "compress":
-            await appState.receive([lease])
+            appState.start(.compress, with: await appState.importDocuments([lease]))
         case "result":
-            await appState.receive([lease])
+            appState.start(.compress, with: await appState.importDocuments([lease]))
             if let session = appState.compressSession { appState.compress(session) }
         case "merge":
-            let wasPro = appState.store.debugProOverride
-            appState.store.debugProOverride = true
             appState.mergeSession = MergeSession()
-            appState.show(.merge)
-            await appState.receive([lease, receipts, tax])
-            if arguments.contains("-demoRun"), let session = appState.mergeSession {
+            appState.start(.merge, with: await appState.importDocuments([lease, receipts, tax]))
+            if run, let session = appState.mergeSession {
                 appState.store.debugProOverride = true
                 appState.merge(session)
-                return
             }
-            appState.store.debugProOverride = wasPro
         case "split":
-            let wasPro = appState.store.debugProOverride
-            appState.store.debugProOverride = true
-            if let document = try? await appState.documentImporter.importDocument(from: lease) {
-                let session = SplitSession(document: document)
+            appState.start(.split, with: await appState.importDocuments([lease]))
+            if let session = appState.splitSession {
                 session.selectedPages = [1, 2, 3, 7]
-                appState.splitSession = session
-                appState.show(.split)
-                if arguments.contains("-demoRun") {
+                if run {
+                    appState.store.debugProOverride = true
                     appState.split(session)
-                    return
                 }
             }
-            appState.store.debugProOverride = wasPro
+        case "photos":
+            appState.openPhotosToPDF()
+            await appState.addPhotos(from: makeSamplePhotos())
+            if let session = appState.photosSession {
+                if let size = value(after: "-demoPageSize", in: arguments).flatMap(PhotoPageSize.init(rawValue:)) {
+                    session.pageSize = size
+                }
+                if run { appState.createPDF(session) }
+            }
+        case "images":
+            appState.start(.pdfToImages, with: await appState.importDocuments([lease]))
+            if let session = appState.imagesSession {
+                if arguments.contains("-demoChoose") {
+                    session.scope = .choose
+                    session.selectedPages = [1, 2, 5]
+                }
+                if arguments.contains("-demoPNG") { session.format = .png }
+                if run { appState.exportImages(session) }
+            }
+        case "organize":
+            appState.start(.organize, with: await appState.importDocuments([lease]))
+            if let session = appState.organizeSession {
+                // Page 2 turned, page 5 removed, pages 3 and 4 selected.
+                session.selection = [session.pages[1].id]
+                session.rotateSelection()
+                session.selection = [session.pages[4].id]
+                session.deleteSelection()
+                session.selection = [session.pages[2].id, session.pages[3].id]
+                if run { appState.saveOrganized(session) }
+            }
+        case "protect":
+            appState.start(.protect, with: await appState.importDocuments([lease]))
+            if let session = appState.protectSession {
+                session.password = "mino-demo"
+                session.confirmation = "mino-demo"
+                session.allowCopying = false
+                if run {
+                    appState.store.debugProOverride = true
+                    appState.protect(session)
+                }
+            }
+        case "unlock":
+            // The locked sample is unlocked here as the password prompt would do it.
+            let locked = makeLockedPDF()
+            do {
+                _ = try await appState.documentImporter.importDocument(from: locked)
+            } catch ImportError.passwordRequired(let copy) {
+                if let document = try? await appState.documentImporter.unlock(copy: copy, password: "mino") {
+                    appState.start(.protect, with: [document])
+                }
+            } catch {}
+            if run, let session = appState.protectSession {
+                appState.store.debugProOverride = true
+                appState.protect(session)
+            }
         case "files":
             appState.selectedTab = .files
         case "settings":
             appState.selectedTab = .settings
         case "paywall":
-            appState.showPaywall(.merge)
+            appState.showPaywall(.tool(.merge))
         default:
             break
         }
@@ -104,9 +161,102 @@ enum DebugLaunch {
                 outputName: PDFMerger.suggestedOutputName(from: [a, b])
             )
         }
+        // Results of the tools added in 2.1.
+        if Tool.organize.isAvailable, let doc = try? await importer.importDocument(from: contract) {
+            let output = OutputLocation.url(folder: "Edited", fileName: "Rental Contract (edited)")
+            let pages = (0..<6).map { OrganizedPage(source: .original($0)) }
+            if (try? PageOrganizer.save(documentURL: doc.url, pages: pages, outputURL: output)) != nil {
+                appState.toolResults.add(ToolOutput(urls: [output], kind: .edited, pageCount: 6), tool: .organize)
+            }
+        }
+        if Tool.protect.isAvailable, let doc = try? await importer.importDocument(from: invoice) {
+            let output = OutputLocation.url(folder: "Protected", fileName: "Invoice March (protected)")
+            if (try? PDFProtector.protect(documentURL: doc.url, password: "mino", allowPrinting: true, allowCopying: true, outputURL: output)) != nil {
+                appState.toolResults.add(
+                    ToolOutput(urls: [output], kind: .protected, pageCount: 2, detail: String(localized: "Password added")),
+                    tool: .protect
+                )
+            }
+        }
+        if Tool.photosToPDF.isAvailable {
+            let output = OutputLocation.url(folder: "Converted", fileName: "Photos 12 Nov")
+            let inputs = makeSamplePhotos().prefix(4).compactMap(PhotoInput.load(from:))
+            if (try? PhotosToPDFEngine.makePDF(photos: Array(inputs), pageSize: .a4, margin: .small, outputURL: output)) != nil {
+                appState.toolResults.add(ToolOutput(urls: [output], kind: .converted, pageCount: inputs.count), tool: .photosToPDF)
+            }
+        }
         for source in [photos, receipts] {
             if let doc = try? await importer.importDocument(from: source) {
                 _ = try? await appState.compressionService.compress(document: doc, settings: CompressionQuality.medium.settings)
+            }
+        }
+    }
+
+    /// "Bank Statement.pdf", locked with the password "mino".
+    private static func makeLockedPDF() -> URL {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("DemoLocked", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent("Bank Statement.pdf")
+        if FileManager.default.fileExists(atPath: url.path) { return url }
+        let plain = makeSamplePDF(name: "Bank Statement Source", pages: 3, photos: false)
+        try? PDFProtector.protect(documentURL: plain, password: "mino", allowPrinting: true, allowCopying: true, outputURL: url)
+        return url
+    }
+
+    /// Six sample photos in the formats people have: JPEG (two of them with an
+    /// EXIF rotation), PNG and HEIC.
+    static func makeSamplePhotos() -> [URL] {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("DemoPhotos", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let specs: [(name: String, size: CGSize, hue: CGFloat, type: String, orientation: Int)] = [
+            ("IMG_0412.jpg", CGSize(width: 1600, height: 1200), 0.55, "public.jpeg", 1),
+            ("IMG_0413.jpg", CGSize(width: 1600, height: 1200), 0.08, "public.jpeg", 6),
+            ("IMG_0415.heic", CGSize(width: 1200, height: 1600), 0.33, "public.heic", 1),
+            ("Screenshot.png", CGSize(width: 1179, height: 2556), 0.62, "public.png", 1),
+            ("IMG_0420.jpg", CGSize(width: 1600, height: 1200), 0.92, "public.jpeg", 3),
+            ("IMG_0421.jpg", CGSize(width: 1200, height: 1600), 0.75, "public.jpeg", 1),
+        ]
+        return specs.compactMap { spec in
+            let url = folder.appendingPathComponent(spec.name)
+            if FileManager.default.fileExists(atPath: url.path) { return url }
+            let image = makePhoto(size: spec.size, hue: spec.hue, label: spec.name)
+            guard let cgImage = image.cgImage,
+                  let destination = CGImageDestinationCreateWithURL(url as CFURL, spec.type as CFString, 1, nil) else { return nil }
+            let properties: [CFString: Any] = [
+                kCGImagePropertyOrientation: spec.orientation,
+                kCGImageDestinationLossyCompressionQuality: 0.85,
+            ]
+            CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
+            return CGImageDestinationFinalize(destination) ? url : nil
+        }
+    }
+
+    /// A photo-like picture with a horizon, so its orientation is easy to judge.
+    private static func makePhoto(size: CGSize, hue: CGFloat, label: String) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let colors = [UIColor(hue: hue, saturation: 0.35, brightness: 0.95, alpha: 1).cgColor,
+                          UIColor(hue: hue, saturation: 0.65, brightness: 0.6, alpha: 1).cgColor]
+            let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors as CFArray, locations: [0, 1])!
+            context.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: size.height), options: [])
+            // Ground and sun.
+            UIColor(hue: hue, saturation: 0.5, brightness: 0.35, alpha: 1).setFill()
+            context.fill(CGRect(x: 0, y: size.height * 0.68, width: size.width, height: size.height * 0.32))
+            UIColor(white: 1, alpha: 0.85).setFill()
+            let sun = min(size.width, size.height) * 0.16
+            context.cgContext.fillEllipse(in: CGRect(x: size.width * 0.68, y: size.height * 0.16, width: sun, height: sun))
+            (label as NSString).draw(
+                at: CGPoint(x: size.width * 0.06, y: size.height * 0.78),
+                withAttributes: [.font: UIFont.boldSystemFont(ofSize: min(size.width, size.height) * 0.07), .foregroundColor: UIColor.white]
+            )
+            var generator = SystemRandomNumberGenerator()
+            for _ in 0..<20_000 {
+                let x = CGFloat.random(in: 0..<size.width, using: &generator)
+                let y = CGFloat.random(in: 0..<size.height, using: &generator)
+                UIColor(white: .random(in: 0...1, using: &generator), alpha: 0.25).setFill()
+                context.fill(CGRect(x: x, y: y, width: 3, height: 3))
             }
         }
     }

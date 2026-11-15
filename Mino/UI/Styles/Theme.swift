@@ -44,6 +44,20 @@ struct ProBadge: View {
     }
 }
 
+/// Marks a tool from the newest release.
+struct NewBadge: View {
+    var body: some View {
+        Text("NEW")
+            .font(.caption2.weight(.bold))
+            .tracking(0.5)
+            .foregroundStyle(.tint)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.accentColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .accessibilityLabel("New")
+    }
+}
+
 /// Colored rounded-square symbol, as in the Settings app.
 struct IconTile: View {
     let systemImage: String

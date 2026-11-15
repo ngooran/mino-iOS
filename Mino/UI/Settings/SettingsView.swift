@@ -12,6 +12,7 @@ struct SettingsView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @AppStorage(SettingsKeys.defaultQuality) private var defaultQuality: CompressionQuality = .medium
     @AppStorage(SettingsKeys.appearance) private var appearance: AppearanceOption = .system
+    @AppStorage(SettingsKeys.photoPageSize) private var photoPageSize: PhotoPageSize = .fit
     @State private var isRestoring = false
     @State private var restoreMessage: String?
 
@@ -25,7 +26,14 @@ struct SettingsView: View {
                 Picker(selection: $defaultQuality) {
                     ForEach(CompressionQuality.allCases) { Text($0.title).tag($0) }
                 } label: {
-                    Label { Text("Default Quality") } icon: { IconTile(systemImage: "slider.horizontal.3", color: .teal) }
+                    Label { Text("Compress Quality") } icon: { IconTile(systemImage: "arrow.down.doc.fill", color: .teal) }
+                }
+                if Tool.photosToPDF.isAvailable {
+                    Picker(selection: $photoPageSize) {
+                        ForEach(PhotoPageSize.allCases) { Text($0.title).tag($0) }
+                    } label: {
+                        Label { Text("Photo Page Size") } icon: { IconTile(systemImage: "photo.on.rectangle", color: .green) }
+                    }
                 }
                 Picker(selection: $appearance) {
                     ForEach(AppearanceOption.allCases) { Text($0.title).tag($0) }
@@ -58,7 +66,7 @@ struct SettingsView: View {
                     Label { Text("Rate Mino").foregroundStyle(.primary) } icon: { IconTile(systemImage: "star.fill", color: .yellow) }
                 }
                 .tint(.primary)
-                ShareLink(item: MinoLinks.appStore, subject: Text("Mino – PDF Compressor"), message: Text("I use Mino to make PDFs smaller.")) {
+                ShareLink(item: MinoLinks.appStore, subject: Text("Mino – PDF Toolkit"), message: Text("I use Mino for PDFs. Everything stays on the device.")) {
                     Label { Text("Share Mino").foregroundStyle(.primary) } icon: { IconTile(systemImage: "square.and.arrow.up", color: .blue) }
                 }
                 .tint(.primary)
@@ -120,8 +128,8 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Mino Pro").font(.headline)
                     Text(appState.store.isLegacyPurchaser
-                         ? "Unlocked. Thank you for buying Mino early."
-                         : "Unlocked. Thank you for supporting Mino.")
+                         ? String(localized: "Unlocked. Thank you for buying Mino early.")
+                         : String(localized: "Unlocked. Thank you for supporting Mino."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -140,7 +148,7 @@ struct SettingsView: View {
                     AppIconView(size: 48)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Get Mino Pro").font(.headline).foregroundStyle(.primary)
-                        Text("Unlimited compressions, merge, split and batch. One-time purchase.")
+                        Text("Every tool, unlimited. One-time purchase.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -168,8 +176,8 @@ struct SettingsView: View {
         do {
             let unlocked = try await appState.store.restore()
             restoreMessage = unlocked
-                ? "Mino Pro is unlocked on this \(deviceName)."
-                : "No Mino Pro purchase was found for this Apple Account."
+                ? String(localized: "Mino Pro is unlocked on this \(deviceName).")
+                : String(localized: "No Mino Pro purchase was found for this Apple Account.")
         } catch {
             restoreMessage = error.localizedDescription
         }
@@ -189,7 +197,7 @@ struct SettingsView: View {
                 Text("Pro").tag(1)
             }
             LabeledContent("Free left today", value: "\(appState.usage.remaining)")
-            Button("Reset Free Compressions") { appState.usage.reset() }
+            Button("Reset Free Actions") { appState.usage.reset() }
             NavigationLink("App Icon Export") { AppIconExportView() }
         }
     }
@@ -205,10 +213,10 @@ struct StatisticsView: View {
         List {
             Section {
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                    StatTile(title: "Space saved", value: history.formattedTotalSaved, prominent: true)
+                    StatTile(title: String(localized: "Space saved"), value: history.formattedTotalSaved, prominent: true)
                         .gridCellColumns(2)
-                    StatTile(title: "Files compressed", value: "\(history.totalFilesCompressed)")
-                    StatTile(title: "Average reduction", value: "\(Int(history.averageReduction.rounded()))%")
+                    StatTile(title: String(localized: "Files compressed"), value: String(localized: "\(history.totalFilesCompressed)"))
+                    StatTile(title: String(localized: "Average reduction"), value: String(localized: "\(Int(history.averageReduction.rounded()))%"))
                 }
             }
             .listRowBackground(Color.clear)

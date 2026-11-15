@@ -2,7 +2,9 @@
 //  ShareViewController.swift
 //  MinoShare
 //
-//  Share Extension for receiving PDFs from other apps
+//  Share Extension: receives PDFs, images and Office documents from other
+//  apps, copies them to the App Group container and opens Mino, which
+//  shows the right tool.
 //
 
 import UIKit
@@ -33,8 +35,8 @@ class ShareViewController: UIViewController {
 
     private let iconImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(systemName: "doc.zipper")
-        imageView.tintColor = .systemBlue
+        imageView.image = UIImage(systemName: "doc.on.doc")
+        imageView.tintColor = .systemTeal
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
@@ -42,7 +44,7 @@ class ShareViewController: UIViewController {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Compress with Mino"
+        label.text = String(localized: "Open in Mino")
         label.font = .boldSystemFont(ofSize: 20)
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -51,7 +53,7 @@ class ShareViewController: UIViewController {
 
     private let messageLabel: UILabel = {
         let label = UILabel()
-        label.text = "Preparing PDF..."
+        label.text = String(localized: "Preparing…")
         label.font = .systemFont(ofSize: 15)
         label.textColor = .secondaryLabel
         label.textAlignment = .center
@@ -69,7 +71,7 @@ class ShareViewController: UIViewController {
 
     private let cancelButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Cancel", for: .normal)
+        button.setTitle(String(localized: "Cancel"), for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 17)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -133,115 +135,120 @@ class ShareViewController: UIViewController {
 
     // MARK: - Processing
 
+    /// Most files Mino takes in one share.
+    private let maxFiles = 30
+
+    /// Uniform type identifiers Mino can use, most specific first.
+    private static let acceptedTypes: [UTType] = {
+        var types: [UTType] = [.pdf, .image, .rtf, .plainText, .html]
+        let office = [
+            "org.openxmlformats.wordprocessingml.document",
+            "com.microsoft.word.doc",
+            "org.openxmlformats.spreadsheetml.sheet",
+            "com.microsoft.excel.xls",
+            "org.openxmlformats.presentationml.presentation",
+            "com.microsoft.powerpoint.ppt",
+            "com.apple.iwork.pages.sffpages",
+            "com.apple.iwork.numbers.sffnumbers",
+            "com.apple.iwork.keynote.sffkey",
+            "public.comma-separated-values-text",
+        ]
+        types.append(contentsOf: office.compactMap { UTType($0) })
+        return types
+    }()
+
     private func processSharedItems() {
         guard let extensionContext = extensionContext,
               let inputItems = extensionContext.inputItems as? [NSExtensionItem] else {
-            showError("No items to share")
+            showError(String(localized: "No items to share"))
             return
         }
 
+        // Each attachment with the first type Mino accepts.
+        var attachments: [(provider: NSItemProvider, type: String)] = []
         for item in inputItems {
-            guard let attachments = item.attachments else { continue }
-
-            for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) {
-                    loadPDF(from: attachment)
-                    return
+            for provider in item.attachments ?? [] {
+                if let type = Self.acceptedTypes.first(where: { provider.hasItemConformingToTypeIdentifier($0.identifier) }) {
+                    attachments.append((provider, type.identifier))
                 }
             }
         }
+        attachments = Array(attachments.prefix(maxFiles))
+        guard !attachments.isEmpty else {
+            showError(String(localized: "Mino can open PDFs, images and Office documents."))
+            return
+        }
+        guard let sharedFolder = sharedFolder() else {
+            showError(String(localized: "Could not access shared container"))
+            return
+        }
 
-        showError("No PDF found in shared items")
-    }
+        let group = DispatchGroup()
+        let lock = NSLock()
+        var copies: [Int: URL] = [:]
+        for (index, attachment) in attachments.enumerated() {
+            group.enter()
+            attachment.provider.loadFileRepresentation(forTypeIdentifier: attachment.type) { [weak self] url, _ in
+                defer { group.leave() }
+                // The temporary file is deleted when this callback returns, so copy it now.
+                guard let self, let url, let copy = self.copyToSharedContainer(from: url, folder: sharedFolder) else { return }
+                lock.lock()
+                copies[index] = copy
+                lock.unlock()
+            }
+        }
 
-    private func loadPDF(from attachment: NSItemProvider) {
-        attachment.loadFileRepresentation(forTypeIdentifier: UTType.pdf.identifier) { [weak self] url, error in
-            guard let self = self else { return }
-
-            if let error = error {
-                DispatchQueue.main.async {
-                    self.showError("Failed to load PDF: \(error.localizedDescription)")
-                }
+        group.notify(queue: .main) { [weak self] in
+            guard let self else { return }
+            let urls = copies.keys.sorted().compactMap { copies[$0] }
+            guard !urls.isEmpty else {
+                self.showError(String(localized: "The files couldn't be read."))
                 return
             }
-
-            guard let sourceURL = url else {
-                DispatchQueue.main.async {
-                    self.showError("Could not access PDF file")
-                }
-                return
+            // Kept for Mino to pick up at launch if the URL can't open it.
+            if let sharedDefaults = UserDefaults(suiteName: self.appGroupIdentifier) {
+                sharedDefaults.set(urls.map(\.absoluteString).joined(separator: "\n"), forKey: self.sharedPDFKey)
             }
-
-            // IMPORTANT: Copy the file immediately while still in the callback
-            // The temporary file is deleted after this callback returns
-            self.copyToSharedContainer(from: sourceURL)
+            self.messageLabel.text = String(localized: "Opening Mino…")
+            self.openMainApp(with: urls)
         }
     }
 
-    private func copyToSharedContainer(from sourceURL: URL) {
+    private func sharedFolder() -> URL? {
         guard let containerURL = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupIdentifier
-        ) else {
-            DispatchQueue.main.async {
-                self.showError("Could not access shared container")
-            }
-            return
-        }
-
-        let sharedPDFsURL = containerURL.appendingPathComponent(sharedPDFDirectory, isDirectory: true)
-
+        ) else { return nil }
+        let folder = containerURL.appendingPathComponent(sharedPDFDirectory, isDirectory: true)
         do {
-            try FileManager.default.createDirectory(at: sharedPDFsURL, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            return folder
         } catch {
-            DispatchQueue.main.async {
-                self.showError("Could not create shared directory")
-            }
-            return
-        }
-
-        // Generate unique filename
-        let originalName = sourceURL.deletingPathExtension().lastPathComponent
-        let uniqueID = UUID().uuidString.prefix(8)
-        let filename = "\(originalName)_\(uniqueID).pdf"
-        let destinationURL = sharedPDFsURL.appendingPathComponent(filename)
-
-        do {
-            // Remove if exists
-            try? FileManager.default.removeItem(at: destinationURL)
-            // Copy immediately while the temp file still exists
-            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
-
-            // Save the URL to shared UserDefaults
-            if let sharedDefaults = UserDefaults(suiteName: appGroupIdentifier) {
-                sharedDefaults.set(destinationURL.absoluteString, forKey: sharedPDFKey)
-                sharedDefaults.synchronize()
-            }
-
-            // Now dispatch to main for UI updates and opening the app
-            DispatchQueue.main.async {
-                self.messageLabel.text = "Opening Mino..."
-                self.openMainApp(with: destinationURL)
-            }
-
-        } catch {
-            DispatchQueue.main.async {
-                self.showError("Failed to copy PDF: \(error.localizedDescription)")
-            }
+            return nil
         }
     }
 
-    private func openMainApp(with fileURL: URL) {
-        // URL encode the file path
-        guard let encodedPath = fileURL.absoluteString.addingPercentEncoding(
-            withAllowedCharacters: .urlQueryAllowed
-        ) else {
-            showError("Failed to encode file path")
-            return
+    /// Copies a shared file into its own folder, so it keeps its name.
+    private func copyToSharedContainer(from sourceURL: URL, folder: URL) -> URL? {
+        let directory = folder.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let destination = directory.appendingPathComponent(sourceURL.lastPathComponent)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: sourceURL, to: destination)
+            return destination
+        } catch {
+            return nil
         }
+    }
 
-        let urlString = "\(urlScheme)://import?file=\(encodedPath)"
-        guard let url = URL(string: urlString) else {
-            showError("Failed to create app URL")
+    private func openMainApp(with fileURLs: [URL]) {
+        // mino://import?file=<url>&file=<url>
+        var components = URLComponents()
+        components.scheme = urlScheme
+        components.host = "import"
+        components.queryItems = fileURLs.map { URLQueryItem(name: "file", value: $0.absoluteString) }
+
+        guard let url = components.url else {
+            showError(String(localized: "Could not open Mino"))
             return
         }
 
@@ -254,7 +261,7 @@ class ShareViewController: UIViewController {
                         if success {
                             self?.extensionContext?.completeRequest(returningItems: nil)
                         } else {
-                            self?.showError("Could not open Mino app")
+                            self?.showError(String(localized: "Could not open Mino"))
                         }
                     }
                 }
@@ -285,7 +292,7 @@ class ShareViewController: UIViewController {
 
         // If we can't open the app, still complete successfully
         // The user can open the app manually
-        messageLabel.text = "PDF ready! Open Mino to compress."
+        messageLabel.text = String(localized: "Ready. Open Mino to continue.")
         activityIndicator.stopAnimating()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in

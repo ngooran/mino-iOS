@@ -538,3 +538,386 @@ int mino_pdf_count_pages(fz_context *ctx, pdf_document *doc) {
 
     return count;
 }
+
+// MARK: - Passwords and encryption
+
+int mino_needs_password(fz_context *ctx, fz_document *doc) {
+    if (!ctx || !doc) return 0;
+    int needs = 0;
+    fz_try(ctx) {
+        needs = fz_needs_password(ctx, doc);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return 0;
+    }
+    return needs;
+}
+
+int mino_authenticate(fz_context *ctx, fz_document *doc, const char *password) {
+    if (!ctx || !doc) return 0;
+    int result = 0;
+    fz_try(ctx) {
+        result = fz_authenticate_password(ctx, doc, password ? password : "");
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return 0;
+    }
+    return result;
+}
+
+int mino_is_encrypted(fz_context *ctx, pdf_document *doc) {
+    if (!ctx || !doc) return 0;
+    int encrypted = 0;
+    fz_try(ctx) {
+        encrypted = pdf_dict_get(ctx, pdf_trailer(ctx, doc), PDF_NAME(Encrypt)) != NULL;
+    }
+    fz_catch(ctx) {
+        return 0;
+    }
+    return encrypted;
+}
+
+int mino_save_decrypted(fz_context *ctx, pdf_document *doc, const char *output_path) {
+    if (!ctx || !doc || !output_path) {
+        set_error("Invalid parameters for save");
+        return -1;
+    }
+    mino_clear_error();
+    fz_try(ctx) {
+        pdf_write_options opts = pdf_default_write_options;
+        opts.do_garbage = 1;
+        opts.do_compress = 1;
+        opts.do_compress_fonts = 1;
+        opts.do_encrypt = PDF_ENCRYPT_NONE;
+        pdf_save_document(ctx, doc, output_path, &opts);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}
+
+int mino_save_encrypted(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *output_path,
+    const char *user_password,
+    const char *owner_password,
+    int permissions
+) {
+    if (!ctx || !doc || !output_path || !user_password || !owner_password) {
+        set_error("Invalid parameters for save");
+        return -1;
+    }
+    if (strlen(user_password) >= 128 || strlen(owner_password) >= 128) {
+        set_error("The password is too long");
+        return -1;
+    }
+    mino_clear_error();
+    fz_try(ctx) {
+        pdf_write_options opts = pdf_default_write_options;
+        opts.do_garbage = 1;
+        opts.do_compress = 1;
+        opts.do_compress_fonts = 1;
+        opts.do_encrypt = PDF_ENCRYPT_AES_256;
+        opts.permissions = permissions;
+        strncpy(opts.upwd_utf8, user_password, sizeof(opts.upwd_utf8) - 1);
+        strncpy(opts.opwd_utf8, owner_password, sizeof(opts.opwd_utf8) - 1);
+        pdf_save_document(ctx, doc, output_path, &opts);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}
+
+// MARK: - Building pages
+
+// Maps the unit square of a stored image to the unit square of the upright
+// image, for each EXIF orientation.
+static fz_matrix orientation_matrix(int orientation) {
+    switch (orientation) {
+        case 2: return fz_make_matrix(-1, 0, 0, 1, 1, 0);
+        case 3: return fz_make_matrix(-1, 0, 0, -1, 1, 1);
+        case 4: return fz_make_matrix(1, 0, 0, -1, 0, 1);
+        case 5: return fz_make_matrix(0, -1, -1, 0, 1, 1);
+        case 6: return fz_make_matrix(0, -1, 1, 0, 0, 1);
+        case 7: return fz_make_matrix(0, 1, 1, 0, 0, 0);
+        case 8: return fz_make_matrix(0, 1, -1, 0, 1, 0);
+        default: return fz_identity;
+    }
+}
+
+int mino_add_image_page(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *image_path,
+    float page_w,
+    float page_h,
+    float x,
+    float y,
+    float w,
+    float h,
+    int orientation
+) {
+    if (!ctx || !doc || !image_path || page_w <= 0 || page_h <= 0) {
+        set_error("Invalid parameters for image page");
+        return -1;
+    }
+    mino_clear_error();
+
+    fz_image *image = NULL;
+    pdf_obj *image_ref = NULL;
+    pdf_obj *resources = NULL;
+    pdf_obj *page = NULL;
+    fz_buffer *contents = NULL;
+
+    fz_var(image);
+    fz_var(image_ref);
+    fz_var(resources);
+    fz_var(page);
+    fz_var(contents);
+
+    fz_try(ctx) {
+        image = fz_new_image_from_file(ctx, image_path);
+        image_ref = pdf_add_image(ctx, doc, image);
+
+        resources = pdf_new_dict(ctx, doc, 1);
+        pdf_obj *xobjects = pdf_dict_put_dict(ctx, resources, PDF_NAME(XObject), 1);
+        pdf_dict_puts(ctx, xobjects, "Im0", image_ref);
+
+        // Orientation first, then scale and move into the target rectangle.
+        fz_matrix m = fz_concat(orientation_matrix(orientation), fz_make_matrix(w, 0, 0, h, x, y));
+        contents = fz_new_buffer(ctx, 128);
+        fz_append_printf(ctx, contents, "q %g %g %g %g %g %g cm /Im0 Do Q\n", m.a, m.b, m.c, m.d, m.e, m.f);
+
+        fz_rect mediabox = fz_make_rect(0, 0, page_w, page_h);
+        page = pdf_add_page(ctx, doc, mediabox, 0, resources, contents);
+        pdf_insert_page(ctx, doc, -1, page);
+    }
+    fz_always(ctx) {
+        fz_drop_image(ctx, image);
+        pdf_drop_obj(ctx, image_ref);
+        pdf_drop_obj(ctx, resources);
+        pdf_drop_obj(ctx, page);
+        fz_drop_buffer(ctx, contents);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}
+
+int mino_add_blank_page(fz_context *ctx, pdf_document *doc, float width, float height) {
+    if (!ctx || !doc || width <= 0 || height <= 0) {
+        set_error("Invalid parameters for blank page");
+        return -1;
+    }
+    mino_clear_error();
+
+    pdf_obj *resources = NULL;
+    pdf_obj *page = NULL;
+    fz_buffer *contents = NULL;
+
+    fz_var(resources);
+    fz_var(page);
+    fz_var(contents);
+
+    fz_try(ctx) {
+        resources = pdf_new_dict(ctx, doc, 1);
+        contents = fz_new_buffer(ctx, 8);
+        fz_append_string(ctx, contents, "\n");
+        page = pdf_add_page(ctx, doc, fz_make_rect(0, 0, width, height), 0, resources, contents);
+        pdf_insert_page(ctx, doc, -1, page);
+    }
+    fz_always(ctx) {
+        pdf_drop_obj(ctx, resources);
+        pdf_drop_obj(ctx, page);
+        fz_drop_buffer(ctx, contents);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}
+
+int mino_duplicate_page(fz_context *ctx, pdf_document *doc, int page) {
+    if (!ctx || !doc) {
+        set_error("Invalid context or document");
+        return -1;
+    }
+    mino_clear_error();
+
+    pdf_obj *copy = NULL;
+    pdf_obj *ref = NULL;
+
+    fz_var(copy);
+    fz_var(ref);
+
+    fz_try(ctx) {
+        // Only keys that do not point at other pages. The content and
+        // resources are shared with the original, so the file barely grows.
+        pdf_obj *keys[] = {
+            PDF_NAME(Contents), PDF_NAME(Resources), PDF_NAME(MediaBox), PDF_NAME(CropBox),
+            PDF_NAME(BleedBox), PDF_NAME(TrimBox), PDF_NAME(ArtBox), PDF_NAME(Rotate), PDF_NAME(UserUnit)
+        };
+        pdf_obj *source = pdf_lookup_page_obj(ctx, doc, page);
+        copy = pdf_new_dict(ctx, doc, 8);
+        pdf_dict_put(ctx, copy, PDF_NAME(Type), PDF_NAME(Page));
+        for (int i = 0; i < (int)(sizeof(keys) / sizeof(keys[0])); i++) {
+            pdf_obj *value = pdf_dict_get_inheritable(ctx, source, keys[i]);
+            if (value) pdf_dict_put(ctx, copy, keys[i], value);
+        }
+        ref = pdf_add_object(ctx, doc, copy);
+        pdf_insert_page(ctx, doc, -1, ref);
+    }
+    fz_always(ctx) {
+        pdf_drop_obj(ctx, copy);
+        pdf_drop_obj(ctx, ref);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}
+
+// MARK: - Organizing pages
+
+// Returns 1 when `num` is one of the widget object numbers on a kept page.
+static int is_kept_widget(int num, const int *widgets, int widget_count) {
+    for (int i = 0; i < widget_count; i++) {
+        if (widgets[i] == num) return 1;
+    }
+    return 0;
+}
+
+// Removes form fields whose widgets are all gone. Returns 1 when the field stays.
+static int prune_field(fz_context *ctx, pdf_obj *field, const int *widgets, int widget_count, int depth) {
+    if (depth > 32) return 0;
+    pdf_obj *kids = pdf_dict_get(ctx, field, PDF_NAME(Kids));
+    if (pdf_is_array(ctx, kids) && pdf_array_len(ctx, kids) > 0) {
+        for (int i = pdf_array_len(ctx, kids) - 1; i >= 0; i--) {
+            if (!prune_field(ctx, pdf_array_get(ctx, kids, i), widgets, widget_count, depth + 1)) {
+                pdf_array_delete(ctx, kids, i);
+            }
+        }
+        return pdf_array_len(ctx, kids) > 0;
+    }
+    return is_kept_widget(pdf_to_num(ctx, field), widgets, widget_count);
+}
+
+int mino_rearrange_pages(fz_context *ctx, pdf_document *doc, int count, const int *pages) {
+    if (!ctx || !doc || !pages || count <= 0) {
+        set_error("Invalid parameters for rearranging pages");
+        return -1;
+    }
+    mino_clear_error();
+
+    pdf_obj *acroform = NULL;
+    pdf_obj *metadata = NULL;
+    pdf_obj *lang = NULL;
+    int *widgets = NULL;
+
+    fz_var(acroform);
+    fz_var(metadata);
+    fz_var(lang);
+    fz_var(widgets);
+
+    fz_try(ctx) {
+        // pdf_rearrange_pages rebuilds the catalog and leaves these out.
+        pdf_obj *root = pdf_dict_get(ctx, pdf_trailer(ctx, doc), PDF_NAME(Root));
+        acroform = pdf_keep_obj(ctx, pdf_dict_get(ctx, root, PDF_NAME(AcroForm)));
+        metadata = pdf_keep_obj(ctx, pdf_dict_get(ctx, root, PDF_NAME(Metadata)));
+        lang = pdf_keep_obj(ctx, pdf_dict_get(ctx, root, PDF_NAME(Lang)));
+
+        pdf_rearrange_pages(ctx, doc, count, pages, PDF_CLEAN_STRUCTURE_DROP);
+
+        root = pdf_dict_get(ctx, pdf_trailer(ctx, doc), PDF_NAME(Root));
+        if (metadata) pdf_dict_put(ctx, root, PDF_NAME(Metadata), metadata);
+        if (lang) pdf_dict_put(ctx, root, PDF_NAME(Lang), lang);
+
+        if (acroform) {
+            // Collect the widgets that are still on a page.
+            int page_count = pdf_count_pages(ctx, doc);
+            int capacity = 64;
+            int widget_count = 0;
+            widgets = fz_malloc(ctx, capacity * sizeof(int));
+            for (int i = 0; i < page_count; i++) {
+                pdf_obj *annots = pdf_dict_get(ctx, pdf_lookup_page_obj(ctx, doc, i), PDF_NAME(Annots));
+                int len = pdf_array_len(ctx, annots);
+                for (int j = 0; j < len; j++) {
+                    pdf_obj *annot = pdf_array_get(ctx, annots, j);
+                    if (!pdf_name_eq(ctx, pdf_dict_get(ctx, annot, PDF_NAME(Subtype)), PDF_NAME(Widget))) continue;
+                    if (widget_count == capacity) {
+                        capacity *= 2;
+                        widgets = fz_realloc(ctx, widgets, capacity * sizeof(int));
+                    }
+                    widgets[widget_count++] = pdf_to_num(ctx, annot);
+                }
+            }
+
+            pdf_obj *fields = pdf_dict_get(ctx, acroform, PDF_NAME(Fields));
+            for (int i = pdf_array_len(ctx, fields) - 1; i >= 0; i--) {
+                if (!prune_field(ctx, pdf_array_get(ctx, fields, i), widgets, widget_count, 0)) {
+                    pdf_array_delete(ctx, fields, i);
+                }
+            }
+            if (pdf_array_len(ctx, fields) > 0) {
+                pdf_dict_put(ctx, root, PDF_NAME(AcroForm), acroform);
+            }
+        }
+    }
+    fz_always(ctx) {
+        pdf_drop_obj(ctx, acroform);
+        pdf_drop_obj(ctx, metadata);
+        pdf_drop_obj(ctx, lang);
+        fz_free(ctx, widgets);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}
+
+int mino_get_page_rotation(fz_context *ctx, pdf_document *doc, int page) {
+    if (!ctx || !doc) return 0;
+    int rotation = 0;
+    fz_try(ctx) {
+        pdf_obj *page_obj = pdf_lookup_page_obj(ctx, doc, page);
+        rotation = pdf_to_int(ctx, pdf_dict_get_inheritable(ctx, page_obj, PDF_NAME(Rotate)));
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return 0;
+    }
+    rotation %= 360;
+    if (rotation < 0) rotation += 360;
+    return rotation;
+}
+
+int mino_set_page_rotation(fz_context *ctx, pdf_document *doc, int page, int rotation) {
+    if (!ctx || !doc) {
+        set_error("Invalid context or document");
+        return -1;
+    }
+    mino_clear_error();
+    rotation %= 360;
+    if (rotation < 0) rotation += 360;
+    fz_try(ctx) {
+        pdf_obj *page_obj = pdf_lookup_page_obj(ctx, doc, page);
+        pdf_dict_put_int(ctx, page_obj, PDF_NAME(Rotate), rotation);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}

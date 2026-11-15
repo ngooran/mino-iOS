@@ -161,9 +161,9 @@ final class ProStore {
         var errorDescription: String? {
             switch self {
             case .productUnavailable:
-                return "Mino Pro isn't available right now. Check your internet connection and try again."
+                return String(localized: "Mino Pro isn't available right now. Check your internet connection and try again.")
             case .verificationFailed:
-                return "The App Store couldn't verify this purchase. Please try again."
+                return String(localized: "The App Store couldn't verify this purchase. Please try again.")
             }
         }
     }

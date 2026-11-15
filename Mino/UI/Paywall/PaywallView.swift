@@ -23,13 +23,31 @@ struct PaywallView: View {
 
     private var store: ProStore { appState.store }
 
-    private let features: [(symbol: String, color: Color, text: String)] = [
-        ("infinity", .teal, "Unlimited compressions"),
-        ("square.stack.3d.up.fill", .blue, "Compress many PDFs at once"),
-        ("doc.on.doc.fill", .indigo, "Merge and split PDFs"),
-        ("slider.horizontal.3", .gray, "Custom quality and resolution"),
-        ("person.2.fill", .green, "Family Sharing for up to 6 people"),
-    ]
+    /// What Pro adds, built from the tools that ship in this build.
+    private var features: [(symbol: String, color: Color, text: String)] {
+        var list: [(symbol: String, color: Color, text: String)] = [
+            ("infinity", .teal, String(localized: "Unlimited actions, every day")),
+        ]
+        if Tool.scan.isAvailable && Tool.ocr.isAvailable {
+            list.append((Tool.ocr.systemImage, .mint, String(localized: "Scan with text recognition")))
+        }
+        if Tool.fillSign.isAvailable {
+            list.append((Tool.fillSign.systemImage, .pink, String(localized: "Fill, sign and edit")))
+        }
+        if Tool.pdfToWord.isAvailable {
+            list.append((Tool.pdfToWord.systemImage, .blue, String(localized: "Convert to and from Word")))
+        } else if Tool.officeToPDF.isAvailable {
+            list.append((Tool.officeToPDF.systemImage, .blue, String(localized: "Convert Office files to PDF")))
+        }
+        list.append(("doc.on.doc.fill", .indigo, String(localized: "Merge, split and batch")))
+        if Tool.protect.isAvailable {
+            list.append((Tool.protect.systemImage, .gray, String(localized: "Password protection")))
+        } else {
+            list.append(("slider.horizontal.3", .gray, String(localized: "Custom quality and resolution")))
+        }
+        list.append(("person.2.fill", .green, String(localized: "Family Sharing for up to 6 people")))
+        return list
+    }
 
     var body: some View {
         NavigationStack {
@@ -185,7 +203,7 @@ struct PaywallView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
             } else {
-                ActionLabel(title: store.displayPrice.map { "Unlock for \($0)" } ?? "Unlock Mino Pro")
+                ActionLabel(title: store.displayPrice.map { String(localized: "Unlock for \($0)") } ?? String(localized: "Unlock Mino Pro"))
             }
         }
         .primaryButtonStyle()
@@ -213,7 +231,7 @@ struct PaywallView: View {
                 HapticManager.shared.compressionComplete()
                 appState.didUnlockPro()
             case .pending:
-                infoMessage = "Your purchase is waiting for approval. Mino Pro unlocks as soon as it's approved."
+                infoMessage = String(localized: "Your purchase is waiting for approval. Mino Pro unlocks as soon as it's approved.")
             case .cancelled:
                 break
             }
@@ -229,7 +247,7 @@ struct PaywallView: View {
             if try await store.restore() {
                 appState.didUnlockPro()
             } else {
-                infoMessage = "No Mino Pro purchase was found for this Apple Account."
+                infoMessage = String(localized: "No Mino Pro purchase was found for this Apple Account.")
             }
         } catch {
             errorMessage = error.localizedDescription

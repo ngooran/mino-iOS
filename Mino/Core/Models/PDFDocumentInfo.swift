@@ -31,6 +31,12 @@ struct PDFDocumentInfo: Identifiable, Equatable, Sendable {
     /// When the document was imported
     let importDate: Date
 
+    /// The original needed a password to open. `url` is an unlocked working copy.
+    var wasLocked = false
+
+    /// The file is encrypted to restrict printing or copying, but opens without a password.
+    var hasRestrictions = false
+
     // MARK: - Computed Properties
 
     /// Formatted file size (e.g., "12.5 MB")
@@ -40,12 +46,19 @@ struct PDFDocumentInfo: Identifiable, Equatable, Sendable {
 
     /// Formatted page count
     var formattedPageCount: String {
-        pageCount == 1 ? "1 page" : "\(pageCount) pages"
+        String(localized: "\(pageCount) pages")
     }
 
     /// Short description for list display
     var shortDescription: String {
         "\(formattedPageCount) • \(formattedSize)"
+    }
+
+    /// Size of the first page in points, for new blank pages.
+    var firstPageSize: CGSize? {
+        guard let renderer = try? MuPDFRenderer(url: url) else { return nil }
+        let size = renderer.pageSize(at: 0)
+        return size.width > 0 && size.height > 0 ? size : nil
     }
 
     /// Formatted import date

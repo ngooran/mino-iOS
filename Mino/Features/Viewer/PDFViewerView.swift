@@ -16,7 +16,7 @@ struct PDFViewerView: View {
 
     var body: some View {
         NavigationStack {
-            QuickLookPreview(url: documentURL.standardizedFileURL)
+            QuickLookPreview(urls: [documentURL.standardizedFileURL])
                 .ignoresSafeArea(edges: .bottom)
                 .navigationTitle(documentURL.deletingPathExtension().lastPathComponent)
                 .navigationBarTitleDisplayMode(.inline)
@@ -34,7 +34,8 @@ struct PDFViewerView: View {
 // MARK: - QuickLook Preview (UIViewControllerRepresentable)
 
 struct QuickLookPreview: UIViewControllerRepresentable {
-    let url: URL
+    /// One file, or several to page through (the images of a PDF to Images export).
+    let urls: [URL]
 
     func makeUIViewController(context: Context) -> QLPreviewController {
         let controller = QLPreviewController()
@@ -61,15 +62,16 @@ struct QuickLookPreview: UIViewControllerRepresentable {
         // MARK: - QLPreviewControllerDataSource
 
         func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
-            // Return 0 if file doesn't exist
-            guard FileManager.default.fileExists(atPath: parent.url.path) else {
-                return 0
-            }
-            return 1
+            existingURLs.count
         }
 
         func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
-            return PreviewItem(url: parent.url)
+            return PreviewItem(url: existingURLs[index])
+        }
+
+        /// Files that are still on disk.
+        private var existingURLs: [URL] {
+            parent.urls.filter { FileManager.default.fileExists(atPath: $0.path) }
         }
     }
 }

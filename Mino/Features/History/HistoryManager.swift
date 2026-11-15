@@ -152,6 +152,11 @@ final class HistoryManager {
         goodOperationsCount += 1
     }
 
+    /// A tool finished successfully (the tools added after 2.0).
+    func recordGoodOperation() {
+        goodOperationsCount += 1
+    }
+
     /// Records a successful merge operation
     func recordGoodMerge() {
         goodOperationsCount += 1

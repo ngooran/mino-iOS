@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UniformTypeIdentifiers
 
 /// The three top-level sections.
 enum AppTab: String, Hashable, CaseIterable {
@@ -20,48 +21,78 @@ enum Route: Hashable {
     case compress
     case merge
     case split
+    /// Every tool added after 2.0.
+    case tool(Tool)
     case preview(FileItem)
     case statistics
 }
 
-/// What the file picker is choosing PDFs for.
-enum ImportTarget: Identifiable {
-    case compress
-    case merge
-    case split
+/// What the file picker is choosing files for.
+enum ImportTarget: Identifiable, Hashable {
+    /// "Open PDF": pick a PDF, then choose a tool.
+    case open
+    /// The input of a tool.
+    case tool(Tool)
+    /// More PDFs for the open merge list.
+    case mergeAdd
+    /// Organize Pages: pages from another PDF.
+    case insertPages
 
     var id: Self { self }
 
     var allowsMultipleSelection: Bool {
-        self != .split
+        switch self {
+        case .open, .insertPages: return false
+        case .mergeAdd: return true
+        case .tool(let tool): return tool == .compress || tool == .merge || tool == .photosToPDF
+        }
+    }
+
+    var contentTypes: [UTType] {
+        switch self {
+        case .tool(.photosToPDF): return ImportTypes.images
+        case .tool(.officeToPDF): return ImportTypes.office
+        default: return [.pdf]
+        }
     }
 }
 
 /// Why the Mino Pro sheet is showing. Drives its headline.
-enum PaywallReason: String, Identifiable {
+enum PaywallReason: Identifiable, Hashable {
     case general
     case dailyLimit
     case batch
-    case merge
-    case split
     case customQuality
+    /// The final button of a Pro tool.
+    case tool(Tool)
+    /// Scan to PDF with "Make text searchable" switched on.
+    case searchableScan
 
-    var id: String { rawValue }
+    var id: String {
+        switch self {
+        case .general: return "general"
+        case .dailyLimit: return "dailyLimit"
+        case .batch: return "batch"
+        case .customQuality: return "customQuality"
+        case .tool(let tool): return "tool-\(tool.rawValue)"
+        case .searchableScan: return "searchableScan"
+        }
+    }
 
     var message: String {
         switch self {
         case .general:
-            return "Every PDF tool, with no limits. Pay once and keep it forever."
+            return String(localized: "Every PDF tool, with no limits. Pay once and keep it forever.")
         case .dailyLimit:
-            return "You've used today's \(FreeUsage.dailyLimit) free compressions. Pro removes the limit."
+            return String(localized: "You've used today's \(FreeUsage.dailyLimit) free actions. Pro removes the limit.")
         case .batch:
-            return "Compressing several PDFs at once is part of Mino Pro."
-        case .merge:
-            return "Merging PDFs is part of Mino Pro."
-        case .split:
-            return "Splitting PDFs is part of Mino Pro."
+            return String(localized: "Compressing several PDFs at once is part of Mino Pro.")
         case .customQuality:
-            return "Custom image quality and resolution are part of Mino Pro."
+            return String(localized: "Custom image quality and resolution are part of Mino Pro.")
+        case .tool(let tool):
+            return tool.paywallMessage
+        case .searchableScan:
+            return String(localized: "Text recognition is part of Mino Pro.")
         }
     }
 }

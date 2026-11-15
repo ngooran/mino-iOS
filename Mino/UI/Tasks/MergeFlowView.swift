@@ -30,7 +30,7 @@ private struct MergeContent: View {
             case .configure:
                 configureView
             case .working:
-                WorkingView(title: "Merging…", detail: "\(session.documents.count) PDFs", progress: appState.mergeProgress)
+                WorkingView(title: String(localized: "Merging…"), detail: String(localized: "\(session.documents.count) PDFs"), progress: appState.mergeProgress)
                     .background(Color.groupedBackground)
             case .done:
                 resultView
@@ -38,7 +38,7 @@ private struct MergeContent: View {
                 TaskFailedView(message: message) { session.phase = .configure }
             }
         }
-        .navigationTitle(session.phase == .configure ? "Merge" : "")
+        .navigationTitle(session.phase == .configure ? Tool.merge.title : "")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(session.phase != .configure)
         .toolbar {
@@ -96,7 +96,12 @@ private struct MergeContent: View {
                 Button {
                     appState.merge(session)
                 } label: {
-                    ActionLabel(title: session.documents.count < 2 ? "Add at Least 2 PDFs" : "Merge \(session.documents.count) PDFs")
+                    ToolActionLabel(
+                        title: session.documents.count < 2
+                            ? String(localized: "Add at Least 2 PDFs")
+                            : String(localized: "Merge \(session.documents.count) PDFs"),
+                        tool: .merge
+                    )
                 }
                 .primaryButtonStyle()
                 .disabled(session.documents.count < 2)
@@ -113,7 +118,7 @@ private struct MergeContent: View {
             let item = FileItem(result)
             List {
                 Section {
-                    ResultHeader(headline: "PDFs merged", detail: item.name)
+                    ResultHeader(headline: String(localized: "PDFs merged"), detail: item.name)
                     VStack(spacing: 10) {
                         LabeledContent("Files combined", value: "\(result.sourceCount)")
                         LabeledContent("Pages", value: "\(result.totalPages)")
@@ -133,21 +138,23 @@ private struct MergeContent: View {
                     } label: {
                         Label("Preview", systemImage: "eye")
                     }
+                    Button {
+                        appState.showToolPicker(for: item)
+                    } label: {
+                        Label("Continue with Another Tool", systemImage: "arrow.right")
+                    }
                 }
             }
             .listStyle(.insetGrouped)
             .bottomActions {
                 ShareLink(item: result.outputURL) {
-                    ActionLabel(title: "Share", systemImage: "square.and.arrow.up")
+                    ActionLabel(title: String(localized: "Share"), systemImage: "square.and.arrow.up")
                 }
                 .primaryButtonStyle()
             }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        appState.mergeSession = nil
-                        appState.closeTask()
-                    }
+                    Button("Done") { appState.finish(.merge) }
                 }
             }
         }
