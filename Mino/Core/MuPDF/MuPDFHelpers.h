@@ -204,6 +204,12 @@ int mino_overlay_pages(
     const int *target_pages
 );
 
+// MARK: - Flattening
+
+// Makes annotations and/or form fields part of the page content, so they
+// can no longer be moved, edited or removed. Links are kept.
+int mino_bake(fz_context *ctx, pdf_document *doc, int bake_annotations, int bake_widgets);
+
 #ifdef __cplusplus
 }
 #endif

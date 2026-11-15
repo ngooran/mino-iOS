@@ -43,7 +43,19 @@ func makePDF(_ name: String, pages: [[String]], size: CGSize = CGSize(width: 612
 // Three plain pages.
 _ = makePDF("text-3pages.pdf", pages: (1...3).map { ["Plain page \($0)", "The quick brown fox jumps over the lazy dog.", "Mino fixture, page \($0) of 3."] })
 
-// structured.pdf (bookmarks, links, form fields) is written by make_structured_fixture.py.
+// A two-page rental contract without form fields, to be signed.
+_ = makePDF("rental-contract.pdf", pages: [
+    ["Rental Agreement", "This agreement is made between the landlord and the tenant named below",
+     "for the property at 14 Canal Street.", "", "1. The tenant pays rent on the first day of each month.",
+     "2. The deposit equals two months of rent.", "3. Pets are allowed with written permission.",
+     "4. The notice period is two months."],
+    ["Signatures", "Both parties agree to the terms on page 1.", "", "", "Tenant: ______________________________",
+     "", "", "Date: ______________________________"],
+])
+
+// structured.pdf (bookmarks, links, form fields) is written by make_structured_fixture.py,
+// form.pdf (every kind of form field) by make_form_fixture.py.
+// irs-w9.pdf is the public IRS form W-9 (Rev. March 2024), from https://www.irs.gov/pub/irs-pdf/fw9.pdf.
 
 // MARK: - Images
 

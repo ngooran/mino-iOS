@@ -7,12 +7,14 @@
 //
 //  xcrun simctl launch booted com.applestan.Mino -demoScreen compress -demoFree
 //  Screens: home, search, picker, password, compress, result, merge, split,
-//  scan, ocr, photos, images, organize, protect, unlock, files, settings, paywall
+//  scan, ocr, sign, signature, edit, photos, images, organize, protect, unlock,
+//  files, settings, paywall
 //  Add -demoRun to run the tool and show its result.
 //
 
 #if DEBUG
 import CoreImage
+import PDFKit
 import CoreImage.CIFilterBuiltins
 import SwiftUI
 import UIKit
@@ -97,6 +99,62 @@ enum DebugLaunch {
                 if run {
                     appState.store.debugProOverride = true
                     appState.recognizeText(session)
+                }
+            }
+        case "sign", "signature":
+            // A rental agreement with form fields, filled and signed as a person would.
+            appState.signatures.save(makeSampleSignature(), for: .signature)
+            appState.start(.fillSign, with: await appState.importDocuments([makeRentalForm()]))
+            if let session = appState.editorSession, let page = session.pdf.page(at: 0) {
+                if screen == "signature" {
+                    session.signaturePad = .signature
+                    break
+                }
+                if !arguments.contains("-demoEmpty") {
+                    session.tap(at: CGPoint(x: 120, y: 512), on: page)       // Tenant name
+                    session.submitText("Alex Morgan")
+                    session.tap(at: CGPoint(x: 80, y: 418), on: page)        // I agree
+                    session.activeTool = .date
+                    session.tap(at: CGPoint(x: 76, y: 466), on: page)
+                    session.activeTool = .signature
+                    session.tap(at: CGPoint(x: 190, y: 330), on: page)
+                    session.select(nil)
+                    if arguments.contains("-demoTool") { session.activeTool = .signature }
+                }
+                if run {
+                    appState.store.debugProOverride = true
+                    appState.saveEdited(session)
+                }
+            }
+        case "edit":
+            appState.start(.edit, with: await appState.importDocuments([makeHouseRules()]))
+            if let session = appState.editorSession, let page = session.pdf.page(at: 0) {
+                // Highlight a rule, draw under another, add a note, white out a line.
+                session.activeTool = .highlight
+                session.dragBegan(at: CGPoint(x: 60, y: 596), on: page)
+                session.dragChanged(to: CGPoint(x: 420, y: 596))
+                session.dragEnded()
+                session.color = .red
+                session.activeTool = .draw
+                session.dragBegan(at: CGPoint(x: 56, y: 520), on: page)
+                for step in 1...40 {
+                    session.dragChanged(to: CGPoint(x: 56 + CGFloat(step) * 7, y: 520 + sin(CGFloat(step) / 3) * 4))
+                }
+                session.dragEnded()
+                session.color = .blue
+                session.activeTool = .text
+                session.tap(at: CGPoint(x: 330, y: 500), on: page)
+                session.submitText("Agreed, 15 Nov")
+                session.select(nil)
+                session.activeTool = .whiteout
+                session.dragBegan(at: CGPoint(x: 52, y: 446), on: page)
+                session.dragChanged(to: CGPoint(x: 400, y: 468))
+                session.dragEnded()
+                session.color = .black
+                session.activeTool = arguments.contains("-demoTool") ? .draw : nil
+                if run {
+                    appState.store.debugProOverride = true
+                    appState.saveEdited(session)
                 }
             }
         case "photos":
@@ -230,6 +288,112 @@ enum DebugLaunch {
             guard let data = makeSampleScanPage(number: number).jpegData(compressionQuality: 0.92),
                   (try? data.write(to: url)) != nil else { return nil }
             return url
+        }
+    }
+
+    /// A one-page rental agreement with a name field, a date line, a checkbox
+    /// and a signature line.
+    static func makeRentalForm() -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Rental Agreement.pdf")
+        try? FileManager.default.removeItem(at: url)
+        let bounds = CGRect(x: 0, y: 0, width: 612, height: 792)
+        let data = UIGraphicsPDFRenderer(bounds: bounds).pdfData { context in
+            context.beginPage()
+            func draw(_ text: String, at y: CGFloat, size: CGFloat = 13, bold: Bool = false, color: UIColor = .black) {
+                (text as NSString).draw(
+                    at: CGPoint(x: 56, y: y),
+                    withAttributes: [.font: bold ? UIFont.boldSystemFont(ofSize: size) : UIFont.systemFont(ofSize: size), .foregroundColor: color]
+                )
+            }
+            draw("Rental Agreement", at: 70, size: 26, bold: true)
+            draw("This agreement is made between the landlord and the tenant named below", at: 124)
+            draw("for the property at 14 Canal Street.", at: 144)
+            draw("1. The tenant pays rent on the first day of each month.", at: 180)
+            draw("2. The deposit equals two months of rent.", at: 200)
+            draw("3. The notice period is two months.", at: 220)
+            draw("TENANT NAME", at: 252, size: 10, bold: true, color: .gray)
+            draw("DATE", at: 306, size: 10, bold: true, color: .gray)
+            UIColor.lightGray.setStroke()
+            let dateLine = UIBezierPath()
+            dateLine.move(to: CGPoint(x: 56, y: 342)); dateLine.addLine(to: CGPoint(x: 300, y: 342))
+            dateLine.stroke()
+            draw("I agree to the terms of this agreement", at: 366)
+            draw("SIGNATURE", at: 410, size: 10, bold: true, color: .gray)
+            let line = UIBezierPath()
+            line.move(to: CGPoint(x: 56, y: 492)); line.addLine(to: CGPoint(x: 330, y: 492))
+            line.stroke()
+        }
+        guard let document = PDFDocument(data: data), let page = document.page(at: 0) else { return url }
+        // Page coordinates start at the bottom: y = 792 - top.
+        let name = PDFAnnotation(bounds: CGRect(x: 56, y: 498, width: 320, height: 26), forType: .widget, withProperties: nil)
+        name.widgetFieldType = .text
+        name.fieldName = "Tenant name"
+        name.font = UIFont.systemFont(ofSize: 14)
+        name.fontColor = .black
+        name.backgroundColor = UIColor(white: 0.95, alpha: 1)
+        page.addAnnotation(name)
+        let agree = PDFAnnotation(bounds: CGRect(x: 300, y: 408, width: 20, height: 20), forType: .widget, withProperties: nil)
+        agree.widgetFieldType = .button
+        agree.widgetControlType = .checkBoxControl
+        agree.fieldName = "Agree"
+        agree.backgroundColor = UIColor(white: 0.95, alpha: 1)
+        agree.buttonWidgetState = .offState
+        // The box sits before its label.
+        agree.bounds = CGRect(x: 56, y: 408, width: 20, height: 20)
+        page.addAnnotation(agree)
+        document.write(to: url)
+        return url
+    }
+
+    /// One page of house rules for the Edit & Annotate demo.
+    static func makeHouseRules() -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("House Rules.pdf")
+        if FileManager.default.fileExists(atPath: url.path) { return url }
+        let bounds = CGRect(x: 0, y: 0, width: 612, height: 792)
+        let rules = [
+            "1. The tenant pays rent on the first day of each month.",
+            "2. The deposit equals two months of rent.",
+            "3. Pets are allowed with written permission.",
+            "4. The notice period is two months.",
+            "5. Repairs above 150 euros are paid by the landlord.",
+            "6. The tenant keeps the garden tidy.",
+            "7. Quiet hours are from 22:00 to 07:00.",
+            "8. Bicycles are kept in the shed, not in the hallway.",
+        ]
+        try? UIGraphicsPDFRenderer(bounds: bounds).writePDF(to: url) { context in
+            context.beginPage()
+            ("House Rules" as NSString).draw(at: CGPoint(x: 56, y: 110), withAttributes: [.font: UIFont.boldSystemFont(ofSize: 28)])
+            for (index, rule) in rules.enumerated() {
+                (rule as NSString).draw(
+                    at: CGPoint(x: 56, y: 186 + CGFloat(index) * 38),
+                    withAttributes: [.font: UIFont.systemFont(ofSize: 15)]
+                )
+            }
+        }
+        return url
+    }
+
+    /// A handwritten-looking signature on a transparent background.
+    static func makeSampleSignature() -> UIImage {
+        let size = CGSize(width: 320, height: 110)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3
+        format.opaque = false
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            let path = UIBezierPath()
+            path.move(to: CGPoint(x: 14, y: 78))
+            path.addCurve(to: CGPoint(x: 70, y: 22), controlPoint1: CGPoint(x: 28, y: 40), controlPoint2: CGPoint(x: 52, y: 6))
+            path.addCurve(to: CGPoint(x: 62, y: 86), controlPoint1: CGPoint(x: 86, y: 40), controlPoint2: CGPoint(x: 52, y: 70))
+            path.addCurve(to: CGPoint(x: 120, y: 52), controlPoint1: CGPoint(x: 80, y: 100), controlPoint2: CGPoint(x: 100, y: 40))
+            path.addCurve(to: CGPoint(x: 150, y: 74), controlPoint1: CGPoint(x: 134, y: 60), controlPoint2: CGPoint(x: 128, y: 84))
+            path.addCurve(to: CGPoint(x: 196, y: 50), controlPoint1: CGPoint(x: 168, y: 66), controlPoint2: CGPoint(x: 176, y: 38))
+            path.addCurve(to: CGPoint(x: 236, y: 72), controlPoint1: CGPoint(x: 212, y: 60), controlPoint2: CGPoint(x: 208, y: 86))
+            path.addCurve(to: CGPoint(x: 306, y: 56), controlPoint1: CGPoint(x: 258, y: 60), controlPoint2: CGPoint(x: 280, y: 74))
+            path.lineWidth = 3.4
+            path.lineCapStyle = .round
+            path.lineJoinStyle = .round
+            SignatureRenderer.inkColor.setStroke()
+            path.stroke()
         }
     }
 

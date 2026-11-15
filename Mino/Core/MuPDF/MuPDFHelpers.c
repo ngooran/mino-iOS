@@ -1108,3 +1108,21 @@ int mino_overlay_pages(
     }
     return 0;
 }
+
+// MARK: - Flattening
+
+int mino_bake(fz_context *ctx, pdf_document *doc, int bake_annotations, int bake_widgets) {
+    if (!ctx || !doc) {
+        set_error("Invalid context or document");
+        return -1;
+    }
+    mino_clear_error();
+    fz_try(ctx) {
+        pdf_bake_document(ctx, doc, bake_annotations, bake_widgets);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}

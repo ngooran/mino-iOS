@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import PDFKit
 import SwiftUI
 import UIKit
 
@@ -22,6 +23,8 @@ final class AppState {
     let splitService = SplitService()
     /// Results of the tools added after 2.0.
     let toolResults = ToolResultStore()
+    /// The drawn signature and initials, kept on this device.
+    let signatures = SignatureStore()
     let store = ProStore()
     let usage = FreeUsage()
 
@@ -39,6 +42,8 @@ final class AppState {
     var splitSession: SplitSession?
     var scanSession: ScanSession?
     var ocrSession: OCRSession?
+    /// Fill & Sign or Edit & Annotate.
+    var editorSession: EditorSession?
     var photosSession: PhotosToPDFSession?
     var imagesSession: PDFToImagesSession?
     var organizeSession: OrganizeSession?
@@ -216,7 +221,9 @@ final class AppState {
             ocrSession?.state.cancel()
             ocrSession = OCRSession(document: first)
             show(tool.route)
-        case .photosToPDF, .scan, .officeToPDF, .fillSign, .edit, .pdfToWord:
+        case .fillSign, .edit:
+            startEditor(tool, with: first)
+        case .photosToPDF, .scan, .officeToPDF, .pdfToWord:
             break
         }
     }
@@ -484,6 +491,7 @@ final class AppState {
         switch tool {
         case .scan: scanSession = nil
         case .ocr: ocrSession = nil
+        case .fillSign, .edit: editorSession = nil
         case .photosToPDF: photosSession = nil
         case .pdfToImages: imagesSession = nil
         case .organize: organizeSession = nil
@@ -558,6 +566,59 @@ final class AppState {
                     urls: [output], kind: .scanned, pageCount: count,
                     detail: String(localized: "Searchable"), text: TextRecognizer.text(of: recognized)
                 )
+            } catch {
+                OutputLocation.removeFile(at: output)
+                throw error
+            }
+        }
+    }
+
+    // MARK: - Fill & Sign, Edit & Annotate
+
+    private func startEditor(_ tool: Tool, with document: PDFDocumentInfo) {
+        guard !document.hasRestrictions else {
+            errorMessage = String(localized: "“\(document.name)” doesn't allow changes. Remove its limits with Protect & Unlock first.")
+            return
+        }
+        guard let session = EditorSession(tool: tool, document: document, signatures: signatures) else {
+            errorMessage = String(localized: "“\(document.name)” couldn't be opened.")
+            return
+        }
+        editorSession?.state.cancel()
+        editorSession = session
+        show(tool.route)
+    }
+
+    /// Saves the editor's document. Fill & Sign always flattens, so the
+    /// signature can't be moved; Edit & Annotate flattens on request.
+    func saveEdited(_ session: EditorSession) {
+        guard session.hasChanges else { return }
+        let tool = session.tool
+        guard mayRun(tool, retry: { [weak self] in self?.saveEdited(session) }) else { return }
+
+        // PDFKit writes the document with its annotations and field values.
+        let flatten = session.flattensOnSave
+        session.prepareForSaving()
+        let written = OutputLocation.workingDirectory().appendingPathComponent("edited.pdf")
+        let ok = session.pdf.write(to: written)
+        session.resumeEditing()
+        guard ok else {
+            session.state.phase = .failed(String(localized: "The PDF couldn't be saved."))
+            return
+        }
+
+        let name = tool == .fillSign
+            ? String(localized: "\(session.document.name) (signed)")
+            : String(localized: "\(session.document.name) (edited)")
+        let folder = tool == .fillSign ? "Signed" : "Edited"
+        run(tool, state: session.state) { _ in
+            let output = OutputLocation.url(folder: folder, fileName: name)
+            defer { try? FileManager.default.removeItem(at: written) }
+            do {
+                let pages = try PageEditorEngine.finish(
+                    source: written, flattenAnnotations: flatten, flattenForm: tool == .fillSign, outputURL: output
+                )
+                return ToolOutput(urls: [output], kind: tool == .fillSign ? .signed : .edited, pageCount: pages)
             } catch {
                 OutputLocation.removeFile(at: output)
                 throw error

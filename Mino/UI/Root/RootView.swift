@@ -214,6 +214,7 @@ private struct ToolRouteView: View {
         switch tool {
         case .scan: ScanFlowView()
         case .ocr: OCRFlowView()
+        case .fillSign, .edit: EditorFlowView(tool: tool)
         case .photosToPDF: PhotosToPDFFlowView()
         case .pdfToImages: PDFToImagesFlowView()
         case .organize: OrganizeFlowView()

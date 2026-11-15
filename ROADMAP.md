@@ -254,8 +254,8 @@ Work happens on branch `toolkit` (from `redesign-2.0`). Version and build number
 | Protect & Unlock | Done | `ProtectTests`; demo runs; output inspected with PDFKit |
 | Scan to PDF | Done, except the real camera (owner) | `ScanTests`; demo runs with sample pages; output inspected. The document camera itself has never run: it does not exist in the simulator |
 | Recognize Text | Done | `OCRTests`; demo runs; output inspected with PDFKit |
-| Fill & Sign | Not started | |
-| Edit & Annotate | Not started | |
+| Fill & Sign | **In progress, not verified, hidden** | Builds. No tests yet. Not in `Tool.available` |
+| Edit & Annotate | **In progress, not verified, hidden** | Builds. No tests yet. Not in `Tool.available` |
 | Office to PDF | Not started | Gate: 17 of 20 documents |
 | PDF to Word | Not started | Gate: 15 of 20 documents |
 
@@ -333,6 +333,29 @@ Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `mer
 3. **Pages that already have text** (12 letters or more) are not read again, so nothing is doubled.
 4. **Black & White** is a high-contrast gray JPEG, not a 1-bit image.
 5. Results of Recognize Text: the searchable PDF is filed under Scans, the text file under Converted.
+
+### 2.3: where the work stopped (resume here)
+
+The shared page editor is written but **not verified and not shipped**: `fillSign` and `edit` are left out of `Tool.available`, so they don't appear in the app. The demo screens `-demoScreen sign`, `signature` and `edit` open them.
+
+Done:
+- A spike test (since removed) showed the approach works: PDFKit keeps bookmarks, links and form values when it writes the document; every annotation type survives; MuPDF `pdf_bake_document` (`mino_bake`) flattens annotations and form fields, and the flattened text becomes page text.
+- `Mino/Features/Editor/`: `EditorModel` (tools, annotation builders, image stamp), `EditorSession` (taps, drags, selection, move, resize, undo and redo, form fields filled by Mino itself), `SignatureStore` (PNG files under `Signatures/`), `PageEditorEngine` (flatten). `Mino/UI/Tasks/EditorFlowView.swift`: PDFView with gestures, tool strip, signature pad (PencilKit), text sheet. `AppState.saveEdited`.
+- Fixtures: `irs-w9.pdf` (the real IRS form), `form.pdf` (every field type), `rental-contract.pdf`.
+
+Seen in the first screenshots and not fixed yet:
+- Edit demo: the red drawing lands on the wrong line (it strikes through rule 3), and the white-out is not visible. Check the demo's coordinates against the page and check the ink path's coordinates.
+- Fill & Sign demo: the checkbox shows no mark after it is toggled, and the date is drawn in a serif font slightly off its line. Free text needs an explicit font that PDFKit keeps.
+- On the closed iPhone Duo the tool strip runs under the status area on the right.
+
+Still to do:
+1. `MinoTests/EditorTests.swift`: fill and sign the W-9 and the rental contract, flatten, reopen with PDFKit (no widgets or stamps left, values and signature visible); every field type of `form.pdf`; undo and redo; standard annotations readable and removable when not flattened; white-out forces flattening; stamps upright on turned pages; the selection frame and previews never saved; Pro asked at the final button.
+2. Screenshots on all five layouts, demo runs, output inspected.
+3. Settings: a "Saved signatures" row (view and delete). Paywall line "Fill, sign and edit" appears by itself once the tools are available.
+4. Add both tools to `Tool.available`, sync strings, write the 2.3 texts in AppStoreMetadata.md, commit one tool per commit, push.
+5. Then 2.4: Office to PDF (gate: 17 of 20), then PDF to Word (gate: 15 of 20). MuPDF already contains `extract` and the docx writer: `HAVE_EXTRACT=no` in `Scripts/build_mupdf_ios.sh` has no effect on MuPDF 1.27, so no rebuild is needed; change the flag to `extract=yes` for clarity.
+
+Decisions taken for the editor: page drawing is captured from touch and Apple Pencil strokes as ink annotations (PencilKit is used for the signature pad only); Mino fills form fields itself and switches PDFKit's own field editing off while the editor is open, so the behavior can be tested; text on a turned page is placed as an image so it reads upright; white-out always flattens and the screen says that covered text stays in the file.
 
 ### Known gaps after 2.2
 
