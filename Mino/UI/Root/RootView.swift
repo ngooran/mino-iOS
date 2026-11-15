@@ -91,6 +91,9 @@ struct TabRoot: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     /// The iPhone Duo hinge, when the display has one.
     @State private var fold: CGRect?
+    /// Start with the list showing. Left automatic, a flat iPhone Duo hides it
+    /// although both columns fit; the sidebar button still collapses it.
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
         let path = Binding(
@@ -99,7 +102,7 @@ struct TabRoot: View {
         )
 
         if sizeClass == .regular {
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
                 TabList(tab: tab)
                     .avoidingFoldEdges()
                     .modifier(ListColumnWidth(fold: fold))
@@ -122,8 +125,9 @@ struct TabRoot: View {
                 .avoidingFoldEdges()
             }
             .navigationSplitViewStyle(.balanced)
-            // Inactive folds count too, so the columns don't jump while folding.
-            .readVerticalFold(includeInactive: true, into: $fold)
+            // Only a bent hinge sets the column width: flat, the Duo is a small
+            // tablet and iOS overlays a hinge-wide list instead of showing it alongside.
+            .readVerticalFold(includeInactive: false, into: $fold)
         } else {
             NavigationStack(path: path) {
                 TabList(tab: tab)

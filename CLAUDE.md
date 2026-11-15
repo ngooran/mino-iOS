@@ -40,7 +40,12 @@ TabView (.sidebarAdaptable)
 - Regular (iPad, iPhone Duo open): tabs move to a sidebar; each tab is a `NavigationSplitView` with the list leading and the current task or file trailing.
 - Both read the same `AppState` paths (`homePath`, `filesPath`, `settingsPath`), so the screen survives rotation, folding and window resizing.
 - Tasks (compress, merge, split) keep their state in sessions (`Mino/App/Sessions.swift`), not in views.
-- iPhone Duo book pose (`Mino/UI/Components/FoldAwareness.swift`): iOS 27.1 reports the hinge as a `.division` reserved region whose frame includes ~20pt margins each side. Split view columns meet at the hinge's midX and `avoidingFoldEdges()` keeps each column's content out of the band. The paywall goes two-page only when a full page fits on each side. DEBUG launch argument `-showRegions` outlines all reserved regions.
+- iPhone Duo (`Mino/UI/Components/FoldAwareness.swift`): iOS 27.1 reports the hinge as a `.division` reserved region whose frame includes ~20pt margins each side.
+  - Book pose (hinge bent): the list column is as wide as the hinge's midX, and `avoidingFoldEdges()` keeps each column's content out of the band.
+  - Flat: the Duo is a small tablet, so the list keeps its standard width. A hinge-wide list next to a 476pt detail makes iOS overlay the list instead of showing it alongside.
+  - Split views start with `columnVisibility = .all`; on automatic, a flat Duo hides the list.
+  - The paywall goes two-page only when a full page fits on each side, and gets a tighter header on screens under 720pt tall.
+  - DEBUG launch argument `-showRegions` outlines all reserved regions.
 
 ### Monetization (`Mino/Store/`)
 
@@ -51,6 +56,7 @@ Free download + one-time non-consumable **Mino Pro** (`com.applestan.Mino.pro`),
 - Gate features with `appState.requirePro(reason) { action }`; the paywall runs `action` after unlocking.
 - Local testing: the shared `Mino` scheme uses `Mino.storekit`. DEBUG builds have a Pro/Free switch in Settings.
 - DEBUG launch arguments open any screen with sample PDFs: `-demoScreen home|compress|result|merge|split|files|settings|paywall`, plus `-demoFree`, `-demoPro`, `-demoRun` (`Mino/App/DebugLaunch.swift`).
+- `-demoSandbox` (DEBUG) swaps in a throwaway store (`StorageRoot`: `Documents/DemoSandbox` + a separate UserDefaults suite). It is wiped and refilled with sample files on every launch, shows the €6.99 placeholder price and never asks for a review. Use it for screenshots so a device's real files and stats never show. `-demoAppearance light|dark` sets the app appearance.
 
 ### Core Data Flow
 
@@ -149,10 +155,23 @@ The C helpers in `MuPDFHelpers.c` wrap MuPDF's error handling:
 
 Compressed/Merged/Split files are stored in app's Documents directory:
 - Each operation writes to its own folder, `<Kind>/<UUID>/<Clean Name>.pdf` (`OutputLocation`), so shared files keep readable names
+- All persistence goes through `StorageRoot` (`Mino/Core/StorageRoot.swift`): use `StorageRoot.documents` and `StorageRoot.defaults`, never `UserDefaults.standard` or the documents directory directly
 - Paths stored as relative paths in UserDefaults (survives container UUID changes)
 - Imported input copies (`ImportedPDFs/`) are cleared at launch
 - `standardizedFileURL` used for consistent path handling
 - Services have `clearAllResults()` to delete files and clear history
+
+## App Store Screenshots
+
+Raw screenshots live in `Screenshots/raw/<locale>/<device>/` (`iphone-6.9`, `ipad-13`, `iphone-duo`, `iphone-duo-closed`), one file per screen (`01-home` ... `07-paywall`). Only `en-US` exists: the app and the listing are English only.
+
+- Take them on simulators only, never on a physical device: iPhone 18 Pro Max (6.9", 1320×2868), iPad Pro 13-inch (2064×2752), iPhone Duo (open 2853×2007, closed 1398×2034).
+- Before shooting, run `xcrun simctl status_bar <udid> override --time 9:41 --batteryState charged --batteryLevel 100`, and set `xcrun simctl ui <udid> appearance light`.
+- Launch each screen with `-demoSandbox -demoAppearance light -demoScreen <screen>`, adding `-demoFree` except for merge and split. Wait about 15 s for the sample files.
+- Xcode 27 has no Simulator.app (Device Hub replaces it), and `simctl` can't fold the Duo. Use `hinge` (`brew install artemnovichkov/tap/hinge`):
+  - `hinge open` / `hinge close` / `hinge 110` set the fold.
+  - `hinge orient portrait` gives the wide, two-page inner layout; Duo "portrait" is 2853×2007.
+  - `hinge screenshot <file>` captures the display that is showing the app.
 
 ## Git Workflow
 

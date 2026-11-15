@@ -273,10 +273,7 @@ final class PDFSplitter: @unchecked Sendable {
 
     /// Generates an output directory for split files
     static func generateOutputDirectory(for sourceURL: URL) -> URL {
-        let documentsDir = FileManager.default.urls(
-            for: .documentDirectory,
-            in: .userDomainMask
-        )[0].appendingPathComponent("Split", isDirectory: true)
+        let documentsDir = StorageRoot.documents.appendingPathComponent("Split", isDirectory: true)
 
         let sourceName = sourceURL.deletingPathExtension().lastPathComponent
         let timestamp = Int(Date().timeIntervalSince1970)
@@ -305,10 +302,7 @@ final class PDFSplitter: @unchecked Sendable {
         splitPage: Int,
         totalPages: Int
     ) -> (part1: URL, part2: URL) {
-        let documentsDir = FileManager.default.urls(
-            for: .documentDirectory,
-            in: .userDomainMask
-        )[0].appendingPathComponent("Split", isDirectory: true)
+        let documentsDir = StorageRoot.documents.appendingPathComponent("Split", isDirectory: true)
 
         // Create directory if needed
         try? FileManager.default.createDirectory(

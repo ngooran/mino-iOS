@@ -13,7 +13,7 @@ enum OutputLocation {
 
     /// Returns a fresh URL like `Documents/Compressed/<UUID>/Lease Agreement.pdf`.
     nonisolated static func url(folder: String, fileName: String) -> URL {
-        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let directory = StorageRoot.documents
             .appendingPathComponent(folder, isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

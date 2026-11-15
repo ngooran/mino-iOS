@@ -63,7 +63,7 @@ final class DocumentImporter {
 
     /// Directory for storing imported PDFs
     private var importedPDFsDirectory: URL {
-        let documentsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let documentsDir = StorageRoot.documents
         return documentsDir.appendingPathComponent("ImportedPDFs", isDirectory: true)
     }
 

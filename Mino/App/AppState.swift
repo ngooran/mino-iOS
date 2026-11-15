@@ -59,7 +59,7 @@ final class AppState {
 
     /// The quality preselected for new compressions (set in Settings).
     var defaultQuality: CompressionQuality {
-        CompressionQuality(rawValue: UserDefaults.standard.string(forKey: SettingsKeys.defaultQuality) ?? "") ?? .medium
+        CompressionQuality(rawValue: StorageRoot.defaults.string(forKey: SettingsKeys.defaultQuality) ?? "") ?? .medium
     }
 
     // MARK: - Files

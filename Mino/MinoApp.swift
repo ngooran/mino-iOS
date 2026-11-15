@@ -16,6 +16,7 @@ struct MinoApp: App {
         WindowGroup {
             RootView()
                 .environment(appState)
+                .defaultAppStorage(StorageRoot.defaults)
                 #if DEBUG
                 .overlay { ReservedRegionsDebugOverlay() }
                 #endif

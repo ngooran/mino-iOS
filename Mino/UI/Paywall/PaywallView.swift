@@ -17,6 +17,9 @@ struct PaywallView: View {
     @State private var isRestoring = false
     /// Active iPhone Duo hinge crossing the sheet (book pose).
     @State private var fold: CGRect?
+    /// Short screens (open iPhone Duo, iPhone landscape) get a tighter header,
+    /// so every feature fits above the pinned price and button.
+    @State private var isShort = false
 
     private var store: ProStore { appState.store }
 
@@ -40,6 +43,7 @@ struct PaywallView: View {
             .background(Color.groupedBackground)
             // Only an actually bent hinge matters here; a flat display reads as one page.
             .readVerticalFold(includeInactive: false, into: $fold)
+            .onGeometryChange(for: Bool.self) { $0.size.height < 720 } action: { isShort = $0 }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "xmark") { dismiss() }
@@ -117,10 +121,10 @@ struct PaywallView: View {
 
     private var hero: some View {
         VStack(spacing: 8) {
-            AppIconView(size: 64)
+            AppIconView(size: isShort ? 48 : 64)
                 .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
             Text("Mino Pro")
-                .font(.largeTitle.bold())
+                .font(isShort ? .title.bold() : .largeTitle.bold())
             Text(reason.message)
                 .font(.body)
                 .foregroundStyle(.secondary)
@@ -137,7 +141,7 @@ struct PaywallView: View {
                     Text(feature.text)
                     Spacer()
                 }
-                .padding(.vertical, 9)
+                .padding(.vertical, isShort ? 7 : 9)
                 if index < features.count - 1 {
                     Divider().padding(.leading, 42)
                 }

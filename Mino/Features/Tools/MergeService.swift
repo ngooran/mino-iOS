@@ -149,11 +149,11 @@ final class MergeService {
     }
 
     private var documentsDirectory: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        StorageRoot.documents
     }
 
     private func loadResults() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey) else {
+        guard let data = StorageRoot.defaults.data(forKey: storageKey) else {
             return
         }
 
@@ -208,7 +208,7 @@ final class MergeService {
                 )
             }
             let data = try JSONEncoder().encode(stored)
-            UserDefaults.standard.set(data, forKey: storageKey)
+            StorageRoot.defaults.set(data, forKey: storageKey)
         } catch {
             print("Failed to save merge results: \(error)")
         }

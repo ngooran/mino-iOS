@@ -111,7 +111,7 @@ final class HistoryManager {
     // MARK: - Persistence
 
     private func loadHistory() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey) else {
+        guard let data = StorageRoot.defaults.data(forKey: storageKey) else {
             return
         }
 
@@ -126,7 +126,7 @@ final class HistoryManager {
     private func persistHistory() {
         do {
             let data = try JSONEncoder().encode(history)
-            UserDefaults.standard.set(data, forKey: storageKey)
+            StorageRoot.defaults.set(data, forKey: storageKey)
         } catch {
             print("Failed to save history: \(error)")
         }
@@ -136,14 +136,14 @@ final class HistoryManager {
 
     /// Current count of good operations
     private var goodOperationsCount: Int {
-        get { UserDefaults.standard.integer(forKey: goodOperationsKey) }
-        set { UserDefaults.standard.set(newValue, forKey: goodOperationsKey) }
+        get { StorageRoot.defaults.integer(forKey: goodOperationsKey) }
+        set { StorageRoot.defaults.set(newValue, forKey: goodOperationsKey) }
     }
 
     /// Date of last review request
     private var lastReviewRequestDate: Date? {
-        get { UserDefaults.standard.object(forKey: lastReviewRequestKey) as? Date }
-        set { UserDefaults.standard.set(newValue, forKey: lastReviewRequestKey) }
+        get { StorageRoot.defaults.object(forKey: lastReviewRequestKey) as? Date }
+        set { StorageRoot.defaults.set(newValue, forKey: lastReviewRequestKey) }
     }
 
     /// Records a good compression operation (>15% reduction)
@@ -164,6 +164,9 @@ final class HistoryManager {
 
     /// Checks if conditions are met and requests a review if appropriate
     func requestReviewIfAppropriate() {
+        #if DEBUG
+        if StorageRoot.isDemoSandbox { return }
+        #endif
         guard shouldRequestReview() else { return }
 
         lastReviewRequestDate = Date()

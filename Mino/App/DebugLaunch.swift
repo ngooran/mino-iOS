@@ -28,8 +28,13 @@ enum DebugLaunch {
         let receipts = makeSamplePDF(name: "Scanned Receipts", pages: 8, photos: true)
         let tax = makeSamplePDF(name: "Tax Return 2025", pages: 6, photos: false)
 
-        // Seed one finished file so Home and Files have content.
-        if appState.files.isEmpty, let seed = try? await appState.documentImporter.importDocument(from: receipts) {
+        if StorageRoot.isDemoSandbox {
+            if let appearance = value(after: "-demoAppearance", in: arguments) {
+                StorageRoot.defaults.set(appearance, forKey: SettingsKeys.appearance)
+            }
+            await seedScreenshotLibrary(appState: appState, lease: lease, receipts: receipts, tax: tax)
+        } else if appState.files.isEmpty, let seed = try? await appState.documentImporter.importDocument(from: receipts) {
+            // Seed one finished file so Home and Files have content.
             _ = try? await appState.compressionService.compress(document: seed, settings: CompressionQuality.medium.settings)
         }
 
@@ -73,6 +78,36 @@ enum DebugLaunch {
             appState.showPaywall(.merge)
         default:
             break
+        }
+    }
+
+    private static func value(after flag: String, in arguments: [String]) -> String? {
+        guard let index = arguments.firstIndex(of: flag), index + 1 < arguments.count else { return nil }
+        return arguments[index + 1]
+    }
+
+    /// A believable library for App Store screenshots: compressed, merged and split files.
+    private static func seedScreenshotLibrary(appState: AppState, lease: URL, receipts: URL, tax: URL) async {
+        let photos = makeSamplePDF(name: "Holiday Photos", pages: 10, photos: true)
+        let invoice = makeSamplePDF(name: "Invoice March", pages: 2, photos: false)
+        let contract = makeSamplePDF(name: "Rental Contract", pages: 9, photos: true)
+        let importer = appState.documentImporter
+
+        // Oldest first, so the list reads newest at the top.
+        if let doc = try? await importer.importDocument(from: contract) {
+            _ = try? await appState.splitService.extractPages(from: doc, pages: [1, 2, 3])
+        }
+        if let a = try? await importer.importDocument(from: tax),
+           let b = try? await importer.importDocument(from: invoice) {
+            _ = try? await appState.mergeService.merge(
+                documents: [a, b],
+                outputName: PDFMerger.suggestedOutputName(from: [a, b])
+            )
+        }
+        for source in [photos, receipts] {
+            if let doc = try? await importer.importDocument(from: source) {
+                _ = try? await appState.compressionService.compress(document: doc, settings: CompressionQuality.medium.settings)
+            }
         }
     }
 

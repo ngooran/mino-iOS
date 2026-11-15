@@ -41,7 +41,7 @@ final class ProStore {
     #if DEBUG
     /// Debug-only switch to test free and Pro states without buying.
     var debugProOverride: Bool? {
-        didSet { UserDefaults.standard.set(debugProOverride.map { $0 ? 1 : 0 } ?? -1, forKey: Keys.debugOverride) }
+        didSet { StorageRoot.defaults.set(debugProOverride.map { $0 ? 1 : 0 } ?? -1, forKey: Keys.debugOverride) }
     }
     #endif
 
@@ -54,7 +54,13 @@ final class ProStore {
     }
 
     /// Localized price, e.g. "€6.99". Nil until the product loads.
-    var displayPrice: String? { product?.displayPrice }
+    var displayPrice: String? {
+        #if DEBUG
+        // Screenshots run outside Xcode, where the StoreKit test configuration isn't loaded.
+        if StorageRoot.isDemoSandbox, product == nil { return "€6.99" }
+        #endif
+        return product?.displayPrice
+    }
 
     // MARK: - Private
 
@@ -69,7 +75,7 @@ final class ProStore {
     // MARK: - Init
 
     init() {
-        let defaults = UserDefaults.standard
+        let defaults = StorageRoot.defaults
         isLegacyPurchaser = defaults.bool(forKey: Keys.legacyPurchaser)
         // Show the last known state right away; StoreKit confirms it shortly after launch.
         hasPurchasedPro = defaults.bool(forKey: Keys.cachedPurchase)
@@ -114,7 +120,7 @@ final class ProStore {
             }
         }
         hasPurchasedPro = owned
-        UserDefaults.standard.set(owned, forKey: Keys.cachedPurchase)
+        StorageRoot.defaults.set(owned, forKey: Keys.cachedPurchase)
     }
 
     /// Unlocks Pro for people who downloaded Mino while it was a paid app.
@@ -136,7 +142,7 @@ final class ProStore {
         }
         if build < Self.firstFreemiumBuild {
             isLegacyPurchaser = true
-            UserDefaults.standard.set(true, forKey: Keys.legacyPurchaser)
+            StorageRoot.defaults.set(true, forKey: Keys.legacyPurchaser)
         }
     }
 

@@ -24,7 +24,7 @@ final class FreeUsage {
     }
 
     init() {
-        let defaults = UserDefaults.standard
+        let defaults = StorageRoot.defaults
         day = defaults.object(forKey: Keys.day) as? Date ?? Calendar.current.startOfDay(for: Date())
         usedToday = defaults.integer(forKey: Keys.count)
         rollOverIfNeeded()
@@ -59,7 +59,7 @@ final class FreeUsage {
     #endif
 
     private func persist() {
-        UserDefaults.standard.set(day, forKey: Keys.day)
-        UserDefaults.standard.set(usedToday, forKey: Keys.count)
+        StorageRoot.defaults.set(day, forKey: Keys.day)
+        StorageRoot.defaults.set(usedToday, forKey: Keys.count)
     }
 }
