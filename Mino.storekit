@@ -1,0 +1,38 @@
+{
+  "identifier" : "4E1F2A7C",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "6.99",
+      "familyShareable" : true,
+      "internalID" : "6757166001",
+      "localizations" : [
+        {
+          "description" : "Unlimited compressions, batch, merge, split and custom quality.",
+          "displayName" : "Mino Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.applestan.Mino.pro",
+      "referenceName" : "Mino Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "NLD",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

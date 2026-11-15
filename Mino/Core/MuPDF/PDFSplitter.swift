@@ -284,30 +284,19 @@ final class PDFSplitter: @unchecked Sendable {
         return documentsDir.appendingPathComponent("\(sourceName)_\(timestamp)", isDirectory: true)
     }
 
-    /// Generates an output URL for a range extraction
+    /// Generates an output URL for a range extraction, e.g. "Receipts (pages 1-3).pdf"
     static func generateOutputURL(
         for sourceURL: URL,
         range: PageRange
     ) -> URL {
-        let documentsDir = FileManager.default.urls(
-            for: .documentDirectory,
-            in: .userDomainMask
-        )[0].appendingPathComponent("Split", isDirectory: true)
+        let label = range.pageCount == 1 ? "page \(range.start)" : "pages \(range.displayString)"
+        return generateOutputURL(for: sourceURL, label: label)
+    }
 
-        // Create directory if needed
-        try? FileManager.default.createDirectory(
-            at: documentsDir,
-            withIntermediateDirectories: true
-        )
-
+    /// Generates an output URL with a custom label, e.g. "Receipts (pages 1-3, 7).pdf"
+    static func generateOutputURL(for sourceURL: URL, label: String) -> URL {
         let sourceName = sourceURL.deletingPathExtension().lastPathComponent
-        let timestamp = Int(Date().timeIntervalSince1970)
-        // Format: DocumentName_p3-7.pdf or DocumentName_p5.pdf
-        let rangeStr = range.displayString
-
-        return documentsDir
-            .appendingPathComponent("\(sourceName)_p\(rangeStr)_\(timestamp)")
-            .appendingPathExtension("pdf")
+        return OutputLocation.url(folder: "Split", fileName: "\(sourceName) (\(label))")
     }
 
     /// Generates output URLs for splitting at a page

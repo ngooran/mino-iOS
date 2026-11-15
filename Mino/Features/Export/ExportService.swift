@@ -89,11 +89,11 @@ struct ShareSheet: UIViewControllerRepresentable {
 
 /// SwiftUI wrapper for exporting documents
 struct DocumentExporter: UIViewControllerRepresentable {
-    let url: URL
+    let urls: [URL]
     var onComplete: ((Bool) -> Void)? = nil
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forExporting: [url], asCopy: true)
+        let picker = UIDocumentPickerViewController(forExporting: urls, asCopy: true)
         picker.delegate = context.coordinator
         return picker
     }

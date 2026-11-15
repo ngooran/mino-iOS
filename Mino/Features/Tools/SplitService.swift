@@ -27,7 +27,7 @@ final class SplitService {
     private(set) var isSplitting = false
 
     /// Maximum number of recent results to keep
-    private let maxRecentResults = 100
+    private let maxRecentResults = 1000
 
     /// Storage key for persistence
     private let storageKey = "splitResults"
@@ -149,6 +149,75 @@ final class SplitService {
         }
     }
 
+    /// Extracts any set of pages (1-based, in any order) into a single PDF.
+    /// Contiguous runs are extracted directly; separate runs are extracted and then joined.
+    func extractPages(
+        from document: PDFDocumentInfo,
+        pages: [Int]
+    ) async throws -> SplitResult {
+        let ranges = PageRange.ranges(covering: pages)
+        guard !ranges.isEmpty else { throw MuPDFError.invalidParameters }
+
+        isSplitting = true
+        defer { isSplitting = false }
+
+        let pageCount = ranges.reduce(0) { $0 + $1.pageCount }
+        let label = ranges.map(\.displayString).joined(separator: ", ")
+        let fileLabel = pageCount == 1 ? "page \(label)" : "pages \(label)"
+        let outputURL = PDFSplitter.generateOutputURL(for: document.url, label: fileLabel)
+        let splitter = self.splitter
+        let merger = PDFMerger()
+        let sourceURL = document.url
+
+        do {
+            let outputSize: Int64 = try await Task.detached(priority: .userInitiated) {
+                if ranges.count == 1 {
+                    return try splitter.extractRange(sourceURL: sourceURL, range: ranges[0], outputURL: outputURL).outputSize
+                }
+                let temp = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString, isDirectory: true)
+                try FileManager.default.createDirectory(at: temp, withIntermediateDirectories: true)
+                defer { try? FileManager.default.removeItem(at: temp) }
+
+                var parts: [URL] = []
+                for (index, range) in ranges.enumerated() {
+                    let partURL = temp.appendingPathComponent("part\(index).pdf")
+                    _ = try splitter.extractRange(sourceURL: sourceURL, range: range, outputURL: partURL)
+                    parts.append(partURL)
+                }
+                return try merger.merge(sources: parts, outputURL: outputURL).outputSize
+            }.value
+
+            let result = SplitResult(
+                id: UUID(),
+                outputURL: outputURL,
+                pageRange: label,
+                pageCount: pageCount,
+                outputSize: outputSize,
+                timestamp: Date()
+            )
+            addToRecentResults(result)
+            return result
+        } catch {
+            OutputLocation.removeFile(at: outputURL)
+            throw error
+        }
+    }
+
+    /// Saves every page of a document as its own PDF.
+    func splitEveryPage(
+        of document: PDFDocumentInfo,
+        progress: @escaping (Int, Int) -> Void
+    ) async throws -> [SplitResult] {
+        var results: [SplitResult] = []
+        for page in 1...max(1, document.pageCount) {
+            try Task.checkCancellation()
+            results.append(try await extractPages(from: document, pages: [page]))
+            progress(page, document.pageCount)
+        }
+        return results
+    }
+
     /// Clears the current job
     func clearCurrentJob() {
         currentJob = nil
@@ -158,7 +227,7 @@ final class SplitService {
 
     /// Deletes a single split result and its file
     func deleteResult(_ result: SplitResult) {
-        try? FileManager.default.removeItem(at: result.outputURL)
+        OutputLocation.removeFile(at: result.outputURL)
         recentResults.removeAll { $0.id == result.id }
         persistResults()
     }
@@ -166,7 +235,7 @@ final class SplitService {
     /// Deletes multiple split results
     func deleteResults(_ results: [SplitResult]) {
         for result in results {
-            try? FileManager.default.removeItem(at: result.outputURL)
+            OutputLocation.removeFile(at: result.outputURL)
         }
         let idsToRemove = Set(results.map { $0.id })
         recentResults.removeAll { idsToRemove.contains($0.id) }
@@ -176,7 +245,7 @@ final class SplitService {
     /// Clears all recent results and their files
     func clearAllResults() {
         for result in recentResults {
-            try? FileManager.default.removeItem(at: result.outputURL)
+            OutputLocation.removeFile(at: result.outputURL)
         }
         recentResults.removeAll()
         persistResults()
@@ -189,7 +258,7 @@ final class SplitService {
         if recentResults.count > maxRecentResults {
             let removed = Array(recentResults.suffix(from: maxRecentResults))
             for old in removed {
-                try? FileManager.default.removeItem(at: old.outputURL)
+                OutputLocation.removeFile(at: old.outputURL)
             }
             recentResults = Array(recentResults.prefix(maxRecentResults))
         }

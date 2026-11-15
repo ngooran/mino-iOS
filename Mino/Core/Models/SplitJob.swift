@@ -40,6 +40,22 @@ struct PageRange: Identifiable, Hashable, Sendable, Codable {
     }
 }
 
+extension PageRange {
+    /// Groups page numbers into the fewest contiguous ranges, e.g. [1, 2, 3, 7] -> 1-3, 7.
+    static func ranges(covering pages: [Int]) -> [PageRange] {
+        let sorted = Array(Set(pages)).filter { $0 > 0 }.sorted()
+        var ranges: [PageRange] = []
+        for page in sorted {
+            if let last = ranges.last, last.end + 1 == page {
+                ranges[ranges.count - 1].end = page
+            } else {
+                ranges.append(PageRange(page: page))
+            }
+        }
+        return ranges
+    }
+}
+
 /// How to split the PDF
 enum SplitMode: Sendable {
     /// Extract a specific page range as a single PDF

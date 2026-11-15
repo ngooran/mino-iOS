@@ -133,33 +133,17 @@ final class PDFMerger: @unchecked Sendable {
 
     /// Generates an output URL for a merged PDF
     static func generateOutputURL(outputName: String) -> URL {
-        let documentsDir = FileManager.default.urls(
-            for: .documentDirectory,
-            in: .userDomainMask
-        )[0].appendingPathComponent("Merged", isDirectory: true)
-
-        // Create directory if needed
-        try? FileManager.default.createDirectory(
-            at: documentsDir,
-            withIntermediateDirectories: true
-        )
-
-        let timestamp = Int(Date().timeIntervalSince1970)
-        let safeName = outputName.isEmpty ? "document" : outputName
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: ":", with: "_")
-
-        return documentsDir
-            .appendingPathComponent("Merged_\(safeName)_\(timestamp)")
-            .appendingPathExtension("pdf")
+        OutputLocation.url(folder: "Merged", fileName: outputName)
     }
 
-    /// Generates a default output name from source documents
+    /// Generates a default output name from source documents,
+    /// e.g. "Lease Agreement + Tax Return" or "Lease Agreement + 2 more".
     static func suggestedOutputName(from sources: [PDFDocumentInfo]) -> String {
-        guard let first = sources.first else { return "merged" }
-        if sources.count == 1 {
-            return first.name
+        guard let first = sources.first else { return "Merged" }
+        switch sources.count {
+        case 1: return first.name
+        case 2: return "\(first.name) + \(sources[1].name)"
+        default: return "\(first.name) + \(sources.count - 1) more"
         }
-        return "\(first.name)_merged"
     }
 }

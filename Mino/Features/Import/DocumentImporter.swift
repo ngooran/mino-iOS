@@ -70,7 +70,9 @@ final class DocumentImporter {
     // MARK: - Initialization
 
     init() {
-        // Create import directory if needed
+        // Imported copies are only inputs for the current session.
+        // Clear copies left over from earlier launches, then recreate the folder.
+        try? fileManager.removeItem(at: importedPDFsDirectory)
         try? fileManager.createDirectory(
             at: importedPDFsDirectory,
             withIntermediateDirectories: true
@@ -157,10 +159,11 @@ final class DocumentImporter {
 
     /// Generates a unique destination URL for an imported file
     private func generateDestinationURL(for sourceURL: URL) -> URL {
-        let originalName = sourceURL.deletingPathExtension().lastPathComponent
-        let uniqueID = UUID().uuidString.prefix(8)
-        let filename = "\(originalName)_\(uniqueID).pdf"
-        return importedPDFsDirectory.appendingPathComponent(filename)
+        // Each import gets its own folder so the copy keeps its original name.
+        let originalName = OutputLocation.sanitized(sourceURL.deletingPathExtension().lastPathComponent)
+        let folder = importedPDFsDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder.appendingPathComponent(originalName).appendingPathExtension("pdf")
     }
 
     /// Copies a file using file coordination for safe access

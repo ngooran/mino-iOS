@@ -1,0 +1,234 @@
+//
+//  PaywallView.swift
+//  Mino
+//
+//  Mino Pro: one plan, one price, one button.
+//
+
+import SwiftUI
+
+struct PaywallView: View {
+    let reason: PaywallReason
+
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+    @State private var errorMessage: String?
+    @State private var infoMessage: String?
+    @State private var isRestoring = false
+    /// Active iPhone Duo hinge crossing the sheet (book pose).
+    @State private var fold: CGRect?
+
+    private var store: ProStore { appState.store }
+
+    private let features: [(symbol: String, color: Color, text: String)] = [
+        ("infinity", .teal, "Unlimited compressions"),
+        ("square.stack.3d.up.fill", .blue, "Compress many PDFs at once"),
+        ("doc.on.doc.fill", .indigo, "Merge and split PDFs"),
+        ("slider.horizontal.3", .gray, "Custom quality and resolution"),
+        ("person.2.fill", .green, "Family Sharing for up to 6 people"),
+    ]
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let fold {
+                    foldedLayout(fold)
+                } else {
+                    standardLayout
+                }
+            }
+            .background(Color.groupedBackground)
+            // Only an actually bent hinge matters here; a flat display reads as one page.
+            .readVerticalFold(includeInactive: false, into: $fold)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close", systemImage: "xmark") { dismiss() }
+                }
+            }
+            .alert("Purchase Failed", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "")
+            }
+            .alert("Mino Pro", isPresented: Binding(get: { infoMessage != nil }, set: { if !$0 { infoMessage = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(infoMessage ?? "")
+            }
+        }
+        .task { await store.loadProduct() }
+    }
+
+    // MARK: - Layouts
+
+    /// One column. Price and purchase button stay pinned at the bottom, so they're
+    /// always on screen, even in a short iPad form sheet.
+    private var standardLayout: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                hero
+                featureList
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
+        }
+        .bottomActions {
+            planCard
+                .frame(maxWidth: 520)
+                .padding(.bottom, 4)
+            purchaseControls
+                .frame(maxWidth: 520)
+        }
+        // A sheet on one half of an open iPhone Duo can touch the hinge band.
+        .avoidingFoldEdges()
+    }
+
+    /// iPhone Duo book pose: what Pro includes on the leading page,
+    /// price and purchase on the trailing page, nothing across the hinge.
+    private func foldedLayout(_ fold: CGRect) -> some View {
+        HStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    hero
+                    featureList
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+            }
+            .frame(width: max(0, fold.minX))
+
+            Color.clear
+                .frame(width: fold.width)
+
+            VStack(spacing: 16) {
+                Spacer(minLength: 0)
+                planCard
+                purchaseControls
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    // MARK: - Parts
+
+    private var hero: some View {
+        VStack(spacing: 8) {
+            AppIconView(size: 64)
+                .shadow(color: .black.opacity(0.15), radius: 10, y: 4)
+            Text("Mino Pro")
+                .font(.largeTitle.bold())
+            Text(reason.message)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var featureList: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(features.enumerated()), id: \.offset) { index, feature in
+                HStack(spacing: 12) {
+                    IconTile(systemImage: feature.symbol, color: feature.color)
+                    Text(feature.text)
+                    Spacer()
+                }
+                .padding(.vertical, 9)
+                if index < features.count - 1 {
+                    Divider().padding(.leading, 42)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private var planCard: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Lifetime").font(.headline)
+                Text("One payment. No subscription.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let price = store.displayPrice {
+                Text(price)
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+            } else {
+                ProgressView()
+            }
+        }
+        .cardStyle(cornerRadius: 22)
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color.accentColor, lineWidth: 2)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var purchaseControls: some View {
+        Button {
+            Task { await purchase() }
+        } label: {
+            if store.isPurchasing {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            } else {
+                ActionLabel(title: store.displayPrice.map { "Unlock for \($0)" } ?? "Unlock Mino Pro")
+            }
+        }
+        .primaryButtonStyle()
+        .disabled(store.isPurchasing || isRestoring)
+
+        HStack(spacing: 8) {
+            Button("Restore Purchase") { Task { await restore() } }
+                .disabled(store.isPurchasing || isRestoring)
+            Text("·").accessibilityHidden(true)
+            Link("Terms", destination: MinoLinks.terms)
+            Text("·").accessibilityHidden(true)
+            Link("Privacy", destination: MinoLinks.privacy)
+        }
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+        .tint(.secondary)
+    }
+
+    // MARK: - Actions
+
+    private func purchase() async {
+        do {
+            switch try await store.purchase() {
+            case .purchased:
+                HapticManager.shared.compressionComplete()
+                appState.didUnlockPro()
+            case .pending:
+                infoMessage = "Your purchase is waiting for approval. Mino Pro unlocks as soon as it's approved."
+            case .cancelled:
+                break
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func restore() async {
+        isRestoring = true
+        defer { isRestoring = false }
+        do {
+            if try await store.restore() {
+                appState.didUnlockPro()
+            } else {
+                infoMessage = "No Mino Pro purchase was found for this Apple Account."
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}

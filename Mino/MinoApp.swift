@@ -14,61 +14,66 @@ struct MinoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
                 .environment(appState)
+                #if DEBUG
+                .overlay { ReservedRegionsDebugOverlay() }
+                #endif
                 .onOpenURL { url in
                     handleIncomingURL(url)
                 }
                 .task {
+                    #if DEBUG
+                    await DebugLaunch.apply(to: appState)
+                    #endif
                     await checkForPendingSharedPDF()
                 }
         }
-    }
-
-    // MARK: - URL Handling
-
-    /// Handles incoming URLs from the share extension
-    private func handleIncomingURL(_ url: URL) {
-        guard url.scheme == SharedConstants.urlScheme else { return }
-
-        if url.host == "import",
-           let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
-           let fileParam = components.queryItems?.first(where: { $0.name == "file" })?.value,
-           let fileURL = URL(string: fileParam) {
-            importSharedPDF(from: fileURL)
+        .commands {
+            // Keyboard shortcuts on iPad (and iPhone with a keyboard).
+            CommandGroup(replacing: .newItem) {
+                Button("Compress PDF…") { appState.chooseFilesToCompress() }
+                    .keyboardShortcut("o", modifiers: .command)
+                Button("Merge PDFs…") { appState.openMerge() }
+                    .keyboardShortcut("m", modifiers: [.command, .shift])
+                Button("Split PDF…") { appState.openSplit() }
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+            }
         }
     }
 
-    /// Checks for pending shared PDFs when app launches
+    // MARK: - Incoming files
+
+    /// Handles "Open in Mino" (file URLs) and the share extension (mino://import?file=…).
+    private func handleIncomingURL(_ url: URL) {
+        if url.isFileURL {
+            appState.handleIncoming([url])
+            return
+        }
+        guard url.scheme == SharedConstants.urlScheme,
+              url.host == "import",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
+              let fileParam = components.queryItems?.first(where: { $0.name == "file" })?.value,
+              let fileURL = URL(string: fileParam) else { return }
+        importSharedPDF(from: fileURL)
+    }
+
+    /// Picks up a PDF the share extension left in the App Group container.
     private func checkForPendingSharedPDF() async {
         guard let sharedDefaults = SharedConstants.sharedDefaults,
               let urlString = sharedDefaults.string(forKey: SharedConstants.sharedPDFKey),
               let fileURL = URL(string: urlString) else {
             return
         }
-
-        // Clear the pending URL
         sharedDefaults.removeObject(forKey: SharedConstants.sharedPDFKey)
-        sharedDefaults.synchronize()
-
-        // Import the PDF
         importSharedPDF(from: fileURL)
     }
 
-    /// Imports a PDF from the shared container
     private func importSharedPDF(from url: URL) {
-        Task { @MainActor in
-            do {
-                // Import using the document importer
-                let documentInfo = try await appState.documentImporter.importDocument(from: url)
-                appState.addImportedDocument(documentInfo)
-                appState.startCompression(for: documentInfo)
-
-                // Clean up the shared file after successful import
-                try? FileManager.default.removeItem(at: url)
-            } catch {
-                appState.showError(error)
-            }
+        Task {
+            await appState.receive([url])
+            // The app now has its own copy; remove the shared one.
+            try? FileManager.default.removeItem(at: url)
         }
     }
 }

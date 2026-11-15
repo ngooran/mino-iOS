@@ -39,7 +39,7 @@ Character count: 99
 
 ### Promotional Text (170 char max)
 ```
-NEW: Merge & Split PDFs now available! Compress documents up to 90% smaller. 100% offline - your files never leave your device. No subscription, no account needed.
+NEW: Merge & Split PDFs now available! Compress documents up to 90% smaller. 100% offline - your files never leave your device. Free to try. No subscription.
 ```
 Character count: 166
 
@@ -110,8 +110,8 @@ Use the Share Extension to process PDFs from Files, Safari, Mail, or any other a
 PRIVACY FIRST
 All processing happens locally on your device. No uploads. No tracking. No account. Your documents remain 100% private.
 
-ONE-TIME PURCHASE
-Buy once, use forever. No subscriptions. No hidden fees. No in-app purchases.
+FREE TO TRY, PAY ONCE FOR PRO
+Compress up to 3 PDFs a day for free. Mino Pro unlocks unlimited compressions, batch compression, merge, split and custom quality with a single one-time purchase. No subscription. Family Sharing included.
 
 ---
 

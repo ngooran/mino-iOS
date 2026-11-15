@@ -105,7 +105,7 @@ final class MergeService {
     /// Deletes a single merge result and its file
     func deleteResult(_ result: MergeResult) {
         // Remove file from disk
-        try? FileManager.default.removeItem(at: result.outputURL)
+        OutputLocation.removeFile(at: result.outputURL)
         // Remove from list
         recentResults.removeAll { $0.id == result.id }
         // Persist changes
@@ -115,7 +115,7 @@ final class MergeService {
     /// Clears all recent results and their files
     func clearAllResults() {
         for result in recentResults {
-            try? FileManager.default.removeItem(at: result.outputURL)
+            OutputLocation.removeFile(at: result.outputURL)
         }
         recentResults.removeAll()
         persistResults()
@@ -128,7 +128,7 @@ final class MergeService {
         if recentResults.count > maxRecentResults {
             let removed = Array(recentResults.suffix(from: maxRecentResults))
             for old in removed {
-                try? FileManager.default.removeItem(at: old.outputURL)
+                OutputLocation.removeFile(at: old.outputURL)
             }
             recentResults = Array(recentResults.prefix(maxRecentResults))
         }

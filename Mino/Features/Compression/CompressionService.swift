@@ -112,7 +112,7 @@ final class CompressionService {
     /// Deletes a single compression result and its file
     func deleteResult(_ result: CompressionResult) {
         // Remove file from disk
-        try? FileManager.default.removeItem(at: result.outputURL)
+        OutputLocation.removeFile(at: result.outputURL)
         // Remove from list
         recentResults.removeAll { $0.id == result.id }
         // Persist changes
@@ -122,7 +122,7 @@ final class CompressionService {
     /// Deletes multiple compression results
     func deleteResults(_ results: [CompressionResult]) {
         for result in results {
-            try? FileManager.default.removeItem(at: result.outputURL)
+            OutputLocation.removeFile(at: result.outputURL)
         }
         let idsToRemove = Set(results.map { $0.id })
         recentResults.removeAll { idsToRemove.contains($0.id) }
@@ -133,7 +133,7 @@ final class CompressionService {
     func clearAllResults() {
         // Remove all files
         for result in recentResults {
-            try? FileManager.default.removeItem(at: result.outputURL)
+            OutputLocation.removeFile(at: result.outputURL)
         }
         // Clear list
         recentResults.removeAll()
@@ -151,7 +151,7 @@ final class CompressionService {
             // Remove old results beyond limit (and their files)
             let removed = Array(recentResults.suffix(from: maxRecentResults))
             for old in removed {
-                try? FileManager.default.removeItem(at: old.outputURL)
+                OutputLocation.removeFile(at: old.outputURL)
             }
             recentResults = Array(recentResults.prefix(maxRecentResults))
         }

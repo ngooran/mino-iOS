@@ -385,29 +385,13 @@ final class PDFCompressor: @unchecked Sendable {
 
     // MARK: - Output URL Generation
 
-    /// Generates an output URL for a compressed PDF
+    /// Generates an output URL for a compressed PDF.
+    /// The file keeps the original document name inside its own folder.
     static func generateOutputURL(
         for originalURL: URL,
         settings: CompressionSettings
     ) -> URL {
-        let documentsDir = FileManager.default.urls(
-            for: .documentDirectory,
-            in: .userDomainMask
-        )[0].appendingPathComponent("Compressed", isDirectory: true)
-
-        // Create directory if needed
-        try? FileManager.default.createDirectory(
-            at: documentsDir,
-            withIntermediateDirectories: true
-        )
-
-        let originalName = originalURL.deletingPathExtension().lastPathComponent
-        let timestamp = Int(Date().timeIntervalSince1970)
-
-        // Format: Compressed_DocumentName_1234567890.pdf
-        return documentsDir
-            .appendingPathComponent("Compressed_\(originalName)_\(timestamp)")
-            .appendingPathExtension("pdf")
+        OutputLocation.url(folder: "Compressed", fileName: originalURL.deletingPathExtension().lastPathComponent)
     }
 
     /// Generates an output URL for a compressed PDF (legacy)
