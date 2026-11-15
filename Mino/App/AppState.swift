@@ -38,6 +38,7 @@ final class AppState {
     var mergeSession: MergeSession?
     var splitSession: SplitSession?
     var scanSession: ScanSession?
+    var ocrSession: OCRSession?
     var photosSession: PhotosToPDFSession?
     var imagesSession: PDFToImagesSession?
     var organizeSession: OrganizeSession?
@@ -211,7 +212,11 @@ final class AppState {
             protectSession?.state.cancel()
             protectSession = ProtectSession(document: first)
             show(tool.route)
-        case .photosToPDF, .scan, .officeToPDF, .fillSign, .edit, .pdfToWord, .ocr:
+        case .ocr:
+            ocrSession?.state.cancel()
+            ocrSession = OCRSession(document: first)
+            show(tool.route)
+        case .photosToPDF, .scan, .officeToPDF, .fillSign, .edit, .pdfToWord:
             break
         }
     }
@@ -478,6 +483,7 @@ final class AppState {
     func finish(_ tool: Tool) {
         switch tool {
         case .scan: scanSession = nil
+        case .ocr: ocrSession = nil
         case .photosToPDF: photosSession = nil
         case .pdfToImages: imagesSession = nil
         case .organize: organizeSession = nil
@@ -528,7 +534,9 @@ final class AppState {
 
     func saveScan(_ session: ScanSession) {
         guard !session.pages.isEmpty else { return }
-        guard mayRun(.scan, retry: { [weak self] in self?.saveScan(session) }) else { return }
+        // Scanning is free; making the scan searchable is part of Mino Pro.
+        let searchable = session.makeSearchable && Tool.ocr.isAvailable
+        guard mayRun(.scan, extra: searchable ? .searchableScan : nil, retry: { [weak self] in self?.saveScan(session) }) else { return }
         let pages = session.pages.map(\.url)
         let filter = session.filter
         let quality = session.quality
@@ -536,8 +544,54 @@ final class AppState {
         run(.scan, state: session.state) { progress in
             let output = OutputLocation.url(folder: "Scans", fileName: name)
             do {
-                let count = try ScanEngine.makePDF(pages: pages, filter: filter, quality: quality, outputURL: output, progress: progress)
-                return ToolOutput(urls: [output], kind: .scanned, pageCount: count)
+                guard searchable else {
+                    let count = try ScanEngine.makePDF(pages: pages, filter: filter, quality: quality, outputURL: output, progress: progress)
+                    return ToolOutput(urls: [output], kind: .scanned, pageCount: count)
+                }
+                // Build the scan, then read it and add the text layer.
+                let plain = FileManager.default.temporaryDirectory.appendingPathComponent("scan-\(UUID().uuidString).pdf")
+                defer { try? FileManager.default.removeItem(at: plain) }
+                let count = try ScanEngine.makePDF(pages: pages, filter: filter, quality: quality, outputURL: plain) { progress($0 * 0.3) }
+                let recognized = try TextRecognizer.recognize(documentURL: plain) { progress(0.3 + $0 * 0.7) }
+                try TextRecognizer.makeSearchablePDF(documentURL: plain, pages: recognized, outputURL: output)
+                return ToolOutput(
+                    urls: [output], kind: .scanned, pageCount: count,
+                    detail: String(localized: "Searchable"), text: TextRecognizer.text(of: recognized)
+                )
+            } catch {
+                OutputLocation.removeFile(at: output)
+                throw error
+            }
+        }
+    }
+
+    // MARK: - Recognize Text
+
+    func recognizeText(_ session: OCRSession) {
+        guard mayRun(.ocr, retry: { [weak self] in self?.recognizeText(session) }) else { return }
+        let document = session.document
+        let language = session.language
+        let wantsPDF = session.output == .searchablePDF
+        run(.ocr, state: session.state) { progress in
+            let output = wantsPDF
+                ? OutputLocation.url(folder: "Scans", fileName: String(localized: "\(document.name) (searchable)"))
+                : OutputLocation.url(folder: "Converted", fileName: document.name, fileExtension: "txt")
+            do {
+                let pages = try TextRecognizer.recognize(documentURL: document.url, language: language, progress: progress)
+                let text = TextRecognizer.text(of: pages)
+                if wantsPDF {
+                    try TextRecognizer.makeSearchablePDF(documentURL: document.url, pages: pages, outputURL: output)
+                    return ToolOutput(
+                        urls: [output], kind: .scanned, pageCount: pages.count,
+                        detail: String(localized: "Searchable"), text: text
+                    )
+                }
+                guard !text.isEmpty else {
+                    throw MuPDFError.unknownError(String(localized: "No text was found in this PDF."))
+                }
+                MuPDF.prepareOutput(output)
+                try text.write(to: output, atomically: true, encoding: .utf8)
+                return ToolOutput(urls: [output], kind: .converted, pageCount: pages.count, detail: String(localized: "Text"), text: text)
             } catch {
                 OutputLocation.removeFile(at: output)
                 throw error
@@ -636,6 +690,31 @@ final class AppState {
 
     func addPagesToOrganize() {
         importTarget = .insertPages
+    }
+
+    /// Turns freshly scanned pages into a PDF and inserts its pages.
+    func insertScannedPages(_ images: [UIImage], into session: OrganizeSession) async {
+        guard !images.isEmpty else { return }
+        isImporting = true
+        defer { isImporting = false }
+        let folder = OutputLocation.workingDirectory()
+        let quality = defaultQuality
+        let filter = ScanFilter(rawValue: StorageRoot.defaults.string(forKey: SettingsKeys.scanFilter) ?? "") ?? .color
+        let scan = await Task.detached(priority: .userInitiated) { () -> URL? in
+            let pages = images.enumerated().compactMap { index, image -> URL? in
+                let url = folder.appendingPathComponent("page-\(index).jpg")
+                guard let data = image.jpegData(compressionQuality: 0.92), (try? data.write(to: url)) != nil else { return nil }
+                return url
+            }
+            let output = folder.appendingPathComponent("Scan.pdf")
+            guard (try? ScanEngine.makePDF(pages: pages, filter: filter, quality: quality, outputURL: output)) != nil else { return nil }
+            return output
+        }.value
+        guard let scan else {
+            errorMessage = String(localized: "The scanned pages couldn't be added.")
+            return
+        }
+        session.insertPages(of: PDFDocumentInfo(url: scan, pageCount: images.count))
     }
 
     func saveOrganized(_ session: OrganizeSession) {

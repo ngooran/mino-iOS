@@ -71,49 +71,21 @@ nonisolated enum PDFToImagesEngine {
         format: ImageFormat,
         to url: URL
     ) throws {
-        var width: Float = 0
-        var height: Float = 0
-        guard mino_get_page_size(ctx, doc, Int32(index), &width, &height) == 0, width > 0, height > 0 else {
-            throw MuPDFError.unknownError(String(localized: "Page \(index + 1) couldn't be read: \(MuPDF.lastError())"))
-        }
+        let size = try MuPDF.pageSize(ctx, doc, index: index)
         var zoom = CGFloat(dpi) / 72
-        let longSide = CGFloat(max(width, height)) * zoom
+        let longSide = max(size.width, size.height) * zoom
         if longSide > maxPixelSide { zoom *= maxPixelSide / longSide }
 
-        guard let pixmap = mino_render_page(ctx, doc, Int32(index), Float(zoom)) else {
-            throw MuPDFError.unknownError(String(localized: "Page \(index + 1) couldn't be rendered: \(MuPDF.lastError())"))
+        try MuPDF.withPageImage(ctx, doc, index: index, zoom: zoom) { image in
+            try write(image, to: url, format: format, dpi: Double(zoom * 72))
         }
-        defer { mino_drop_pixmap(ctx, pixmap) }
+    }
 
-        let pixelWidth = Int(mino_pixmap_width(ctx, pixmap))
-        let pixelHeight = Int(mino_pixmap_height(ctx, pixmap))
-        let stride = Int(mino_pixmap_stride(ctx, pixmap))
-        guard let samples = mino_pixmap_samples(ctx, pixmap) else { throw MuPDFError.memoryError }
-
-        // The pixmap owns the bytes; the image only borrows them until it is written.
-        guard let provider = CGDataProvider(dataInfo: nil, data: samples, size: stride * pixelHeight, releaseData: { _, _, _ in }),
-              let image = CGImage(
-                width: pixelWidth,
-                height: pixelHeight,
-                bitsPerComponent: 8,
-                bitsPerPixel: 32,
-                bytesPerRow: stride,
-                space: CGColorSpaceCreateDeviceRGB(),
-                // The page is drawn on white, so the alpha channel carries nothing.
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
-                provider: provider,
-                decode: nil,
-                shouldInterpolate: false,
-                intent: .defaultIntent
-              ) else {
-            throw MuPDFError.memoryError
-        }
-
+    private static func write(_ image: CGImage, to url: URL, format: ImageFormat, dpi dpiValue: Double) throws {
         let type: UTType = format == .jpg ? .jpeg : .png
         guard let destination = CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil) else {
             throw MuPDFError.saveFailed(reason: url.lastPathComponent)
         }
-        let dpiValue = Double(zoom * 72)
         var properties: [CFString: Any] = [
             kCGImagePropertyDPIWidth: dpiValue,
             kCGImagePropertyDPIHeight: dpiValue,

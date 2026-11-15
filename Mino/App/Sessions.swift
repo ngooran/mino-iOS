@@ -195,6 +195,28 @@ final class ScanSession: ToolSession {
     }
 }
 
+// MARK: - Recognize Text
+
+@Observable
+@MainActor
+final class OCRSession: ToolSession {
+
+    enum Output: Hashable {
+        case searchablePDF
+        case text
+    }
+
+    let state = TaskState()
+    let document: PDFDocumentInfo
+    var output: Output = .searchablePDF
+    /// A Vision language code, or nil to detect the language.
+    var language: String?
+
+    init(document: PDFDocumentInfo) {
+        self.document = document
+    }
+}
+
 // MARK: - Photos to PDF
 
 @Observable

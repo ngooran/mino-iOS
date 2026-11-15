@@ -7,7 +7,7 @@
 //
 //  xcrun simctl launch booted com.applestan.Mino -demoScreen compress -demoFree
 //  Screens: home, search, picker, password, compress, result, merge, split,
-//  scan, photos, images, organize, protect, unlock, files, settings, paywall
+//  scan, ocr, photos, images, organize, protect, unlock, files, settings, paywall
 //  Add -demoRun to run the tool and show its result.
 //
 
@@ -88,6 +88,15 @@ enum DebugLaunch {
                 if run {
                     if session.makeSearchable { appState.store.debugProOverride = true }
                     appState.saveScan(session)
+                }
+            }
+        case "ocr":
+            appState.start(.ocr, with: await appState.importDocuments([makeScannedPDF(name: "Scanned Invoices", pages: 3)]))
+            if let session = appState.ocrSession {
+                if arguments.contains("-demoText") { session.output = .text }
+                if run {
+                    appState.store.debugProOverride = true
+                    appState.recognizeText(session)
                 }
             }
         case "photos":
@@ -222,6 +231,14 @@ enum DebugLaunch {
                   (try? data.write(to: url)) != nil else { return nil }
             return url
         }
+    }
+
+    /// A PDF whose pages are pictures of text, as a scanner app would make it.
+    static func makeScannedPDF(name: String, pages: Int) -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(name).pdf")
+        if FileManager.default.fileExists(atPath: url.path) { return url }
+        _ = try? ScanEngine.makePDF(pages: makeSampleScanPages(count: pages), filter: .color, quality: .medium, outputURL: url)
+        return url
     }
 
     static let sampleScanLines = [
