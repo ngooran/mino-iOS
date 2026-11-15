@@ -7,11 +7,13 @@
 //
 //  xcrun simctl launch booted com.applestan.Mino -demoScreen compress -demoFree
 //  Screens: home, search, picker, password, compress, result, merge, split,
-//  photos, images, organize, protect, unlock, files, settings, paywall
+//  scan, photos, images, organize, protect, unlock, files, settings, paywall
 //  Add -demoRun to run the tool and show its result.
 //
 
 #if DEBUG
+import CoreImage
+import CoreImage.CIFilterBuiltins
 import SwiftUI
 import UIKit
 
@@ -70,6 +72,22 @@ enum DebugLaunch {
                 if run {
                     appState.store.debugProOverride = true
                     appState.split(session)
+                }
+            }
+        case "scan":
+            // The document camera can't run in the simulator: sample pages stand in.
+            appState.openScan()
+            if !arguments.contains("-demoEmpty") {
+                appState.addScanFiles(makeSampleScanPages(count: Int(value(after: "-demoPages", in: arguments) ?? "") ?? 4))
+            }
+            if let session = appState.scanSession {
+                if let filter = value(after: "-demoFilter", in: arguments).flatMap(ScanFilter.init(rawValue:)) {
+                    session.filter = filter
+                }
+                if arguments.contains("-demoSearchable") { session.makeSearchable = true }
+                if run {
+                    if session.makeSearchable { appState.store.debugProOverride = true }
+                    appState.saveScan(session)
                 }
             }
         case "photos":
@@ -190,6 +208,96 @@ enum DebugLaunch {
                 _ = try? await appState.compressionService.compress(document: doc, settings: CompressionQuality.medium.settings)
             }
         }
+    }
+
+    /// Pages as the document camera delivers them: cropped, straightened
+    /// photos of paper, with uneven light and sensor noise.
+    static func makeSampleScanPages(count: Int) -> [URL] {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("DemoScans", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return (1...max(1, count)).compactMap { number in
+            let url = folder.appendingPathComponent("scan-page-\(number).jpg")
+            if FileManager.default.fileExists(atPath: url.path) { return url }
+            guard let data = makeSampleScanPage(number: number).jpegData(compressionQuality: 0.92),
+                  (try? data.write(to: url)) != nil else { return nil }
+            return url
+        }
+    }
+
+    static let sampleScanLines = [
+        "Thank you for your order. This invoice lists the work carried out in",
+        "October at 14 Canal Street. Payment is due within thirty days.",
+        "Description                               Hours       Amount",
+        "Kitchen plumbing repair                    3.5       245.00",
+        "Replacement tap and fittings                         89.50",
+        "Bathroom sealant renewal                   1.0        70.00",
+        "Call-out charge                                      35.00",
+        "Subtotal                                            439.50",
+        "VAT 21 percent                                       92.30",
+        "Total                                               531.80",
+        "Please quote the invoice number with your payment.",
+    ]
+
+    private static func makeSampleScanPage(number: Int) -> UIImage {
+        let size = CGSize(width: 2480, height: 3508)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let page = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            // Paper under uneven light.
+            let colors = [UIColor(red: 0.97, green: 0.96, blue: 0.93, alpha: 1).cgColor,
+                          UIColor(red: 0.88, green: 0.87, blue: 0.84, alpha: 1).cgColor]
+            let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors as CFArray, locations: [0, 1])!
+            context.cgContext.drawLinearGradient(gradient, start: CGPoint(x: size.width * 0.2, y: 0), end: CGPoint(x: size.width, y: size.height), options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+
+            let ink = UIColor(red: 0.1, green: 0.11, blue: 0.16, alpha: 1)
+            ("Invoice 2026-\(String(format: "%03d", 40 + number))" as NSString).draw(
+                at: CGPoint(x: 220, y: 260),
+                withAttributes: [.font: UIFont.boldSystemFont(ofSize: 110), .foregroundColor: ink]
+            )
+            ("Morgan Building Services · page \(number)" as NSString).draw(
+                at: CGPoint(x: 220, y: 420),
+                withAttributes: [.font: UIFont.systemFont(ofSize: 54), .foregroundColor: ink]
+            )
+            UIColor(red: 0.0, green: 0.45, blue: 0.48, alpha: 1).setFill()
+            context.fill(CGRect(x: 220, y: 540, width: size.width - 440, height: 8))
+
+            var y: CGFloat = 640
+            for block in 0..<4 {
+                for line in sampleScanLines {
+                    (line as NSString).draw(
+                        at: CGPoint(x: 220, y: y),
+                        withAttributes: [.font: UIFont.monospacedSystemFont(ofSize: 50, weight: .regular), .foregroundColor: ink]
+                    )
+                    y += 62
+                }
+                y += block == 3 ? 0 : 40
+            }
+            // A signature in blue ink.
+            let signature = UIBezierPath()
+            signature.move(to: CGPoint(x: 260, y: 3250))
+            signature.addCurve(to: CGPoint(x: 900, y: 3230), controlPoint1: CGPoint(x: 420, y: 3050), controlPoint2: CGPoint(x: 600, y: 3400))
+            signature.addCurve(to: CGPoint(x: 1150, y: 3240), controlPoint1: CGPoint(x: 980, y: 3180), controlPoint2: CGPoint(x: 1050, y: 3290))
+            UIColor(red: 0.1, green: 0.2, blue: 0.6, alpha: 1).setStroke()
+            signature.lineWidth = 9
+            signature.stroke()
+        }
+        // Sensor noise over the whole page, so the file compresses like a photo.
+        guard let cgPage = page.cgImage else { return page }
+        let base = CIImage(cgImage: cgPage)
+        let noise = CIFilter.randomGenerator().outputImage!
+            .transformed(by: CGAffineTransform(translationX: CGFloat(number * 37), y: CGFloat(number * 91)))
+            .cropped(to: base.extent)
+            .applyingFilter("CIColorMatrix", parameters: [
+                "inputRVector": CIVector(x: 0.33, y: 0.33, z: 0.33, w: 0),
+                "inputGVector": CIVector(x: 0.33, y: 0.33, z: 0.33, w: 0),
+                "inputBVector": CIVector(x: 0.33, y: 0.33, z: 0.33, w: 0),
+                "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+                "inputBiasVector": CIVector(x: 0, y: 0, z: 0, w: 0.07),
+            ])
+        let composed = noise.composited(over: base)
+        guard let result = CIContext().createCGImage(composed, from: base.extent) else { return page }
+        return UIImage(cgImage: result)
     }
 
     /// "Bank Statement.pdf", locked with the password "mino".

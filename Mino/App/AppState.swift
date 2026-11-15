@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 
 @Observable
 @MainActor
@@ -36,6 +37,7 @@ final class AppState {
     var compressSession: CompressSession?
     var mergeSession: MergeSession?
     var splitSession: SplitSession?
+    var scanSession: ScanSession?
     var photosSession: PhotosToPDFSession?
     var imagesSession: PDFToImagesSession?
     var organizeSession: OrganizeSession?
@@ -175,6 +177,8 @@ final class AppState {
             openMerge()
         case .photosToPDF:
             openPhotosToPDF()
+        case .scan:
+            openScan()
         default:
             importTarget = .tool(tool)
         }
@@ -473,6 +477,7 @@ final class AppState {
     /// Closes a finished or abandoned tool and returns to Home.
     func finish(_ tool: Tool) {
         switch tool {
+        case .scan: scanSession = nil
         case .photosToPDF: photosSession = nil
         case .pdfToImages: imagesSession = nil
         case .organize: organizeSession = nil
@@ -482,6 +487,62 @@ final class AppState {
         default: break
         }
         closeTask()
+    }
+
+    // MARK: - Scan to PDF
+
+    func openScan() {
+        if scanSession == nil || scanSession?.state.phase != .configure {
+            scanSession = ScanSession(quality: defaultQuality)
+        }
+        show(Tool.scan.route)
+    }
+
+    /// Saves pages from the document camera and appends them, or replaces
+    /// one page when it is being retaken.
+    func addScannedImages(_ images: [UIImage], replacing page: ScanPage.ID? = nil) async {
+        guard let session = scanSession, !images.isEmpty else { return }
+        session.isLoading = true
+        defer { session.isLoading = false }
+        let folder = OutputLocation.workingDirectory()
+        let urls = await Task.detached(priority: .userInitiated) {
+            images.enumerated().compactMap { index, image -> URL? in
+                let url = folder.appendingPathComponent("page-\(index).jpg")
+                guard let data = image.jpegData(compressionQuality: 0.92), (try? data.write(to: url)) != nil else { return nil }
+                return url
+            }
+        }.value
+        addScanFiles(urls, replacing: page)
+    }
+
+    /// Adds page images that are already files (photos, sample pages).
+    func addScanFiles(_ urls: [URL], replacing page: ScanPage.ID? = nil) {
+        guard let session = scanSession else { return }
+        let pages = urls.map { ScanPage(url: $0) }
+        if let page, let index = session.pages.firstIndex(where: { $0.id == page }), let first = pages.first {
+            session.pages[index] = first
+        } else {
+            session.pages.append(contentsOf: pages)
+        }
+    }
+
+    func saveScan(_ session: ScanSession) {
+        guard !session.pages.isEmpty else { return }
+        guard mayRun(.scan, retry: { [weak self] in self?.saveScan(session) }) else { return }
+        let pages = session.pages.map(\.url)
+        let filter = session.filter
+        let quality = session.quality
+        let name = String(localized: "Scan \(OutputLocation.shortDate())")
+        run(.scan, state: session.state) { progress in
+            let output = OutputLocation.url(folder: "Scans", fileName: name)
+            do {
+                let count = try ScanEngine.makePDF(pages: pages, filter: filter, quality: quality, outputURL: output, progress: progress)
+                return ToolOutput(urls: [output], kind: .scanned, pageCount: count)
+            } catch {
+                OutputLocation.removeFile(at: output)
+                throw error
+            }
+        }
     }
 
     // MARK: - Photos to PDF
@@ -845,4 +906,5 @@ nonisolated enum SettingsKeys {
     static let defaultQuality = "defaultQuality"
     static let appearance = "appearance"
     static let photoPageSize = "photoPageSize"
+    static let scanFilter = "scanFilter"
 }

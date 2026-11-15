@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.defaultQuality) private var defaultQuality: CompressionQuality = .medium
     @AppStorage(SettingsKeys.appearance) private var appearance: AppearanceOption = .system
     @AppStorage(SettingsKeys.photoPageSize) private var photoPageSize: PhotoPageSize = .fit
+    @AppStorage(SettingsKeys.scanFilter) private var scanFilter: ScanFilter = .color
     @State private var isRestoring = false
     @State private var restoreMessage: String?
 
@@ -26,7 +27,14 @@ struct SettingsView: View {
                 Picker(selection: $defaultQuality) {
                     ForEach(CompressionQuality.allCases) { Text($0.title).tag($0) }
                 } label: {
-                    Label { Text("Compress Quality") } icon: { IconTile(systemImage: "arrow.down.doc.fill", color: .teal) }
+                    Label { Text("Quality") } icon: { IconTile(systemImage: "arrow.down.doc.fill", color: .teal) }
+                }
+                if Tool.scan.isAvailable {
+                    Picker(selection: $scanFilter) {
+                        ForEach(ScanFilter.allCases) { Text($0.title).tag($0) }
+                    } label: {
+                        Label { Text("Scan Filter") } icon: { IconTile(systemImage: "doc.viewfinder", color: .teal) }
+                    }
                 }
                 if Tool.photosToPDF.isAvailable {
                     Picker(selection: $photoPageSize) {

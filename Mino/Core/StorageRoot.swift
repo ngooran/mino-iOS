@@ -35,6 +35,16 @@ nonisolated enum StorageRoot {
         return .standard
     }()
 
+    /// True while a DEBUG demo screen is showing (`-demoScreen`). Screens use it
+    /// to skip things that open by themselves, such as the camera.
+    static var isDemo: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("-demoScreen")
+        #else
+        return false
+        #endif
+    }
+
     #if DEBUG
     /// Launch with `-demoSandbox` for screenshots: an empty store, reset on every
     /// launch, so the real files and statistics on a test device stay untouched.

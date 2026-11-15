@@ -73,7 +73,7 @@ nonisolated enum Tool: String, CaseIterable, Identifiable, Hashable, Sendable {
     /// Tools that ship in this build, in Home order. A tool is added here when
     /// its release is finished (see ROADMAP.md, "Progress").
     static let available: [Tool] = [
-        .photosToPDF,
+        .scan, .photosToPDF,
         .compress, .merge, .split, .organize,
         .pdfToImages,
         .protect,

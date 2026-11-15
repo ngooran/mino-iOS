@@ -189,6 +189,21 @@ int mino_rearrange_pages(fz_context *ctx, pdf_document *doc, int count, const in
 int mino_get_page_rotation(fz_context *ctx, pdf_document *doc, int page);
 int mino_set_page_rotation(fz_context *ctx, pdf_document *doc, int page, int rotation);
 
+// MARK: - Overlays
+
+// Draws pages of another PDF on top of pages of this document, as Form
+// XObjects. Overlay page i goes onto page target_pages[i] (0-based) and is
+// stretched to that page's visible size, whatever its rotation or crop box.
+// The existing page content is not rewritten. Used for the invisible text
+// layer of Recognize Text.
+int mino_overlay_pages(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *overlay_path,
+    int count,
+    const int *target_pages
+);
+
 #ifdef __cplusplus
 }
 #endif

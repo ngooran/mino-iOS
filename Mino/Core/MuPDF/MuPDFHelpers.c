@@ -921,3 +921,190 @@ int mino_set_page_rotation(fz_context *ctx, pdf_document *doc, int page, int rot
     }
     return 0;
 }
+
+// MARK: - Overlays
+
+// Puts page `src_index` of `overlay` on top of page `dst_index` of `doc`.
+static void overlay_one_page(
+    fz_context *ctx,
+    pdf_document *doc,
+    pdf_graft_map *map,
+    pdf_document *overlay,
+    int src_index,
+    int dst_index,
+    int serial
+) {
+    fz_buffer *content = NULL;
+    fz_buffer *part = NULL;
+    fz_buffer *head = NULL;
+    fz_buffer *tail = NULL;
+    pdf_obj *resources = NULL;
+    pdf_obj *xobject = NULL;
+    pdf_obj *head_ref = NULL;
+    pdf_obj *tail_ref = NULL;
+    pdf_obj *contents = NULL;
+    pdf_obj *copied_resources = NULL;
+
+    fz_var(content);
+    fz_var(part);
+    fz_var(head);
+    fz_var(tail);
+    fz_var(resources);
+    fz_var(xobject);
+    fz_var(head_ref);
+    fz_var(tail_ref);
+    fz_var(contents);
+    fz_var(copied_resources);
+
+    fz_try(ctx) {
+        // The overlay page becomes a Form XObject in the document.
+        pdf_obj *src_page = pdf_lookup_page_obj(ctx, overlay, src_index);
+        pdf_obj *src_contents = pdf_dict_get(ctx, src_page, PDF_NAME(Contents));
+        if (pdf_is_array(ctx, src_contents)) {
+            content = fz_new_buffer(ctx, 1024);
+            int parts = pdf_array_len(ctx, src_contents);
+            for (int i = 0; i < parts; i++) {
+                part = pdf_load_stream(ctx, pdf_array_get(ctx, src_contents, i));
+                fz_append_buffer(ctx, content, part);
+                fz_append_byte(ctx, content, '\n');
+                fz_drop_buffer(ctx, part);
+                part = NULL;
+            }
+        } else if (src_contents) {
+            content = pdf_load_stream(ctx, src_contents);
+        } else {
+            content = fz_new_buffer(ctx, 1);
+        }
+
+        fz_rect bbox = pdf_dict_get_inheritable_rect(ctx, src_page, PDF_NAME(MediaBox));
+        pdf_obj *src_resources = pdf_dict_get_inheritable(ctx, src_page, PDF_NAME(Resources));
+        if (src_resources) {
+            resources = pdf_graft_mapped_object(ctx, map, src_resources);
+        } else {
+            resources = pdf_new_dict(ctx, doc, 1);
+        }
+        xobject = pdf_new_xobject(ctx, doc, bbox, fz_identity, resources, content);
+
+        // The page needs a resource dictionary of its own to name the XObject in.
+        pdf_obj *page = pdf_lookup_page_obj(ctx, doc, dst_index);
+        pdf_obj *page_resources = pdf_dict_get(ctx, page, PDF_NAME(Resources));
+        if (!page_resources) {
+            pdf_obj *inherited = pdf_dict_get_inheritable(ctx, page, PDF_NAME(Resources));
+            copied_resources = inherited ? pdf_copy_dict(ctx, inherited) : pdf_new_dict(ctx, doc, 2);
+            pdf_dict_put(ctx, page, PDF_NAME(Resources), copied_resources);
+            page_resources = pdf_dict_get(ctx, page, PDF_NAME(Resources));
+        }
+        pdf_obj *xobjects = pdf_dict_get(ctx, page_resources, PDF_NAME(XObject));
+        if (!xobjects) {
+            xobjects = pdf_dict_put_dict(ctx, page_resources, PDF_NAME(XObject), 2);
+        }
+        char name[32];
+        snprintf(name, sizeof(name), "MinoL%d", serial);
+        while (pdf_dict_gets(ctx, xobjects, name)) {
+            serial += 1000;
+            snprintf(name, sizeof(name), "MinoL%d", serial);
+        }
+        pdf_dict_puts(ctx, xobjects, name, xobject);
+
+        // Overlay coordinates (origin bottom left, y up) -> the page as it is
+        // shown (origin top left, y down) -> the page's own coordinates.
+        fz_rect page_box;
+        fz_matrix page_ctm;
+        pdf_page_obj_transform(ctx, page, &page_box, &page_ctm);
+        fz_rect shown = fz_transform_rect(page_box, page_ctm);
+        float shown_w = shown.x1 - shown.x0;
+        float shown_h = shown.y1 - shown.y0;
+        float overlay_w = bbox.x1 - bbox.x0;
+        float overlay_h = bbox.y1 - bbox.y0;
+        if (overlay_w <= 0 || overlay_h <= 0) {
+            fz_throw(ctx, FZ_ERROR_ARGUMENT, "overlay page has no size");
+        }
+        fz_matrix m = fz_translate(-bbox.x0, -bbox.y0);
+        m = fz_concat(m, fz_scale(shown_w / overlay_w, shown_h / overlay_h));
+        m = fz_concat(m, fz_make_matrix(1, 0, 0, -1, shown.x0, shown.y0 + shown_h));
+        m = fz_concat(m, fz_invert_matrix(page_ctm));
+
+        // Wrap what is there in q ... Q, so its graphics state can't leak into the overlay.
+        head = fz_new_buffer(ctx, 8);
+        fz_append_string(ctx, head, "q\n");
+        tail = fz_new_buffer(ctx, 128);
+        fz_append_printf(ctx, tail, "\nQ\nq %g %g %g %g %g %g cm /%s Do Q\n", m.a, m.b, m.c, m.d, m.e, m.f, name);
+        head_ref = pdf_add_stream(ctx, doc, head, NULL, 0);
+        tail_ref = pdf_add_stream(ctx, doc, tail, NULL, 0);
+
+        contents = pdf_new_array(ctx, doc, 4);
+        pdf_array_push(ctx, contents, head_ref);
+        pdf_obj *old = pdf_dict_get(ctx, page, PDF_NAME(Contents));
+        if (pdf_is_array(ctx, old)) {
+            int len = pdf_array_len(ctx, old);
+            for (int i = 0; i < len; i++) {
+                pdf_array_push(ctx, contents, pdf_array_get(ctx, old, i));
+            }
+        } else if (old) {
+            pdf_array_push(ctx, contents, old);
+        }
+        pdf_array_push(ctx, contents, tail_ref);
+        pdf_dict_put(ctx, page, PDF_NAME(Contents), contents);
+    }
+    fz_always(ctx) {
+        fz_drop_buffer(ctx, content);
+        fz_drop_buffer(ctx, part);
+        fz_drop_buffer(ctx, head);
+        fz_drop_buffer(ctx, tail);
+        pdf_drop_obj(ctx, resources);
+        pdf_drop_obj(ctx, xobject);
+        pdf_drop_obj(ctx, head_ref);
+        pdf_drop_obj(ctx, tail_ref);
+        pdf_drop_obj(ctx, contents);
+        pdf_drop_obj(ctx, copied_resources);
+    }
+    fz_catch(ctx) {
+        fz_rethrow(ctx);
+    }
+}
+
+int mino_overlay_pages(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *overlay_path,
+    int count,
+    const int *target_pages
+) {
+    if (!ctx || !doc || !overlay_path || !target_pages || count < 0) {
+        set_error("Invalid parameters for overlay");
+        return -1;
+    }
+    mino_clear_error();
+
+    fz_document *overlay_doc = NULL;
+    pdf_graft_map *map = NULL;
+
+    fz_var(overlay_doc);
+    fz_var(map);
+
+    fz_try(ctx) {
+        overlay_doc = fz_open_document(ctx, overlay_path);
+        pdf_document *overlay = pdf_specifics(ctx, overlay_doc);
+        if (!overlay) {
+            fz_throw(ctx, FZ_ERROR_ARGUMENT, "overlay is not a PDF");
+        }
+        map = pdf_new_graft_map(ctx, doc);
+        int available = pdf_count_pages(ctx, overlay);
+        int page_count = pdf_count_pages(ctx, doc);
+        for (int i = 0; i < count && i < available; i++) {
+            if (target_pages[i] < 0 || target_pages[i] >= page_count) {
+                fz_throw(ctx, FZ_ERROR_ARGUMENT, "overlay target page out of range");
+            }
+            overlay_one_page(ctx, doc, map, overlay, i, target_pages[i], i);
+        }
+    }
+    fz_always(ctx) {
+        pdf_drop_graft_map(ctx, map);
+        fz_drop_document(ctx, overlay_doc);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}

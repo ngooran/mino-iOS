@@ -212,6 +212,7 @@ private struct ToolRouteView: View {
 
     var body: some View {
         switch tool {
+        case .scan: ScanFlowView()
         case .photosToPDF: PhotosToPDFFlowView()
         case .pdfToImages: PDFToImagesFlowView()
         case .organize: OrganizeFlowView()

@@ -166,6 +166,35 @@ final class SplitSession {
     }
 }
 
+// MARK: - Scan to PDF
+
+@Observable
+@MainActor
+final class ScanSession: ToolSession {
+    let state = TaskState()
+    var pages: [ScanPage] = []
+    var filter: ScanFilter
+    let quality: CompressionQuality
+    /// Run text recognition on the scan (Mino Pro).
+    var makeSearchable = false
+    /// Captured pages are being saved.
+    var isLoading = false
+
+    init(quality: CompressionQuality) {
+        self.quality = quality
+        filter = ScanFilter(rawValue: StorageRoot.defaults.string(forKey: SettingsKeys.scanFilter) ?? "") ?? .color
+    }
+
+    /// Drag and drop: the dragged page takes the place of the one it is dropped on.
+    func move(_ id: ScanPage.ID, to target: ScanPage.ID) {
+        guard id != target,
+              let from = pages.firstIndex(where: { $0.id == id }),
+              let to = pages.firstIndex(where: { $0.id == target }) else { return }
+        let page = pages.remove(at: from)
+        pages.insert(page, at: to)
+    }
+}
+
 // MARK: - Photos to PDF
 
 @Observable
