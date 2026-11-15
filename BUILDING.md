@@ -5,7 +5,7 @@ This guide explains how to build Mino from source.
 ## Prerequisites
 
 - **macOS** Sonoma (14.0) or later
-- **Xcode** 16.0 or later
+- **Xcode** 27.1 or later (needed for the iPhone Duo SDK and simulator)
 - **Command Line Tools**: `xcode-select --install`
 - **Git** with submodule support
 
@@ -106,7 +106,8 @@ If Swift can't find the bridging header:
 
 ### Simulator vs Device
 
-- The XCFramework includes both device and simulator architectures
+- The MuPDF XCFrameworks in `Frameworks/` contain arm64 only for the simulator, even though the build script is meant to add x86_64. Build for a named simulator (for example `-destination 'platform=iOS Simulator,name=iPhone 17'`); the generic simulator destination fails to link x86_64.
+- A Release build for the simulator fails for the same reason. Release builds for devices work.
 - Build for simulator with Cmd+R
 - Build for device by selecting a real device
 
@@ -136,12 +137,12 @@ mino/
 
 ```bash
 # Run tests from command line
-xcodebuild test -scheme Mino -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild test -scheme Mino -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 ### Creating a Release Build
 
-1. Set the version number in the target's General settings
+1. Set the version and build number in the target's General settings. Keep the build number at 4 or higher: paid-app buyers are recognized by build numbers below 4 (see CLAUDE.md, Monetization)
 2. Select "Any iOS Device" as the destination
 3. Product > Archive
 4. Follow the distribution workflow

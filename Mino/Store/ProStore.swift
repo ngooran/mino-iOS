@@ -53,11 +53,11 @@ final class ProStore {
         return hasPurchasedPro || isLegacyPurchaser
     }
 
-    /// Localized price, e.g. "€6.99". Nil until the product loads.
+    /// Localized price, e.g. "€4.99". Nil until the product loads.
     var displayPrice: String? {
         #if DEBUG
         // Screenshots run outside Xcode, where the StoreKit test configuration isn't loaded.
-        if StorageRoot.isDemoSandbox, product == nil { return "€6.99" }
+        if StorageRoot.isDemoSandbox, product == nil { return "€4.99" }
         #endif
         return product?.displayPrice
     }

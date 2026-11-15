@@ -39,9 +39,9 @@ Character count: 99
 
 ### Promotional Text (170 char max)
 ```
-NEW: Merge & Split PDFs now available! Compress documents up to 90% smaller. 100% offline - your files never leave your device. Free to try. No subscription.
+NEW: Mino is now free! Compress PDFs up to 90% smaller, every day. Unlock merge, split and batch once with Mino Pro. 100% offline. No subscription.
 ```
-Character count: 166
+Character count: 147 (for 2.0; the 1.2 text was "NEW: Merge & Split PDFs now available! ...")
 
 **Seasonal Variations:**
 
@@ -64,11 +64,11 @@ WHY MINO?
 Unlike other PDF tools, Mino works 100% offline. Your documents never touch external servers. No account required. No subscription. Just powerful PDF tools that respect your privacy.
 
 COMPRESS PDFs
-Shrink massive files to a fraction of their size:
-- High Quality: Minimal compression, maximum detail
-- Medium Quality: Perfect balance for most documents
-- Low Quality: Maximum reduction for text-heavy files
-- Batch compress multiple PDFs at once
+Shrink massive files to a fraction of their size, and see the result size before you start:
+- Smallest: maximum reduction for messages and uploads
+- Balanced: the right size for email
+- Best Quality: minimal compression for printing
+- Batch compress multiple PDFs at once (Mino Pro)
 
 MERGE PDFs
 Combine multiple documents into one:
@@ -89,6 +89,9 @@ PERFECT FOR
 
 BUILT-IN PDF VIEWER
 Preview any PDF with smooth navigation and pinch-to-zoom. Compare before and after compression without leaving the app.
+
+MADE FOR IPHONE, IPAD AND IPHONE DUO
+A clean, native design with light and dark mode. On iPad and the unfolded iPhone Duo, your tools and your files sit side by side. In book pose, nothing sits on the fold.
 
 TRACK YOUR SAVINGS
 See your compression statistics:
@@ -117,11 +120,29 @@ Compress up to 3 PDFs a day for free. Mino Pro unlocks unlimited compressions, b
 
 Questions? We would love to hear from you.
 ```
-Character count: ~2000
+Character count: ~2400
 
 ---
 
 ## Version Information
+
+### What's New (Version 2.0)
+```
+Mino 2.0 is a complete redesign - and Mino is now free to download.
+
+- All new design: simpler, cleaner and fully native, in light and dark mode
+- Redesigned for iPad with a sidebar and side-by-side layout
+- Made for iPhone Duo: two columns when open, nothing on the fold in book pose
+- See the result size of each quality before you compress
+- Pick exactly the pages you want when splitting
+- Clean file names when you share
+- Drag and drop PDFs from other apps
+
+Free: compress up to 3 PDFs a day.
+Mino Pro, a one-time purchase: unlimited compressions, batch, merge, split and custom quality. No subscription. Family Sharing included.
+
+Already bought Mino? Thank you - you keep everything. Mino Pro is unlocked for you automatically.
+```
 
 ### What's New (Version 1.2)
 ```
@@ -167,6 +188,39 @@ Welcome to Mino - the fast, private way to compress your PDFs.
 - 100% local processing - your documents never leave your device
 
 We built Mino because we believe PDF compression should be simple, fast, and respect your privacy. No accounts, no subscriptions, no cloud uploads.
+```
+
+---
+
+## In-App Purchase
+
+| Field | Value |
+|-------|-------|
+| Reference Name | Mino Pro |
+| Product ID | com.applestan.Mino.pro |
+| Type | Non-consumable |
+| Apple ID | 6835189769 |
+| Price | €4.99 (base territory: Netherlands; other territories auto-equalized) |
+| Availability | All territories the app is sold in, plus new territories |
+| Family Sharing | On (can't be turned off) |
+| Display Name (en-US) | Mino Pro |
+| Description (en-US) | Unlimited compressions, merge, split and batch. |
+| Review Screenshot | The Mino Pro screen (Screenshots/raw/en-US/iphone-6.9/07-paywall.png) |
+
+Submit it together with version 2.0: the first IAP of an app has to go to review with an app version.
+
+### Notes for App Review (2.0)
+```
+Mino 2.0 changes Mino from a paid app to a free download with one non-consumable in-app purchase, "Mino Pro" (com.applestan.Mino.pro).
+
+Free: 3 single-file compressions per day with the three quality presets.
+Mino Pro: unlimited compressions, batch compression, merge, split and custom quality.
+
+To see the purchase: tap Merge or Split on the Home screen, or compress a 4th PDF in one day. Restore Purchase is on the Mino Pro screen and in Settings.
+
+Customers who bought the paid app (builds 1 and 3) keep all features: we check AppTransaction.originalAppVersion and unlock Mino Pro automatically. In the sandbox this check is skipped, so the review device shows the free tier.
+
+All processing happens on the device. No account, no server, no data collection.
 ```
 
 ---
@@ -241,20 +295,25 @@ For future expansion, prioritize these markets:
 
 ## Screenshot Recommendations
 
+Raw 2.0 screenshots: `Screenshots/raw/en-US/` (iPhone 6.9", iPad 13", iPhone Duo open and closed). How to retake them: CLAUDE.md, "App Store Screenshots". Release steps: RELEASE-2.0.md.
+
 ### Order and Content
-1. **Hero Shot** - "Compress, Merge, Split - All in One" with before/after file sizes
-2. **Compression** - Quality presets visual with size reduction stats
-3. **Merge** - Show drag-to-reorder interface
-4. **Split** - Page range selection UI
-5. **Privacy** - "100% Offline - Your Files Stay Private" with lock icon
-6. **Statistics** - Space saved tracker with impressive numbers
+1. **Home** - "Compress, Merge, Split - All in One"
+2. **Compress** - quality presets with the size estimate for each
+3. **Result** - "75% smaller" before/after
+4. **Merge** - drag-to-reorder list
+5. **Split** - page picker
+6. **Files** - everything you made, ready to share
+7. Optional closing frame: "100% Offline - Your Files Stay Private"
+
+Leave the Mino Pro screen out of the store screenshots; it is only the reviewer screenshot for the in-app purchase.
 
 ### Design Guidelines
-- Dark theme matching app aesthetic
-- Teal accent color (minoAccent)
-- Device frames optional but recommended
+- Light mode (the 2.0 default look), teal accent (AccentColor asset)
+- Device frames optional but recommended (`asc screenshots frame`)
 - **Critical:** Add text captions to screenshots (25-30% better conversion)
 - Consistent typography throughout
+- iPhone Duo: use the open, two-column shots (2853×2007) to show the Duo layout
 
 ---
 

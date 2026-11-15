@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Release status and the remaining steps for 2.0 (App Store Connect, TestFlight, pricing switch) are in [RELEASE-2.0.md](RELEASE-2.0.md). App Store texts are in [AppStoreMetadata.md](AppStoreMetadata.md).
+
 ## Build Commands
 
 ```bash
@@ -56,7 +58,7 @@ Free download + one-time non-consumable **Mino Pro** (`com.applestan.Mino.pro`),
 - Gate features with `appState.requirePro(reason) { action }`; the paywall runs `action` after unlocking.
 - Local testing: the shared `Mino` scheme uses `Mino.storekit`. DEBUG builds have a Pro/Free switch in Settings.
 - DEBUG launch arguments open any screen with sample PDFs: `-demoScreen home|compress|result|merge|split|files|settings|paywall`, plus `-demoFree`, `-demoPro`, `-demoRun` (`Mino/App/DebugLaunch.swift`).
-- `-demoSandbox` (DEBUG) swaps in a throwaway store (`StorageRoot`: `Documents/DemoSandbox` + a separate UserDefaults suite). It is wiped and refilled with sample files on every launch, shows the €6.99 placeholder price and never asks for a review. Use it for screenshots so a device's real files and stats never show. `-demoAppearance light|dark` sets the app appearance.
+- `-demoSandbox` (DEBUG) swaps in a throwaway store (`StorageRoot`: `Documents/DemoSandbox` + a separate UserDefaults suite). It is wiped and refilled with sample files on every launch, shows the €4.99 price (the real Mino Pro price, since StoreKit can't load outside Xcode) and never asks for a review. Use it for screenshots so a device's real files and stats never show. `-demoAppearance light|dark` sets the app appearance.
 
 ### Core Data Flow
 

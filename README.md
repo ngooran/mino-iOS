@@ -2,35 +2,40 @@
 
 **PDFs, made light.**
 
-Mino is an iOS app that compresses PDF files (especially image-heavy PDFs) using the MuPDF library. It runs entirely offline - your files never leave your device.
+Mino is an iOS app that compresses, merges and splits PDF files using the MuPDF library. It runs entirely offline - your files never leave your device.
 
 ## Features
 
-- **Powerful Compression**: Achieve 60-95% file size reduction on image-heavy PDFs
-- **Quality Presets**: Choose between Low, Medium, and High quality presets
-- **Advanced Mode**: Fine-tune JPEG quality, DPI, and cleanup settings
+- **Powerful Compression**: Achieve 60-95% file size reduction on image-heavy PDFs, with the result size shown before you start
+- **Quality Presets**: Smallest, Balanced and Best Quality, plus custom quality and resolution
+- **Merge and Split**: Combine PDFs in any order, or extract any set of pages
+- **Batch Compression**: Compress many PDFs at once
+- **iPhone, iPad and iPhone Duo**: Native SwiftUI layout for each, including the Duo's book pose
 - **Complete Privacy**: All processing happens on-device, no server uploads
-- **Simple Interface**: Clean SwiftUI design with drag-and-drop support
 - **Open Source**: Licensed under AGPL-3.0 with App Store Exception
+
+## Free and Pro
+
+Mino is a free download. Free use covers 3 single-file compressions a day. **Mino Pro**, a one-time in-app purchase, unlocks unlimited compressions, batch compression, merge, split and custom quality. People who bought the paid app (1.x) keep everything automatically.
 
 ## Expected Results
 
-| Quality | JPEG Quality | Target DPI | Expected Reduction |
-|---------|--------------|------------|-------------------|
-| Low     | 30%          | 72         | 85-95%            |
-| Medium  | 50%          | 100        | 75-85%            |
-| High    | 70%          | 150        | 60-75%            |
+| Preset (in code) | JPEG Quality | Target DPI | Expected Reduction |
+|------------------|--------------|------------|-------------------|
+| Smallest (`low`) | 30%          | 72         | 85-95%            |
+| Balanced (`medium`) | 50%       | 100        | 75-85%            |
+| Best Quality (`high`) | 70%     | 150        | 60-75%            |
 
 For a 100MB image-heavy PDF:
-- **Low**: ~5-15MB
-- **Medium**: ~15-25MB
-- **High**: ~25-40MB
+- **Smallest**: ~5-15MB
+- **Balanced**: ~15-25MB
+- **Best Quality**: ~25-40MB
 
 ## Requirements
 
-- iOS 18.0+
-- Xcode 16.0+
-- macOS Sonoma or later (for building)
+- iOS 18.6+
+- Xcode 27.1+ (needed for the iPhone Duo SDK and simulator)
+- macOS with Xcode 27 support (for building)
 
 ## Building from Source
 
@@ -57,22 +62,27 @@ open Mino.xcodeproj
 
 ```
 Mino/
-├── App/                    # App entry point and state
+├── App/                    # AppState, navigation, task sessions, DEBUG demo launch
 ├── Core/
-│   ├── MuPDF/              # MuPDF C wrapper and Swift bridge
-│   └── Models/             # Data models
-├── Features/
-│   ├── Import/             # PDF import handling
-│   ├── Compression/        # Compression service
-│   └── Export/             # Export and sharing
+│   ├── MuPDF/              # MuPDF C wrapper and Swift bridge (compress, merge, split)
+│   ├── Models/             # Data models
+│   ├── OutputLocation.swift
+│   └── StorageRoot.swift   # All persistence goes through here
+├── Features/               # Import, compression, batch, merge/split, export, history, viewer
+├── Store/                  # Mino Pro (StoreKit 2) and the free daily limit
 └── UI/
-    ├── Components/         # SwiftUI views
-    └── Styles/             # Theme and styling
+    ├── Root/               # Tabs and adaptive navigation (iPhone, iPad, iPhone Duo)
+    ├── Home/ Files/ Settings/ Tasks/ Paywall/
+    ├── Components/         # Shared views, thumbnails, fold awareness
+    └── Styles/             # Theme
+MinoShare/                  # Share Extension
 ```
+
+More detail for contributors is in [CLAUDE.md](CLAUDE.md). The release plan for 2.0 is in [RELEASE-2.0.md](RELEASE-2.0.md).
 
 ## How It Works
 
-1. **Import**: Select a PDF from Files app, Share Sheet, or drag-and-drop
+1. **Import**: Select a PDF from the Files app, the Share Sheet, or drag and drop
 2. **Analyze**: MuPDF opens and analyzes the document
 3. **Compress**: Images are recompressed and downsampled based on quality level
 4. **Clean**: Unused objects are removed (garbage collection)
@@ -80,9 +90,9 @@ Mino/
 
 ## Technology Stack
 
-- **Swift 5.9+** with SwiftUI
+- **Swift** with SwiftUI and Swift Observation
+- **StoreKit 2** for the Mino Pro purchase
 - **MuPDF** - High-performance PDF library (AGPL-3.0)
-- **MVVM Architecture** with Swift Observation
 
 ## License
 
