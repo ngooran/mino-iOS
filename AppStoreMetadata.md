@@ -458,3 +458,57 @@ Mino Pro is still one purchase, with no subscription.
 ```
 
 **Privacy:** unchanged, "Data Not Collected". New purpose string: `NSPhotoLibraryAddUsageDescription`.
+
+
+### Version 2.2 "Scanner"
+
+The app is renamed in this release (owner's decision, ROADMAP.md section 9).
+
+**App Name (30 max)**
+```
+Mino - PDF Scanner & Converter
+```
+Character count: 30
+
+**Subtitle (30 max)**
+```
+Compress, Merge, Split & OCR
+```
+Character count: 28
+
+**Keywords (100 max)**
+```
+scan,document,camera,text,jpg,photo,image,password,unlock,rotate,organize,batch,offline,shrink
+```
+Character count: 94
+
+**Promotional Text (170 max)**
+```
+NEW: Scan documents with your camera and make them searchable. Text is recognized on your device, never uploaded. Compress, merge, convert and protect PDFs too.
+```
+Character count: 160
+
+**What's New in 2.2**
+```
+Mino can now scan.
+
+• Scan to PDF: point the camera at a page. Mino finds the edges, straightens the page and captures it. Add as many pages as you need, reorder or retake them, and choose Color, Grayscale or Black & White.
+• Recognize Text (Mino Pro): make a scanned PDF searchable, so you can find, select and copy its text. Or save the text on its own.
+• Scans can be made searchable as you save them.
+• Organize Pages can insert freshly scanned pages into a PDF.
+
+Everything is recognized on your device. Nothing is uploaded.
+
+Scanning is free: it shares the 3 free actions a day. Mino Pro is still one purchase, with no subscription.
+```
+
+**Notes for App Review (2.2), additions**
+```
+- Camera: used only for Scan to PDF, with Apple's document camera (VisionKit). Images stay on the device.
+- Text recognition uses Apple's Vision framework on the device. No network connection is made.
+- Sample flow: Home > Scan > capture a page > Save PDF. Switch on "Make Text Searchable" to see Mino Pro.
+```
+
+**Privacy:** unchanged, "Data Not Collected". New purpose string: `NSCameraUsageDescription`.
+
+**Screenshots:** lead with Scan (the review screen with pages and the filter) and Recognize Text (the result with the recognized text). Raw shots come from `-demoScreen scan` and `-demoScreen ocr -demoRun`.

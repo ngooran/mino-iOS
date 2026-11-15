@@ -252,8 +252,8 @@ Work happens on branch `toolkit` (from `redesign-2.0`). Version and build number
 | PDF to Images | Done | `PDFToImagesTests`; demo run; files inspected |
 | Organize Pages | Done | `OrganizeTests`; demo run; output inspected with PDFKit |
 | Protect & Unlock | Done | `ProtectTests`; demo runs; output inspected with PDFKit |
-| Scan to PDF | Not started | |
-| Recognize Text | Not started | |
+| Scan to PDF | Done, except the real camera (owner) | `ScanTests`; demo runs with sample pages; output inspected. The document camera itself has never run: it does not exist in the simulator |
+| Recognize Text | Done | `OCRTests`; demo runs; output inspected with PDFKit |
 | Fill & Sign | Not started | |
 | Edit & Annotate | Not started | |
 | Office to PDF | Not started | Gate: 17 of 20 documents |
@@ -278,7 +278,7 @@ ls "$(xcrun simctl get_app_container <udid> com.applestan.Mino data)/Documents/D
 python3 Scripts/sync_strings.py
 ```
 
-Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `merge`, `split`, `photos`, `images`, `organize`, `protect`, `unlock`, `files`, `settings`, `paywall`.
+Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `merge`, `split`, `scan`, `ocr`, `photos`, `images`, `organize`, `protect`, `unlock`, `files`, `settings`, `paywall`.
 
 ### 2.1: what was built
 
@@ -313,6 +313,32 @@ Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `mer
 11. **Organize:** "Pages from Another PDF" inserts all its pages after the selection; duplicates and inserted pages carry no links or form fields of their own.
 12. `FileItem.Kind` also gained `signed` (the prototype has a Signed filter).
 13. **Commits:** the foundation and the four 2.1 tools were developed together. The foundation commit holds the shared code; each tool has its own commit with its engine, screen and tests. The app builds from the Protect & Unlock commit onward.
+
+### 2.2: what was built
+
+- **Scan to PDF:** the system document camera (VisionKit) for capture, edge detection and straightening; review with reorder, delete, retake and "Add"; Color, Grayscale and Black & White; "Make Text Searchable" (Pro) runs Recognize Text on the scan. Home gets the "Scan" entry point. Settings gets a default scan filter. Organize Pages can insert scanned pages.
+- **Recognize Text:** Apple Vision reads each page at 200 dpi on the device. Searchable PDF adds the words as an invisible layer; Text Only saves a `.txt`. The result screen shows the text with a Copy button. Language is automatic, or one of Vision's languages.
+
+**Demo path (no camera in the simulator):** `-demoScreen scan` fills the review screen with sample pages (2480 x 3508 pictures of an invoice with uneven light and noise); add `-demoPages 10`, `-demoFilter grayscale|blackAndWhite`, `-demoSearchable`, `-demoEmpty`, `-demoRun`. In DEBUG builds the empty scan screen also has "Use Sample Pages". On a device without a document camera the screen offers "Choose Photos" instead.
+
+| Tool | Done when | Result |
+|---|---|---|
+| Scan to PDF | A 10-page scan is under 3 MB at Balanced; works on iPad and on the Duo's outer and inner cameras | 10 sample pages at Balanced: about 1.9 MB in color, 1.8 MB grayscale, 2.0 MB black and white. **These are synthetic pages**; real paper under real light may compress differently. Balanced stores pages at 140 dpi, JPEG quality 0.4, which reads cleanly. **Camera on iPhone, iPad and both Duo cameras: not tested, needs the owner.** |
+| Recognize Text | A 20-page scan in under 30 s on an iPhone 15; text can be selected in Preview | 20 pages in about 28 s **on the simulator**, where Vision runs without the Neural Engine; an iPhone should be faster, but that is not measured. PDFKit finds and selects the words where they are printed, also on pages turned 90, 180 and 270 degrees. The page looks identical afterwards and the file grows by about 3%. |
+
+### Choices made in 2.2
+
+1. **Scan presets** use the names of the compress presets but their own numbers: Smallest 110 dpi, Balanced 140 dpi, Best Quality 200 dpi (the long side counted as A4). The compress presets (72 to 150 dpi) would make text too soft.
+2. **The text layer is drawn with CoreGraphics and merged with MuPDF** (`mino_overlay_pages`, which the roadmap called `mino_add_text_layer`). CoreGraphics embeds a font for any script Vision reads; MuPDF then places that layer on the original page without rewriting the page.
+3. **Pages that already have text** (12 letters or more) are not read again, so nothing is doubled.
+4. **Black & White** is a high-contrast gray JPEG, not a 1-bit image.
+5. Results of Recognize Text: the searchable PDF is filed under Scans, the text file under Converted.
+
+### Known gaps after 2.2
+
+- **Camera (owner):** capture, retake, the Add tile, the camera opening by itself when Scan is tapped, and Organize Pages > Insert > Scan Pages all go through `VNDocumentCameraViewController` and have never run. Test on iPhone, iPad and the Duo (outer and inner camera).
+- A page that lies on its side is read and can be searched, but the selection highlight doesn't follow the sideways letters. Rotate it in Organize Pages first.
+- Handwriting and poor scans read badly, as with any on-device OCR. The result screen shows the text so it can be checked.
 
 ### Known gaps after 2.1
 
