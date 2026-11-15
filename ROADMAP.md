@@ -236,3 +236,88 @@ Use App Store Connect only: impressions, product page conversion, first-time dow
 ## 10. Next Step
 
 After 2.0 is submitted: build the 2.1 foundation (tool registry, new Home, file-first sheet), then Photos to PDF as the first new tool, since it reuses the most and has the highest search demand.
+
+---
+
+## 11. Progress
+
+Work happens on branch `toolkit` (from `redesign-2.0`). Version and build numbers are unchanged (2.0, build 4): set them when a release is cut. This section is the place to resume from.
+
+### Status
+
+| Step | State | Verified how |
+|---|---|---|
+| 2.1 foundation | Done | Unit tests (`FoundationTests`), screenshots on iPhone 18 Pro Max, iPad Pro 13-inch and iPhone Duo closed, flat and book pose |
+| Photos to PDF | Done | `PhotosToPDFTests`; demo run; output inspected with PDFKit |
+| PDF to Images | Done | `PDFToImagesTests`; demo run; files inspected |
+| Organize Pages | Done | `OrganizeTests`; demo run; output inspected with PDFKit |
+| Protect & Unlock | Done | `ProtectTests`; demo runs; output inspected with PDFKit |
+| Scan to PDF | Not started | |
+| Recognize Text | Not started | |
+| Fill & Sign | Not started | |
+| Edit & Annotate | Not started | |
+| Office to PDF | Not started | Gate: 17 of 20 documents |
+| PDF to Word | Not started | Gate: 15 of 20 documents |
+
+A tool appears in the app once it is listed in `Tool.available` (`Mino/App/Tools.swift`).
+
+### How to verify (every tool)
+
+```bash
+# Unit tests (the test host runs with -demoSandbox, so no real data is touched)
+xcodebuild test -project Mino.xcodeproj -scheme Mino -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro Max' -derivedDataPath build/DerivedData
+
+# A tool's screen, and with -demoRun its result
+xcrun simctl launch <udid> com.applestan.Mino -demoSandbox -demoAppearance light -demoFree -demoScreen organize [-demoRun]
+
+# The files a demo run wrote
+ls "$(xcrun simctl get_app_container <udid> com.applestan.Mino data)/Documents/DemoSandbox"
+
+# After adding or changing UI text
+python3 Scripts/sync_strings.py
+```
+
+Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `merge`, `split`, `photos`, `images`, `organize`, `protect`, `unlock`, `files`, `settings`, `paywall`.
+
+### 2.1: what was built
+
+- **Foundation:** `Tool` registry; new Home (search, Open PDF, tools by category, NEW and PRO badges); "What do you want to do?" sheet (after Open PDF, from Files, after a result, for incoming PDFs); "3 free actions a day" shared by the free tools; password prompt for locked PDFs; Files filter menu that lists only the kinds present; `Localizable.xcstrings` (384 strings, English, with plural forms); a `MinoTests` unit-test target with fixtures; Share Extension accepts PDFs, images and Office files, several at once.
+- **Shared plumbing for new tools:** a session owns a `TaskState`; `AppState.mayRun` checks Pro or the allowance at the final button; `AppState.run` runs the engine off the main thread and files the result in `ToolResultStore`; `ToolFlow` gives every tool the same working, failure and result screens.
+- **Photos to PDF:** Photos picker, Files, drag and drop; reorder by dragging; Fit to Photo, A4, Letter; margins.
+- **PDF to Images:** all or chosen pages; JPG or PNG; 150 or 300 dpi; Save to Photos (add-only access), Save to Files, Share.
+- **Organize Pages:** rotate, move, duplicate, delete, drag to reorder, insert a blank page or the pages of another PDF.
+- **Protect & Unlock:** AES-256 password, optional limits on printing and copying; Unlock saves a copy without a password the person knows.
+
+### Measured against "done when"
+
+| Tool | Done when | Result |
+|---|---|---|
+| Photos to PDF | 50 photos in under 10 s on an iPhone 15; orientation respected; opens in Preview and Acrobat | 50 photos of 12 MP (10 of them HEIC) in about 4 s **on the simulator on this Mac**, not on an iPhone 15. Orientation matches ImageIO for JPEG with EXIF 1, 3 and 6, PNG and HEIC. JPEG bytes are found unchanged inside the PDF. Opens in PDFKit, which is what Preview uses. Not opened in Acrobat. |
+| PDF to Images | A 100-page export doesn't exceed memory limits | 100 A4 pages at 300 dpi: memory peaks about 33 MB above the start (one page is about 35 MB of pixels). |
+| Organize Pages | Links, bookmarks and form fields survive on the remaining pages | Tested on a fixture with all three: bookmarks still open their chapter, a link to a kept page still works, a link to a deleted page is removed, fields keep their values and can still be filled, and a deleted page's field value is gone from the file. |
+| Protect & Unlock | Opens in Preview and Acrobat with the password, not without | PDFKit: locked without the password, opens with it, restrictions apply. The file contains the AESV3 (AES-256) filter. Not opened in Acrobat. |
+
+### Choices made while building (not in the plan)
+
+1. **One result store, not a service per tool.** New tools keep their results in `ToolResultStore`; each tool still has a session, a route, a flow view and an engine in `Mino/Features/<Tool>/`. This avoids copying the 200-line persistence code of the 2.0 services ten times.
+2. **Locked PDFs become an unlocked working copy.** The password is asked once while opening; every tool then works on a copy without it (in `ImportedPDFs/`, cleared at launch). *Consequence:* a result made from a locked PDF is not locked. Use Protect to lock it again.
+3. **Passwords are limited to printable ASCII.** MuPDF encodes other characters as UTF-8, as PDF 2.0 says, and PDFKit then refuses the same password ("café" failed; "密码" worked). Protect shows a hint and stays disabled. When opening a PDF locked elsewhere, an accented password is tried as UTF-8 and as Latin-1.
+4. **A PDF that opens freely but limits printing or copying** is unlocked only with its permissions (owner) password.
+5. **With restrictions on, the owner password is random.** Otherwise the opening password would also lift the restrictions. Unlock still works with the opening password.
+6. **Files: tapping a file still previews it** (as in 2.0). "Use a Tool" is in the preview's toolbar, on a leading swipe and in the context menu. The prototype opens the tool sheet on tap; that would have removed the preview on iPhone.
+7. **Merge, Split and batch compress now open for everyone** and ask for Pro at the final button, like the new Pro tools. In 2.0 they asked when opened.
+8. **An incoming PDF opens the tool sheet** (2.0 sent it straight to Compress). Several PDFs offer Compress and Merge. Images go to Photos to PDF.
+9. **Photos to PDF:** JPEG and PNG are embedded untouched; a rotated JPEG is turned by the page, not re-encoded. "Fit to Photo" gives the page the photo's shape with an 842 pt long side. Images MuPDF can't read are decoded by ImageIO.
+10. **PDF to Images:** one export is one item in Files. Pages larger than 8000 pixels on a side are exported at a lower resolution.
+11. **Organize:** "Pages from Another PDF" inserts all its pages after the selection; duplicates and inserted pages carry no links or form fields of their own.
+12. `FileItem.Kind` also gained `signed` (the prototype has a Signed filter).
+13. **Commits:** the foundation and the four 2.1 tools were developed together. The foundation commit holds the shared code; each tool has its own commit with its engine, screen and tests. The app builds from the Protect & Unlock commit onward.
+
+### Known gaps after 2.1
+
+- **Needs a device (owner):** the Share Extension with images, Office files and several files; Save to Photos (the permission prompt); drag to reorder in the photo and page grids with a finger (the reorder logic is unit-tested, the gesture is not).
+- Speed was measured on the simulator. Run the 50-photo case once on an iPhone.
+- Acrobat was not available here; PDFKit and MuPDF both read every output.
+- The demo sandbox paywall now shows the storefront's live price when the simulator can load the product (it showed $3.99 on a US simulator); the hard-coded €4.99 is only the fallback.
+- English only. The String Catalog is ready for translation.

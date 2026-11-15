@@ -396,3 +396,65 @@ Leave the Mino Pro screen out of the store screenshots; it is only the reviewer 
 | 1.2 | 2025-01 | Merge, split, batch compression, review prompts, UI polish |
 | 1.1 | 2025-01 | Unified compression view, statistics screen, delete all |
 | 1.0 | 2024-12 | Initial release |
+
+
+---
+
+## Toolkit Releases (2.1 to 2.4)
+
+Prepared on branch `toolkit`. Nothing here has been entered in App Store Connect. Paste the texts when each version is created. Mino Pro stays €4.99; it is never described as a launch or introductory price.
+
+Check keyword popularity in an ASO tool before each submission (see ROADMAP.md, section 6).
+
+### Version 2.1 "Toolkit"
+
+**App Name (30 max)**
+```
+Mino - PDF Compressor & Merger
+```
+Character count: 30 (unchanged)
+
+**Subtitle (30 max)**
+```
+Merge, Split & JPG to PDF
+```
+Character count: 25
+
+**Keywords (100 max)**
+```
+photo,image,converter,password,protect,unlock,rotate,delete,pages,organize,batch,offline,reduce
+```
+Character count: 95
+
+**Promotional Text (170 max)**
+```
+NEW: Photos to PDF, PDF to JPG, rotate and delete pages, password protection. Free tools every day, everything on your device. One purchase unlocks it all.
+```
+Character count: 155
+
+**What's New in 2.1**
+```
+Mino is now a PDF toolkit. Four new tools, all offline:
+
+• Photos to PDF: turn JPG, PNG and HEIC images into one PDF. Photos keep their full quality.
+• PDF to Images: save pages as JPG or PNG, to Photos or Files.
+• Organize Pages: rotate, delete, reorder and duplicate pages, or insert pages from another PDF.
+• Protect & Unlock: add a password with AES-256 encryption, or remove one you know. (Mino Pro)
+
+Also new:
+• Open any PDF first, then pick what to do with it.
+• Search for a tool by any word: try "jpg" or "password".
+• Locked PDFs: enter the password once and use any tool.
+• 3 free actions a day, shared by Compress, Photos to PDF, PDF to Images and Organize Pages.
+
+Mino Pro is still one purchase, with no subscription.
+```
+
+**Notes for App Review (2.1), additions**
+```
+- Photo library: Mino only adds images (PDF to Images > Save to Photos). It never reads the library; photos are chosen with the system picker.
+- Protect & Unlock removes a password only when the person enters it. It cannot open a PDF with an unknown password.
+- Sample flow for Pro: Home > Protect & Unlock > choose a PDF > set a password > Protect PDF shows Mino Pro.
+```
+
+**Privacy:** unchanged, "Data Not Collected". New purpose string: `NSPhotoLibraryAddUsageDescription`.

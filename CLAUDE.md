@@ -26,14 +26,14 @@ open Mino.xcodeproj
 
 ## Architecture Overview
 
-Mino is an iOS PDF toolkit that uses MuPDF (C library) via Swift bridging. Features include compression, merge, and split.
+Mino is an iOS PDF toolkit that uses MuPDF (C library) via Swift bridging. 2.0 has Compress, Merge and Split. Branch `toolkit` adds the tools of ROADMAP.md; its "Progress" section says what is built, how it was verified and what is left.
 
 ### App Structure
 
 ```
 TabView (.sidebarAdaptable)
-├── Home      - Compress card, Merge / Split tiles, recent files
-├── Files     - All generated files: search + All/Compressed/Merged/Split filter
+├── Home      - Search, Open PDF, tools by category, recent files
+├── Files     - All generated files: search + filter menu (only kinds that exist)
 └── Settings  - Mino Pro status, defaults, statistics, support, about
 ```
 
@@ -49,15 +49,33 @@ TabView (.sidebarAdaptable)
   - The paywall goes two-page only when a full page fits on each side, and gets a tighter header on screens under 720pt tall.
   - DEBUG launch argument `-showRegions` outlines all reserved regions.
 
+### Tools (`Mino/App/Tools.swift`)
+
+`Tool` is the registry: title, subtitle, symbol, color, category, access (free allowance or Pro), input, search keywords, route and paywall message. Home, search, the tool picker sheet and the paywall read from it.
+- `Tool.available` lists the tools that ship. Add a tool there when it is finished.
+- Free with 3 actions a day (shared): Compress, Scan, Photos to PDF, PDF to Images, Organize Pages. Everything else is Pro. This split is the owner's decision; don't change it.
+- Pro tools open for everyone. The paywall shows at the final button: call `appState.mayRun(tool) { retry }` there.
+
+**Adding a tool** (the pattern of every tool after 2.0):
+1. Engine in `Mino/Features/<Tool>/`: a `nonisolated enum` with static functions that do the work and throw. No UI, no AppState. The app's default actor isolation is MainActor, so engines and the models they use must be marked `nonisolated`.
+2. MuPDF wrapper functions in `MuPDFHelpers.c/.h` where needed (`MuPDF.withPDF` and `MuPDF.lastError()` in `MuPDFSupport.swift` help on the Swift side).
+3. Session in `Mino/App/Sessions.swift`: an `@Observable` class with the options and `let state = TaskState()`.
+4. In `AppState`: a session property, a case in `start(_:with:)` and `finish(_:)`, and a run function that calls `mayRun`, then `run(tool, state:) { progress in ... return ToolOutput(...) }`. `run` works off the main thread, stores the result in `ToolResultStore`, counts a free action and sets `state.phase`.
+5. Flow view in `Mino/UI/Tasks/`: wrap the configure screen in `ToolFlow`, which supplies the working, failure and result screens. Add it to `ToolRouteView` in `RootView.swift`.
+6. `-demoScreen` case in `DebugLaunch.swift`, a test file in `MinoTests/`, and the tool in `Tool.available`.
+7. Run `python3 Scripts/sync_strings.py` after a build to update the String Catalog.
+
+**Opening files:** `ImportTarget` says what the file picker is for. `AppState.importDocuments` copies PDFs into `ImportedPDFs/` and asks for the password of locked ones; the working copy is then unlocked (`PDFDocumentInfo.wasLocked`). "Open PDF", incoming files and "Continue with another tool" show `ToolPickerSheet`.
+
 ### Monetization (`Mino/Store/`)
 
 Free download + one-time non-consumable **Mino Pro** (`com.applestan.Mino.pro`), StoreKit 2.
-- Free: 3 single-file compressions per day (`FreeUsage`).
-- Pro: unlimited, batch, merge, split, custom quality.
+- Free: 3 actions per day, shared by the free tools (`FreeUsage`).
+- Pro: unlimited, batch, merge, split, custom quality, and the Pro tools.
 - People who bought the paid app keep everything: `ProStore.checkLegacyPurchase()` compares `AppTransaction.originalAppVersion` (the build number on iOS) with `firstFreemiumBuild` (4). Only production receipts count.
-- Gate features with `appState.requirePro(reason) { action }`; the paywall runs `action` after unlocking.
+- Gate features with `appState.requirePro(reason) { action }`; the paywall runs `action` after unlocking. Tools use `appState.mayRun(tool) { retry }`, which also checks the daily allowance.
 - Local testing: the shared `Mino` scheme uses `Mino.storekit`. DEBUG builds have a Pro/Free switch in Settings.
-- DEBUG launch arguments open any screen with sample PDFs: `-demoScreen home|compress|result|merge|split|files|settings|paywall`, plus `-demoFree`, `-demoPro`, `-demoRun` (`Mino/App/DebugLaunch.swift`).
+- DEBUG launch arguments open any screen with sample data: `-demoScreen home|search|picker|password|compress|result|merge|split|photos|images|organize|protect|unlock|files|settings|paywall`, plus `-demoFree`, `-demoPro`, and `-demoRun` to run the tool and show its result (`Mino/App/DebugLaunch.swift`).
 - `-demoSandbox` (DEBUG) swaps in a throwaway store (`StorageRoot`: `Documents/DemoSandbox` + a separate UserDefaults suite). It is wiped and refilled with sample files on every launch, shows the €4.99 price (the real Mino Pro price, since StoreKit can't load outside Xcode) and never asks for a review. Use it for screenshots so a device's real files and stats never show. `-demoAppearance light|dark` sets the app appearance.
 
 ### Core Data Flow
@@ -92,6 +110,8 @@ User selects PDF → SplitService → PDFSplitter → [SplitResult]
 - `BatchCompressionService` - Multi-file sequential compression with queue
 - `MergeService` - Combine multiple PDFs into one
 - `SplitService` - Extract page ranges or split into individual pages
+- `Library/ToolResultStore` - Results of every tool added after 2.0
+- Engines: `PhotosToPDF/PhotosToPDFEngine`, `PDFToImages/PDFToImagesEngine`, `Organize/PageOrganizer`, `Protect/PDFProtector`
 
 **MuPDF Integration** (`Mino/Core/MuPDF/`)
 - `MuPDFHelpers.h/.c` - C wrapper functions for MuPDF API
@@ -121,9 +141,12 @@ User selects PDF → SplitService → PDFSplitter → [SplitResult]
 ### UI (`Mino/UI/`)
 
 - `Root/RootView` - tabs, adaptive navigation, file importer, paywall sheet, drag and drop
-- `Home/HomeView` - compress card, tool tiles, recent files, drop zone (regular width)
+- `Home/HomeView` - search, entry points, tool tiles by category, recent files, placeholder (regular width)
 - `Tasks/CompressFlowView` - quality (with size estimates) → progress → result
 - `Tasks/MergeFlowView`, `Tasks/SplitFlowView` - same configure → progress → result pattern
+- `Tasks/ToolFlow` - shared frame of the newer tools: working, failure and result screens, `PageSelectionGrid`, `DocumentCard`
+- `Tasks/PhotosToPDFFlowView`, `PDFToImagesFlowView`, `OrganizeFlowView`, `ProtectFlowView`
+- `Home/ToolPickerSheet` - "What do you want to do?"
 - `Files/FilesView` - file list and Quick Look preview
 - `Settings/SettingsView` - settings and statistics
 - `Paywall/PaywallView` - Mino Pro
@@ -155,13 +178,29 @@ The C helpers in `MuPDFHelpers.c` wrap MuPDF's error handling:
 
 ## File Persistence
 
-Compressed/Merged/Split files are stored in app's Documents directory:
-- Each operation writes to its own folder, `<Kind>/<UUID>/<Clean Name>.pdf` (`OutputLocation`), so shared files keep readable names
+Generated files are stored in the app's Documents directory:
+- Each operation writes to its own folder, `<Kind>/<UUID>/<Clean Name>.pdf` (`OutputLocation`), so shared files keep readable names. Folders: `Compressed`, `Merged`, `Split`, `Converted`, `Images`, `Edited`, `Protected`
 - All persistence goes through `StorageRoot` (`Mino/Core/StorageRoot.swift`): use `StorageRoot.documents` and `StorageRoot.defaults`, never `UserDefaults.standard` or the documents directory directly
 - Paths stored as relative paths in UserDefaults (survives container UUID changes)
 - Imported input copies (`ImportedPDFs/`) are cleared at launch
 - `standardizedFileURL` used for consistent path handling
 - Services have `clearAllResults()` to delete files and clear history
+
+## Text
+
+All UI text is in `Mino/Localizable.xcstrings` (English only for now). SwiftUI literals are picked up automatically; anything that is a `String` must be written as `String(localized: "...")`. Counted strings use one key ("\(count) pages") with plural forms in the catalog. `python3 Scripts/sync_strings.py` updates the catalog after a command-line build and adds the plural forms listed in it.
+
+## Tests
+
+`MinoTests` is a unit-test target hosted by the app. The scheme starts the host with `-demoSandbox`, so tests never touch real data.
+
+```bash
+xcodebuild test -project Mino.xcodeproj -scheme Mino -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro Max' -derivedDataPath build/DerivedData
+```
+
+- One test file per tool, with a round trip (the output is opened with PDFKit, which is independent of the MuPDF code under test) and the tool's "done when" from ROADMAP.md.
+- Fixtures are in `MinoTests/Fixtures`, generated by `Scripts/make_fixtures.swift` and `Scripts/make_structured_fixture.py`.
 
 ## App Store Screenshots
 
