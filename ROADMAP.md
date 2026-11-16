@@ -254,8 +254,8 @@ Work happens on branch `toolkit` (from `redesign-2.0`). Version and build number
 | Protect & Unlock | Done | `ProtectTests`; demo runs; output inspected with PDFKit |
 | Scan to PDF | Done, except the real camera (owner) | `ScanTests`; demo runs with sample pages; output inspected. The document camera itself has never run: it does not exist in the simulator |
 | Recognize Text | Done | `OCRTests`; demo runs; output inspected with PDFKit |
-| Fill & Sign | **In progress, not verified, hidden** | Builds. No tests yet. Not in `Tool.available` |
-| Edit & Annotate | **In progress, not verified, hidden** | Builds. No tests yet. Not in `Tool.available` |
+| Fill & Sign | Done | `EditorTests`; demo runs; saved pages rendered and inspected |
+| Edit & Annotate | Done | `EditorTests`; demo runs; saved pages rendered and inspected |
 | Office to PDF | Not started | Gate: 17 of 20 documents |
 | PDF to Word | Not started | Gate: 15 of 20 documents |
 
@@ -278,7 +278,7 @@ ls "$(xcrun simctl get_app_container <udid> com.applestan.Mino data)/Documents/D
 python3 Scripts/sync_strings.py
 ```
 
-Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `merge`, `split`, `scan`, `ocr`, `photos`, `images`, `organize`, `protect`, `unlock`, `files`, `settings`, `paywall`.
+Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `merge`, `split`, `scan`, `ocr`, `sign`, `signature`, `edit`, `photos`, `images`, `organize`, `protect`, `unlock`, `files`, `settings`, `paywall`.
 
 ### 2.1: what was built
 
@@ -334,28 +334,39 @@ Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `mer
 4. **Black & White** is a high-contrast gray JPEG, not a 1-bit image.
 5. Results of Recognize Text: the searchable PDF is filed under Scans, the text file under Converted.
 
-### 2.3: where the work stopped (resume here)
+### 2.3: what was built
 
-The shared page editor is written but **not verified and not shipped**: `fillSign` and `edit` are left out of `Tool.available`, so they don't appear in the app. The demo screens `-demoScreen sign`, `signature` and `edit` open them.
+Both tools share one page editor (`Mino/Features/Editor/`, `Mino/UI/Tasks/EditorFlowView.swift`): a PDFKit view, a row of tools, undo and redo, and a bar that changes with what is selected.
 
-Done:
-- A spike test (since removed) showed the approach works: PDFKit keeps bookmarks, links and form values when it writes the document; every annotation type survives; MuPDF `pdf_bake_document` (`mino_bake`) flattens annotations and form fields, and the flattened text becomes page text.
-- `Mino/Features/Editor/`: `EditorModel` (tools, annotation builders, image stamp), `EditorSession` (taps, drags, selection, move, resize, undo and redo, form fields filled by Mino itself), `SignatureStore` (PNG files under `Signatures/`), `PageEditorEngine` (flatten). `Mino/UI/Tasks/EditorFlowView.swift`: PDFView with gestures, tool strip, signature pad (PencilKit), text sheet. `AppState.saveEdited`.
-- Fixtures: `irs-w9.pdf` (the real IRS form), `form.pdf` (every field type), `rental-contract.pdf`.
+- **Fill & Sign:** tap a form field to fill it (text, multiline text, checkbox, radio button, dropdown, signature field); add a signature, initials, text, today's date, checkmarks and crosses anywhere. The signature is drawn once in a PencilKit pad and stored on the device (`Signatures/`, shown and deletable in Settings). Saving flattens everything.
+- **Edit & Annotate:** text, highlight (follows the lines of text under the drag), freehand drawing, white-out, images, rectangle, ellipse, arrow and line; five colors and three stroke widths. Things placed can be selected, moved, resized (text and images), edited (text) and deleted. Saved as standard annotations; "Flatten on Save" is in the menu.
 
-Seen in the first screenshots and not fixed yet:
-- Edit demo: the red drawing lands on the wrong line (it strikes through rule 3), and the white-out is not visible. Check the demo's coordinates against the page and check the ink path's coordinates.
-- Fill & Sign demo: the checkbox shows no mark after it is toggled, and the date is drawn in a serif font slightly off its line. Free text needs an explicit font that PDFKit keeps.
-- On the closed iPhone Duo the tool strip runs under the status area on the right.
+Demo screens: `-demoScreen sign` (a rental agreement with a name field and a checkbox, filled, dated and signed), `signature` (the pad), `edit` (house rules with a highlight, a drawing, a note and a white-out); add `-demoRun` to save.
 
-Still to do:
-1. `MinoTests/EditorTests.swift`: fill and sign the W-9 and the rental contract, flatten, reopen with PDFKit (no widgets or stamps left, values and signature visible); every field type of `form.pdf`; undo and redo; standard annotations readable and removable when not flattened; white-out forces flattening; stamps upright on turned pages; the selection frame and previews never saved; Pro asked at the final button.
-2. Screenshots on all five layouts, demo runs, output inspected.
-3. Settings: a "Saved signatures" row (view and delete). Paywall line "Fill, sign and edit" appears by itself once the tools are available.
-4. Add both tools to `Tool.available`, sync strings, write the 2.3 texts in AppStoreMetadata.md, commit one tool per commit, push.
-5. Then 2.4: Office to PDF (gate: 17 of 20), then PDF to Word (gate: 15 of 20). MuPDF already contains `extract` and the docx writer: `HAVE_EXTRACT=no` in `Scripts/build_mupdf_ios.sh` has no effect on MuPDF 1.27, so no rebuild is needed; change the flag to `extract=yes` for clarity.
+| Tool | Done when | Result |
+|---|---|---|
+| Fill & Sign | A standard tax form and a rental contract can be filled, signed and reopened correctly in Preview and Acrobat | The real **IRS W-9**: name, address and a checkbox filled, signature and date placed, saved, reopened with PDFKit: no fields or stamps left, the typed text is page text, the checkmark and signature are drawn, the other pages are untouched. A rental contract without fields: signed, text and checkmarks added, all fixed in place. A form with every field type: all values kept, undo and redo restore them. **Not opened in Acrobat.** |
+| Edit & Annotate | Annotations show correctly in Preview and Acrobat, and can be flattened | Saved without flattening, PDFKit reads them as FreeText, Highlight, Ink, Square, Line and Stamp, they show, and removing them elsewhere gives back the original page. Flattened, nothing is left to remove and the added text is page text. **Not opened in Acrobat.** |
 
-Decisions taken for the editor: page drawing is captured from touch and Apple Pencil strokes as ink annotations (PencilKit is used for the signature pad only); Mino fills form fields itself and switches PDFKit's own field editing off while the editor is open, so the behavior can be tested; text on a turned page is placed as an image so it reads upright; white-out always flattens and the screen says that covered text stays in the file.
+### Choices made in 2.3
+
+1. **Mino fills form fields itself.** A tap on a field opens a text sheet, toggles the box or shows the options; PDFKit's own field editing is switched off while the editor is open (and switched back before saving). This way the behavior is the same on every device and can be tested.
+2. **Drawing on the page is captured from touch and Apple Pencil strokes** and stored as ink annotations. PencilKit is used for the signature pad only. A PencilKit canvas over a scrolling, zooming PDF view would have been much more code for the same result in the file.
+3. **Saving:** PDFKit writes the document (bookmarks, links and field values survive; verified), then MuPDF flattens (`mino_bake`) and saves **without cleaning content streams**. With cleaning, the flattened W-9 came out unreadable for PDFKit.
+4. **Fill & Sign always flattens** fields and additions. Edit & Annotate flattens on request, and **always when a white-out was added**: a cover that another app could lift off would be worse than none.
+5. **White-out is not redaction.** The covered text stays in the file and can still be found by search. The editor says so under the tool, and a test documents it. Redaction stays out of scope (section 2).
+6. **Added text uses Helvetica.** PDFKit can't write the system font into a PDF and falls back to a serif face.
+7. **On a page that is shown turned**, stamps are turned back so they appear upright, and text is placed as an image, because free text would lie on its side.
+8. **Resize** is offered for text, signatures, marks and images (Smaller and Larger buttons). Shapes, highlights and drawings can be moved and deleted, not resized.
+9. A PDF that limits changes (permissions password) is refused with a pointer to Protect & Unlock.
+
+### Known gaps after 2.3
+
+- **Touch input (owner):** every tap, drag and the signature pad were exercised through the session's functions and screenshots, never with a finger. On a device, check: tapping fields, drawing a signature, placing and dragging things, drawing with one finger while two fingers scroll, and Apple Pencil on iPad.
+- Not opened in Acrobat.
+- The W-9's seven "tax classification" boxes are separate checkboxes to PDFKit, so checking one doesn't clear another.
+- A date or text placed on a page that is shown turned is an image and can't be edited afterwards, only moved or deleted.
+- No comb fields or field formatting scripts: a field shows exactly what was typed.
 
 ### Known gaps after 2.2
 

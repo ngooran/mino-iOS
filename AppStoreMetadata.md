@@ -512,3 +512,57 @@ Scanning is free: it shares the 3 free actions a day. Mino Pro is still one purc
 **Privacy:** unchanged, "Data Not Collected". New purpose string: `NSCameraUsageDescription`.
 
 **Screenshots:** lead with Scan (the review screen with pages and the filter) and Recognize Text (the result with the recognized text). Raw shots come from `-demoScreen scan` and `-demoScreen ocr -demoRun`.
+
+
+### Version 2.3 "Sign"
+
+**App Name (30 max)**
+```
+Mino - PDF Scanner & Converter
+```
+Character count: 30 (unchanged from 2.2)
+
+**Subtitle (30 max)**
+```
+Sign, Fill, Compress & Merge
+```
+Character count: 28
+
+**Keywords (100 max)**
+```
+scan,ocr,split,jpg,photo,form,signature,annotate,highlight,edit,password,unlock,rotate,offline
+```
+Character count: 94
+
+**Promotional Text (170 max)**
+```
+NEW: Fill in forms and sign PDFs with your finger. Highlight, draw, add text and images. Everything stays on your device. One purchase, no subscription.
+```
+Character count: 152
+
+**What's New in 2.3**
+```
+Sign and edit PDFs, offline.
+
+• Fill & Sign (Mino Pro): fill in form fields, then add your signature, initials, the date, text and checkmarks anywhere on the page. Draw your signature once; Mino keeps it on your device only. When you save, everything is fixed in place.
+• Edit & Annotate (Mino Pro): highlight, draw, add text and images, cover things with white-out, and add shapes and arrows. Other PDF apps can read your annotations, or you can flatten them into the page.
+
+Both tools open for everyone, so you can set everything up before deciding.
+
+Good to know: Mino adds a drawn signature. It is not a certified digital signature. White-out covers content but does not remove it from the file.
+
+Mino Pro is still one purchase, with no subscription.
+```
+
+**Notes for App Review (2.3), additions**
+```
+- Fill & Sign places a hand-drawn signature image. It does not create certificate-based digital signatures and the app says so.
+- The signature image is stored in the app's Documents folder on the device and can be deleted in Settings.
+- Sample flow: Home > Fill & Sign > choose a PDF > Signature > draw > tap the page > Save Signed PDF shows Mino Pro.
+```
+
+**Privacy:** unchanged, "Data Not Collected". No new permission.
+
+**Screenshots:** lead with Fill & Sign (`-demoScreen sign`) and Edit & Annotate (`-demoScreen edit`).
+
+**Wording to keep:** never "legally binding", "e-signature" or "digital signature" for Fill & Sign; never "redact" or "remove" for white-out.

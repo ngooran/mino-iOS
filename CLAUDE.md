@@ -69,6 +69,8 @@ TabView (.sidebarAdaptable)
 
 **Text layers:** `mino_overlay_pages` draws pages of one PDF on top of pages of another as Form XObjects, mapped through the page's rotation and crop box. Recognize Text uses it for the invisible text layer (drawn with CoreGraphics, so fonts for any script are embedded).
 
+**Page editor:** `EditorSession` holds the PDFKit document and all behavior; `PageEditorView` only turns touches into `tap(at:on:)` and `dragBegan/Changed/Ended` in page coordinates, which is also how the tests and demo screens drive it. Additions are standard PDF annotations. Saving = PDFKit `write`, then `PageEditorEngine.finish` (MuPDF `mino_bake`, saved with `mino_save_pdf_untouched`; do not use the cleaning save after baking). PDFKit on iOS redraws a page when an annotation is added or removed, not when one is changed: use the session's `mutate`.
+
 **Opening files:** `ImportTarget` says what the file picker is for. `AppState.importDocuments` copies PDFs into `ImportedPDFs/` and asks for the password of locked ones; the working copy is then unlocked (`PDFDocumentInfo.wasLocked`). "Open PDF", incoming files and "Continue with another tool" show `ToolPickerSheet`.
 
 ### Monetization (`Mino/Store/`)
@@ -79,7 +81,7 @@ Free download + one-time non-consumable **Mino Pro** (`com.applestan.Mino.pro`),
 - People who bought the paid app keep everything: `ProStore.checkLegacyPurchase()` compares `AppTransaction.originalAppVersion` (the build number on iOS) with `firstFreemiumBuild` (4). Only production receipts count.
 - Gate features with `appState.requirePro(reason) { action }`; the paywall runs `action` after unlocking. Tools use `appState.mayRun(tool) { retry }`, which also checks the daily allowance.
 - Local testing: the shared `Mino` scheme uses `Mino.storekit`. DEBUG builds have a Pro/Free switch in Settings.
-- DEBUG launch arguments open any screen with sample data: `-demoScreen home|search|picker|password|compress|result|merge|split|scan|ocr|photos|images|organize|protect|unlock|files|settings|paywall`, plus `-demoFree`, `-demoPro`, and `-demoRun` to run the tool and show its result (`Mino/App/DebugLaunch.swift`).
+- DEBUG launch arguments open any screen with sample data: `-demoScreen home|search|picker|password|compress|result|merge|split|scan|ocr|sign|signature|edit|photos|images|organize|protect|unlock|files|settings|paywall`, plus `-demoFree`, `-demoPro`, and `-demoRun` to run the tool and show its result (`Mino/App/DebugLaunch.swift`).
 - `-demoSandbox` (DEBUG) swaps in a throwaway store (`StorageRoot`: `Documents/DemoSandbox` + a separate UserDefaults suite). It is wiped and refilled with sample files on every launch, shows the €4.99 price (the real Mino Pro price, since StoreKit can't load outside Xcode) and never asks for a review. Use it for screenshots so a device's real files and stats never show. `-demoAppearance light|dark` sets the app appearance.
 
 ### Core Data Flow
@@ -115,7 +117,7 @@ User selects PDF → SplitService → PDFSplitter → [SplitResult]
 - `MergeService` - Combine multiple PDFs into one
 - `SplitService` - Extract page ranges or split into individual pages
 - `Library/ToolResultStore` - Results of every tool added after 2.0
-- Engines: `PhotosToPDF/PhotosToPDFEngine`, `PDFToImages/PDFToImagesEngine`, `Organize/PageOrganizer`, `Protect/PDFProtector`, `Scan/ScanEngine` (+ `Scan/DocumentCamera`, the VisionKit camera), `OCR/TextRecognizer` (Vision)
+- Engines: `PhotosToPDF/PhotosToPDFEngine`, `PDFToImages/PDFToImagesEngine`, `Organize/PageOrganizer`, `Protect/PDFProtector`, `Scan/ScanEngine` (+ `Scan/DocumentCamera`, the VisionKit camera), `OCR/TextRecognizer` (Vision), `Editor/` (the page editor of Fill & Sign and Edit & Annotate: `EditorSession`, `EditorModel`, `SignatureStore`, `PageEditorEngine`)
 
 **MuPDF Integration** (`Mino/Core/MuPDF/`)
 - `MuPDFHelpers.h/.c` - C wrapper functions for MuPDF API
@@ -149,7 +151,7 @@ User selects PDF → SplitService → PDFSplitter → [SplitResult]
 - `Tasks/CompressFlowView` - quality (with size estimates) → progress → result
 - `Tasks/MergeFlowView`, `Tasks/SplitFlowView` - same configure → progress → result pattern
 - `Tasks/ToolFlow` - shared frame of the newer tools: working, failure and result screens, `PageSelectionGrid`, `DocumentCard`
-- `Tasks/PhotosToPDFFlowView`, `PDFToImagesFlowView`, `OrganizeFlowView`, `ProtectFlowView`, `ScanFlowView`, `OCRFlowView`
+- `Tasks/PhotosToPDFFlowView`, `PDFToImagesFlowView`, `OrganizeFlowView`, `ProtectFlowView`, `ScanFlowView`, `OCRFlowView`, `EditorFlowView` (both editor tools)
 - `Home/ToolPickerSheet` - "What do you want to do?"
 - `Files/FilesView` - file list and Quick Look preview
 - `Settings/SettingsView` - settings and statistics
@@ -183,7 +185,7 @@ The C helpers in `MuPDFHelpers.c` wrap MuPDF's error handling:
 ## File Persistence
 
 Generated files are stored in the app's Documents directory:
-- Each operation writes to its own folder, `<Kind>/<UUID>/<Clean Name>.pdf` (`OutputLocation`), so shared files keep readable names. Folders: `Compressed`, `Merged`, `Split`, `Converted`, `Images`, `Edited`, `Protected`, `Scans`
+- Each operation writes to its own folder, `<Kind>/<UUID>/<Clean Name>.pdf` (`OutputLocation`), so shared files keep readable names. Folders: `Compressed`, `Merged`, `Split`, `Converted`, `Images`, `Edited`, `Protected`, `Scans`, `Signed`; signatures in `Signatures/`
 - All persistence goes through `StorageRoot` (`Mino/Core/StorageRoot.swift`): use `StorageRoot.documents` and `StorageRoot.defaults`, never `UserDefaults.standard` or the documents directory directly
 - Paths stored as relative paths in UserDefaults (survives container UUID changes)
 - Imported input copies (`ImportedPDFs/`) are cleared at launch
