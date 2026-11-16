@@ -55,7 +55,9 @@ final class EditorSession: ToolSession {
     var activeTool: EditorTool? {
         didSet {
             guard activeTool != oldValue else { return }
-            select(nil)
+            // Picking a tool ends the selection. Putting the tool away after
+            // placing something keeps that thing selected, ready to adjust.
+            if activeTool != nil { select(nil) }
             if activeTool != .image { pendingImage = nil }
         }
     }
@@ -344,17 +346,15 @@ final class EditorSession: ToolSession {
         case .radioButtonControl:
             guard widget.buttonWidgetState != .onState else { return }
             let group = widgets(named: widget.fieldName, like: widget)
-            let before = group.map { ($0, $0.buttonWidgetState) }
-            perform(Change(
-                undo: { [weak self] in
-                    before.forEach { $0.0.buttonWidgetState = $0.1 }
-                    self?.redraw(group)
-                },
-                redo: { [weak self] in
-                    group.forEach { $0.buttonWidgetState = $0 === widget ? .onState : .offState }
-                    self?.redraw(group)
-                }
-            ))
+            let before = group.first { $0.buttonWidgetState == .onState }
+            // PDFKit clears the whole group when a radio button is switched
+            // off, so the others go off first and the chosen one on last.
+            let choose: (PDFAnnotation?) -> Void = { [weak self] chosen in
+                group.filter { $0 !== chosen }.forEach { $0.buttonWidgetState = .offState }
+                chosen?.buttonWidgetState = .onState
+                self?.redraw(group)
+            }
+            perform(Change(undo: { choose(before) }, redo: { choose(widget) }))
         case .checkBoxControl:
             let wasOn = widget.buttonWidgetState == .onState
             perform(Change(

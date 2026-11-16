@@ -50,6 +50,40 @@ struct SettingsView: View {
                 }
             }
 
+            if Tool.fillSign.isAvailable {
+                Section {
+                    ForEach(SignatureKind.allCases) { kind in
+                        HStack(spacing: 12) {
+                            IconTile(systemImage: kind == .signature ? "signature" : "textformat.abc", color: .pink)
+                            Text(kind == .signature ? "Signature" : "Initials")
+                            Spacer()
+                            if let image = appState.signatures.image(for: kind) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 90, height: 30)
+                                    .padding(.horizontal, 6)
+                                    .background(.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                    .accessibilityLabel("Saved")
+                                Button(role: .destructive) {
+                                    appState.signatures.delete(kind)
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                .buttonStyle(.borderless)
+                                .accessibilityLabel(kind == .signature ? "Delete Signature" : "Delete Initials")
+                            } else {
+                                Text("None").foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Signing")
+                } footer: {
+                    Text("Your signature is stored on this \(deviceName) only. You draw it in Fill & Sign.")
+                }
+            }
+
             Section("Your Savings") {
                 Button {
                     appState.show(.statistics, in: .settings)

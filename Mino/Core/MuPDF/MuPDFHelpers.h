@@ -123,6 +123,16 @@ int mino_save_pdf(
     int garbage_level
 );
 
+// Save a PDF document without touching its content streams: objects are
+// written as they are, unused ones are dropped (garbage_level 0-4).
+// Returns 0 on success, -1 on error
+int mino_save_pdf_untouched(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *output_path,
+    int garbage_level
+);
+
 // Get page count from a pdf_document (not fz_document)
 int mino_pdf_count_pages(fz_context *ctx, pdf_document *doc);
 

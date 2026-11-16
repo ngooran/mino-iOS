@@ -173,10 +173,16 @@ enum EditorAnnotations {
 
     static let textPadding: CGFloat = 3
 
+    /// The font of added text. PDFKit can't write the system font into a PDF
+    /// and falls back to a serif face, so a standard PDF font is used.
+    static func textFont(ofSize size: CGFloat) -> UIFont {
+        UIFont(name: "Helvetica", size: size) ?? UIFont.systemFont(ofSize: size)
+    }
+
     /// Free text, sized to its content.
     static func text(_ string: String, at origin: CGPoint, fontSize: CGFloat, color: UIColor) -> PDFAnnotation {
         let annotation = PDFAnnotation(bounds: CGRect(origin: origin, size: .zero), forType: .freeText, withProperties: nil)
-        annotation.font = UIFont.systemFont(ofSize: fontSize)
+        annotation.font = textFont(ofSize: fontSize)
         annotation.fontColor = color
         annotation.color = .clear
         annotation.alignment = .left
@@ -191,7 +197,7 @@ enum EditorAnnotations {
     /// Resizes a free text annotation to its text, keeping its top-left corner
     /// (page coordinates grow upward).
     static func fit(_ annotation: PDFAnnotation, keepingTopLeft corner: CGPoint) {
-        let font = annotation.font ?? UIFont.systemFont(ofSize: 14)
+        let font = annotation.font ?? textFont(ofSize: 14)
         let text = (annotation.contents?.isEmpty == false ? annotation.contents! : " ") as NSString
         let size = text.boundingRect(
             with: CGSize(width: 2000, height: 4000),
@@ -320,7 +326,7 @@ enum EditorAnnotations {
     /// Text as a picture, for pages that are shown turned: free text would
     /// follow the page and lie on its side.
     static func textImage(_ string: String, fontSize: CGFloat, color: UIColor) -> UIImage {
-        let attributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: fontSize * 3), .foregroundColor: color]
+        let attributes: [NSAttributedString.Key: Any] = [.font: textFont(ofSize: fontSize * 3), .foregroundColor: color]
         let text = string as NSString
         let size = text.boundingRect(
             with: CGSize(width: 6000, height: 6000), options: [.usesLineFragmentOrigin, .usesFontLeading],

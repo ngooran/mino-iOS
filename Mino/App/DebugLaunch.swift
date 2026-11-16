@@ -113,11 +113,11 @@ enum DebugLaunch {
                 if !arguments.contains("-demoEmpty") {
                     session.tap(at: CGPoint(x: 120, y: 512), on: page)       // Tenant name
                     session.submitText("Alex Morgan")
-                    session.tap(at: CGPoint(x: 80, y: 418), on: page)        // I agree
+                    session.tap(at: CGPoint(x: 66, y: 418), on: page)        // I agree
                     session.activeTool = .date
-                    session.tap(at: CGPoint(x: 76, y: 466), on: page)
+                    session.tap(at: CGPoint(x: 60, y: 471), on: page)
                     session.activeTool = .signature
-                    session.tap(at: CGPoint(x: 190, y: 330), on: page)
+                    session.tap(at: CGPoint(x: 170, y: 330), on: page)
                     session.select(nil)
                     if arguments.contains("-demoTool") { session.activeTool = .signature }
                 }
@@ -136,19 +136,21 @@ enum DebugLaunch {
                 session.dragEnded()
                 session.color = .red
                 session.activeTool = .draw
-                session.dragBegan(at: CGPoint(x: 56, y: 520), on: page)
+                // A wavy line under rule 3.
+                session.dragBegan(at: CGPoint(x: 56, y: 509), on: page)
                 for step in 1...40 {
-                    session.dragChanged(to: CGPoint(x: 56 + CGFloat(step) * 7, y: 520 + sin(CGFloat(step) / 3) * 4))
+                    session.dragChanged(to: CGPoint(x: 56 + CGFloat(step) * 7, y: 509 + sin(CGFloat(step) / 2) * 2.5))
                 }
                 session.dragEnded()
                 session.color = .blue
                 session.activeTool = .text
-                session.tap(at: CGPoint(x: 330, y: 500), on: page)
+                session.tap(at: CGPoint(x: 330, y: 494), on: page)
                 session.submitText("Agreed, 15 Nov")
                 session.select(nil)
                 session.activeTool = .whiteout
-                session.dragBegan(at: CGPoint(x: 52, y: 446), on: page)
-                session.dragChanged(to: CGPoint(x: 400, y: 468))
+                // Cover rule 5 completely.
+                session.dragBegan(at: CGPoint(x: 52, y: 434), on: page)
+                session.dragChanged(to: CGPoint(x: 420, y: 458))
                 session.dragEnded()
                 session.color = .black
                 session.activeTool = arguments.contains("-demoTool") ? .draw : nil
@@ -292,56 +294,61 @@ enum DebugLaunch {
     }
 
     /// A one-page rental agreement with a name field, a date line, a checkbox
-    /// and a signature line.
+    /// and a signature line. Written object by object, so the fields have the
+    /// appearance streams a form made by a real tool would have.
     static func makeRentalForm() -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("Rental Agreement.pdf")
         try? FileManager.default.removeItem(at: url)
-        let bounds = CGRect(x: 0, y: 0, width: 612, height: 792)
-        let data = UIGraphicsPDFRenderer(bounds: bounds).pdfData { context in
-            context.beginPage()
-            func draw(_ text: String, at y: CGFloat, size: CGFloat = 13, bold: Bool = false, color: UIColor = .black) {
-                (text as NSString).draw(
-                    at: CGPoint(x: 56, y: y),
-                    withAttributes: [.font: bold ? UIFont.boldSystemFont(ofSize: size) : UIFont.systemFont(ofSize: size), .foregroundColor: color]
-                )
-            }
-            draw("Rental Agreement", at: 70, size: 26, bold: true)
-            draw("This agreement is made between the landlord and the tenant named below", at: 124)
-            draw("for the property at 14 Canal Street.", at: 144)
-            draw("1. The tenant pays rent on the first day of each month.", at: 180)
-            draw("2. The deposit equals two months of rent.", at: 200)
-            draw("3. The notice period is two months.", at: 220)
-            draw("TENANT NAME", at: 252, size: 10, bold: true, color: .gray)
-            draw("DATE", at: 306, size: 10, bold: true, color: .gray)
-            UIColor.lightGray.setStroke()
-            let dateLine = UIBezierPath()
-            dateLine.move(to: CGPoint(x: 56, y: 342)); dateLine.addLine(to: CGPoint(x: 300, y: 342))
-            dateLine.stroke()
-            draw("I agree to the terms of this agreement", at: 366)
-            draw("SIGNATURE", at: 410, size: 10, bold: true, color: .gray)
-            let line = UIBezierPath()
-            line.move(to: CGPoint(x: 56, y: 492)); line.addLine(to: CGPoint(x: 330, y: 492))
-            line.stroke()
+
+        func text(_ string: String, x: Int = 56, y: Int, size: Int = 13, font: String = "F1", gray: Double = 0) -> String {
+            "BT /\(font) \(size) Tf \(gray) g \(x) \(y) Td (\(string)) Tj ET\n"
         }
-        guard let document = PDFDocument(data: data), let page = document.page(at: 0) else { return url }
-        // Page coordinates start at the bottom: y = 792 - top.
-        let name = PDFAnnotation(bounds: CGRect(x: 56, y: 498, width: 320, height: 26), forType: .widget, withProperties: nil)
-        name.widgetFieldType = .text
-        name.fieldName = "Tenant name"
-        name.font = UIFont.systemFont(ofSize: 14)
-        name.fontColor = .black
-        name.backgroundColor = UIColor(white: 0.95, alpha: 1)
-        page.addAnnotation(name)
-        let agree = PDFAnnotation(bounds: CGRect(x: 300, y: 408, width: 20, height: 20), forType: .widget, withProperties: nil)
-        agree.widgetFieldType = .button
-        agree.widgetControlType = .checkBoxControl
-        agree.fieldName = "Agree"
-        agree.backgroundColor = UIColor(white: 0.95, alpha: 1)
-        agree.buttonWidgetState = .offState
-        // The box sits before its label.
-        agree.bounds = CGRect(x: 56, y: 408, width: 20, height: 20)
-        page.addAnnotation(agree)
-        document.write(to: url)
+        let content = [
+            text("Rental Agreement", y: 700, size: 26, font: "F2"),
+            text("This agreement is made between the landlord and the tenant named below", y: 656),
+            text("for the property at 14 Canal Street.", y: 636),
+            text("1. The tenant pays rent on the first day of each month.", y: 600),
+            text("2. The deposit equals two months of rent.", y: 580),
+            text("3. The notice period is two months.", y: 560),
+            text("TENANT NAME", y: 531, size: 10, font: "F2", gray: 0.45),
+            text("DATE", y: 477, size: 10, font: "F2", gray: 0.45),
+            "0.7 G 1 w 56 450 m 300 450 l S\n",
+            text("I agree to the terms of this agreement", x: 86, y: 414),
+            text("SIGNATURE", y: 373, size: 10, font: "F2", gray: 0.45),
+            "0.7 G 1 w 56 300 m 330 300 l S\n",
+        ].joined()
+
+        func stream(_ dictionary: String, _ data: String) -> String {
+            "<< \(dictionary) /Length \(data.utf8.count) >>\nstream\n\(data)\nendstream"
+        }
+        let box = "q 0.55 G 1 w 0.5 0.5 19 19 re S Q"
+        let objects: [String] = [
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [6 0 R] >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+            "<< /Fields [8 0 R 9 0 R] /DA (/Helv 14 Tf 0 g) /DR << /Font << /Helv 3 0 R >> >> /NeedAppearances true >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R /Annots [8 0 R 9 0 R] >>",
+            stream("", content),
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Tenant name) /Rect [56 498 376 524] /F 4 /P 6 0 R /DA (/Helv 14 Tf 0 g) /MK << /BG [0.95 0.95 0.95] >> >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Btn /T (Agree) /V /Off /AS /Off /Rect [56 408 76 428] /F 4 /P 6 0 R /MK << /BC [0.55 0.55 0.55] /CA (4) >> /AP << /N << /Yes 10 0 R /Off 11 0 R >> >> >>",
+            stream("/Type /XObject /Subtype /Form /BBox [0 0 20 20]", box + " q 0 0.45 0.48 RG 2.4 w 1 J 1 j 4.5 10.5 m 8.5 6 l 15.5 15 l S Q"),
+            stream("/Type /XObject /Subtype /Form /BBox [0 0 20 20]", box),
+        ]
+
+        var pdf = "%PDF-1.7\n"
+        var offsets: [Int] = []
+        for (index, object) in objects.enumerated() {
+            offsets.append(pdf.utf8.count)
+            pdf += "\(index + 1) 0 obj\n\(object)\nendobj\n"
+        }
+        let xref = pdf.utf8.count
+        pdf += "xref\n0 \(objects.count + 1)\n0000000000 65535 f \n"
+        for offset in offsets {
+            pdf += String(format: "%010d 00000 n \n", offset)
+        }
+        pdf += "trailer\n<< /Size \(objects.count + 1) /Root 1 0 R >>\nstartxref\n\(xref)\n%%EOF\n"
+        try? Data(pdf.utf8).write(to: url)
         return url
     }
 

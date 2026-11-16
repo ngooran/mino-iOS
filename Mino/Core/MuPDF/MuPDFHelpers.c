@@ -521,6 +521,41 @@ int mino_save_pdf(
     return 0;
 }
 
+// Save a PDF document without cleaning or rewriting content streams
+int mino_save_pdf_untouched(
+    fz_context *ctx,
+    pdf_document *doc,
+    const char *output_path,
+    int garbage_level
+) {
+    if (!ctx || !doc || !output_path) {
+        set_error("Invalid parameters for save");
+        return -1;
+    }
+
+    mino_clear_error();
+
+    fz_try(ctx) {
+        pdf_write_options opts = pdf_default_write_options;
+        opts.do_garbage = garbage_level;
+        opts.do_compress = 1;
+        opts.do_compress_images = 0;
+        opts.do_compress_fonts = 1;
+        opts.do_clean = 0;
+        opts.do_sanitize = 0;
+        opts.do_linear = 0;
+        opts.do_appearance = 0;
+
+        pdf_save_document(ctx, doc, output_path, &opts);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+
+    return 0;
+}
+
 // Get page count from a pdf_document
 int mino_pdf_count_pages(fz_context *ctx, pdf_document *doc) {
     if (!ctx || !doc) {

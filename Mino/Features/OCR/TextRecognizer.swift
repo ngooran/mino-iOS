@@ -169,7 +169,7 @@ nonisolated enum TextRecognizer {
                 }
             }
             MuPDF.prepareOutput(outputURL)
-            guard mino_save_pdf(ctx, pdf, outputURL.path, 1) == 0 else {
+            guard mino_save_pdf_untouched(ctx, pdf, outputURL.path, 1) == 0 else {
                 throw MuPDFError.saveFailed(reason: MuPDF.lastError())
             }
         }

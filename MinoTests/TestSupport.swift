@@ -114,6 +114,31 @@ enum Pixels {
     }
 }
 
+extension Pixels {
+    /// How many sample points inside `rect` (page coordinates) match `test`
+    /// when the page is drawn by PDFKit. Samples are one point apart.
+    static func count(on page: PDFPage, in rect: CGRect, where test: (RGB) -> Bool) -> Int {
+        let bounds = page.bounds(for: .mediaBox)
+        guard let image = render(page, width: bounds.width * 2) else { return 0 }
+        var matches = 0
+        var y = rect.minY
+        while y < rect.maxY {
+            var x = rect.minX
+            while x < rect.maxX {
+                if test(color(in: image, x: Double(x / bounds.width), y: Double(1 - y / bounds.height))) { matches += 1 }
+                x += 1
+            }
+            y += 1
+        }
+        return matches
+    }
+}
+
+extension RGB {
+    var isDark: Bool { r < 110 && g < 110 && b < 130 }
+    var isWhite: Bool { r > 240 && g > 240 && b > 240 }
+}
+
 extension PDFDocument {
     /// The text of every page, in order.
     var pageTexts: [String] {

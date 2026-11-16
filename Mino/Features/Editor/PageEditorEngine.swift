@@ -27,7 +27,9 @@ nonisolated enum PageEditorEngine {
             guard mino_bake(ctx, pdf, flattenAnnotations ? 1 : 0, flattenForm ? 1 : 0) == 0 else {
                 throw MuPDFError.unknownError(MuPDF.lastError())
             }
-            guard mino_save_pdf(ctx, pdf, outputURL.path, 2) == 0 else {
+            // Content streams are written as they are. Letting MuPDF clean them
+            // after baking produced pages that PDFKit could not read (IRS W-9).
+            guard mino_save_pdf_untouched(ctx, pdf, outputURL.path, 2) == 0 else {
                 throw MuPDFError.saveFailed(reason: MuPDF.lastError())
             }
             return Int(mino_count_pages(ctx, doc))
