@@ -216,6 +216,7 @@ private struct ToolRouteView: View {
         case .ocr: OCRFlowView()
         case .fillSign, .edit: EditorFlowView(tool: tool)
         case .officeToPDF: OfficeFlowView()
+        case .pdfToWord: PDFToTextFlowView()
         case .photosToPDF: PhotosToPDFFlowView()
         case .pdfToImages: PDFToImagesFlowView()
         case .organize: OrganizeFlowView()

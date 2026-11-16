@@ -34,10 +34,8 @@ struct PaywallView: View {
         if Tool.fillSign.isAvailable {
             list.append((Tool.fillSign.systemImage, .pink, String(localized: "Fill, sign and edit")))
         }
-        if Tool.pdfToWord.isAvailable {
-            list.append((Tool.pdfToWord.systemImage, .blue, String(localized: "Convert to and from Word")))
-        } else if Tool.officeToPDF.isAvailable {
-            list.append((Tool.officeToPDF.systemImage, .blue, String(localized: "Convert Office files to PDF")))
+        if Tool.officeToPDF.isAvailable {
+            list.append((Tool.officeToPDF.systemImage, .blue, String(localized: "Convert Word, Excel and PowerPoint to PDF")))
         }
         list.append(("doc.on.doc.fill", .indigo, String(localized: "Merge, split and batch")))
         if Tool.protect.isAvailable {

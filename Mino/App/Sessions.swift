@@ -253,6 +253,21 @@ final class OfficeSession: ToolSession {
     }
 }
 
+// MARK: - PDF to Text
+
+@Observable
+@MainActor
+final class PDFToTextSession: ToolSession {
+    let state = TaskState()
+    let document: PDFDocumentInfo
+    /// Run text recognition on pages that are pictures of text.
+    var readScans = true
+
+    init(document: PDFDocumentInfo) {
+        self.document = document
+    }
+}
+
 // MARK: - Photos to PDF
 
 @Observable

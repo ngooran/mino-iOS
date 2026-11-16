@@ -45,6 +45,7 @@ final class AppState {
     /// Fill & Sign or Edit & Annotate.
     var editorSession: EditorSession?
     var officeSession: OfficeSession?
+    var textSession: PDFToTextSession?
     var photosSession: PhotosToPDFSession?
     var imagesSession: PDFToImagesSession?
     var organizeSession: OrganizeSession?
@@ -224,7 +225,11 @@ final class AppState {
             show(tool.route)
         case .fillSign, .edit:
             startEditor(tool, with: first)
-        case .photosToPDF, .scan, .officeToPDF, .pdfToWord:
+        case .pdfToWord:
+            textSession?.state.cancel()
+            textSession = PDFToTextSession(document: first)
+            show(tool.route)
+        case .photosToPDF, .scan, .officeToPDF:
             break
         }
     }
@@ -538,6 +543,7 @@ final class AppState {
         case .ocr: ocrSession = nil
         case .fillSign, .edit: editorSession = nil
         case .officeToPDF: officeSession = nil
+        case .pdfToWord: textSession = nil
         case .photosToPDF: photosSession = nil
         case .pdfToImages: imagesSession = nil
         case .organize: organizeSession = nil
@@ -690,6 +696,31 @@ final class AppState {
             do {
                 let outcome = try await OfficeConverter().convert(fileURL: source, pageSize: pageSize, outputURL: output, progress: progress)
                 return ToolOutput(urls: [output], kind: .converted, pageCount: outcome.pageCount)
+            } catch {
+                OutputLocation.removeFile(at: output)
+                throw error
+            }
+        }
+    }
+
+    // MARK: - PDF to Text
+
+    func convertToText(_ session: PDFToTextSession) {
+        guard mayRun(.pdfToWord, retry: { [weak self] in self?.convertToText(session) }) else { return }
+        let document = session.document
+        let readScans = session.readScans
+        run(.pdfToWord, state: session.state) { progress in
+            let text = try PDFToWordEngine.text(of: document.url, readScans: readScans, progress: progress)
+            guard !text.isEmpty else {
+                throw MuPDFError.unknownError(readScans
+                    ? String(localized: "No text was found in this PDF.")
+                    : String(localized: "This PDF has no text. Switch on “Read Scanned Pages” to recognize it."))
+            }
+            let output = OutputLocation.url(folder: "Converted", fileName: document.name, fileExtension: "txt")
+            do {
+                MuPDF.prepareOutput(output)
+                try text.write(to: output, atomically: true, encoding: .utf8)
+                return ToolOutput(urls: [output], kind: .converted, pageCount: document.pageCount, detail: String(localized: "Text"), text: text)
             } catch {
                 OutputLocation.removeFile(at: output)
                 throw error

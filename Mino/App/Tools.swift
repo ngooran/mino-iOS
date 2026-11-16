@@ -76,7 +76,7 @@ nonisolated enum Tool: String, CaseIterable, Identifiable, Hashable, Sendable {
         .scan, .photosToPDF,
         .compress, .merge, .split, .organize,
         .fillSign, .edit,
-        .pdfToImages, .officeToPDF, .ocr,
+        .pdfToImages, .officeToPDF, .pdfToWord, .ocr,
         .protect,
     ]
 
@@ -122,7 +122,9 @@ nonisolated enum Tool: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .edit: return String(localized: "Edit & Annotate")
         case .pdfToImages: return String(localized: "PDF to Images")
         case .officeToPDF: return String(localized: "Office to PDF")
-        case .pdfToWord: return String(localized: "PDF to Word")
+        // The Word output did not pass its quality gate (ROADMAP.md, section 11),
+        // so the tool ships as text only.
+        case .pdfToWord: return String(localized: "PDF to Text")
         case .ocr: return String(localized: "Recognize Text")
         case .protect: return String(localized: "Protect & Unlock")
         }
@@ -140,7 +142,7 @@ nonisolated enum Tool: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .edit: return String(localized: "Text, highlight, draw")
         case .pdfToImages: return String(localized: "Pages as JPG or PNG")
         case .officeToPDF: return String(localized: "Word, Excel, PowerPoint")
-        case .pdfToWord: return String(localized: "Editable .docx or text")
+        case .pdfToWord: return String(localized: "The words, ready to edit")
         case .ocr: return String(localized: "Searchable PDF, copy text")
         case .protect: return String(localized: "Add or remove a password")
         }
@@ -223,7 +225,7 @@ nonisolated enum Tool: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .edit: return "editor markup highlight draw note text white-out annotate comment"
         case .pdfToImages: return "jpg jpeg png picture photo export convert"
         case .officeToPDF: return "word doc docx excel xls xlsx powerpoint ppt pptx rtf csv text convert"
-        case .pdfToWord: return "docx doc text txt editable convert"
+        case .pdfToWord: return "txt text word editable copy extract convert"
         case .ocr: return "ocr searchable text copy extract scan recognize"
         case .protect: return "password lock encrypt secure unlock remove"
         }
@@ -255,7 +257,7 @@ nonisolated enum Tool: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .protect: return String(localized: "Password protection is part of Mino Pro.")
         case .ocr: return String(localized: "Text recognition is part of Mino Pro.")
         case .officeToPDF: return String(localized: "Converting Office files is part of Mino Pro.")
-        case .pdfToWord: return String(localized: "Converting to Word is part of Mino Pro.")
+        case .pdfToWord: return String(localized: "Converting PDFs to text is part of Mino Pro.")
         case .compress, .scan, .photosToPDF, .pdfToImages, .organize:
             return String(localized: "Every PDF tool, with no limits. Pay once and keep it forever.")
         }

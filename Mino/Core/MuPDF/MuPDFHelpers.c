@@ -1161,3 +1161,81 @@ int mino_bake(fz_context *ctx, pdf_document *doc, int bake_annotations, int bake
     }
     return 0;
 }
+
+// MARK: - Converting to Word and text
+
+int mino_write_docx(fz_context *ctx, fz_document *doc, const char *output_path, const char *options) {
+    if (!ctx || !doc || !output_path) {
+        set_error("Invalid parameters for conversion");
+        return -1;
+    }
+    mino_clear_error();
+
+    fz_document_writer *writer = NULL;
+    fz_page *page = NULL;
+
+    fz_var(writer);
+    fz_var(page);
+
+    fz_try(ctx) {
+        writer = fz_new_docx_writer(ctx, output_path, options ? options : "");
+        int count = fz_count_pages(ctx, doc);
+        for (int i = 0; i < count; i++) {
+            page = fz_load_page(ctx, doc, i);
+            fz_device *dev = fz_begin_page(ctx, writer, fz_bound_page(ctx, page));
+            fz_run_page(ctx, page, dev, fz_identity, NULL);
+            fz_end_page(ctx, writer);
+            fz_drop_page(ctx, page);
+            page = NULL;
+        }
+        fz_close_document_writer(ctx, writer);
+    }
+    fz_always(ctx) {
+        fz_drop_page(ctx, page);
+        fz_drop_document_writer(ctx, writer);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return -1;
+    }
+    return 0;
+}
+
+char *mino_copy_page_text(fz_context *ctx, fz_document *doc, int page_number) {
+    if (!ctx || !doc) return NULL;
+    mino_clear_error();
+
+    fz_page *page = NULL;
+    fz_stext_page *text = NULL;
+    fz_buffer *buffer = NULL;
+    char *result = NULL;
+
+    fz_var(page);
+    fz_var(text);
+    fz_var(buffer);
+    fz_var(result);
+
+    fz_try(ctx) {
+        fz_stext_options options = { 0 };
+        page = fz_load_page(ctx, doc, page_number);
+        text = fz_new_stext_page_from_page(ctx, page, &options);
+        buffer = fz_new_buffer_from_stext_page(ctx, text);
+        result = fz_strdup(ctx, fz_string_from_buffer(ctx, buffer));
+    }
+    fz_always(ctx) {
+        fz_drop_buffer(ctx, buffer);
+        fz_drop_stext_page(ctx, text);
+        fz_drop_page(ctx, page);
+    }
+    fz_catch(ctx) {
+        set_error(fz_caught_message(ctx));
+        return NULL;
+    }
+    return result;
+}
+
+void mino_free_text(fz_context *ctx, char *text) {
+    if (ctx && text) {
+        fz_free(ctx, text);
+    }
+}

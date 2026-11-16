@@ -7,7 +7,7 @@
 //
 //  xcrun simctl launch booted com.applestan.Mino -demoScreen compress -demoFree
 //  Screens: home, search, picker, password, compress, result, merge, split,
-//  scan, ocr, sign, signature, edit, office, photos, images, organize, protect, unlock,
+//  scan, ocr, sign, signature, edit, office, text, photos, images, organize, protect, unlock,
 //  files, settings, paywall
 //  Add -demoRun to run the tool and show its result.
 //
@@ -164,6 +164,12 @@ enum DebugLaunch {
             if run, let session = appState.officeSession {
                 appState.store.debugProOverride = true
                 appState.convertOffice(session)
+            }
+        case "text":
+            appState.start(.pdfToWord, with: await appState.importDocuments([lease]))
+            if run, let session = appState.textSession {
+                appState.store.debugProOverride = true
+                appState.convertToText(session)
             }
         case "photos":
             appState.openPhotosToPDF()

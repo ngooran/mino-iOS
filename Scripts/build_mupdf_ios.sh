@@ -85,7 +85,10 @@ build_for_target() {
     # Clean and build MuPDF
     make clean 2>/dev/null || true
 
-    # Build with iOS-appropriate options (minimal dependencies)
+    # Build with iOS-appropriate options (minimal dependencies).
+    # Note: HAVE_EXTRACT=no below has no effect on MuPDF 1.27 (its switch is
+    # "extract=no"), so the bundled "extract" library and the docx writer are
+    # in the frameworks. PDF to Text does not need them; WordGateTests does.
     make \
         HAVE_X11=no \
         HAVE_GLUT=no \

@@ -220,6 +220,18 @@ int mino_overlay_pages(
 // can no longer be moved, edited or removed. Links are kept.
 int mino_bake(fz_context *ctx, pdf_document *doc, int bake_annotations, int bake_widgets);
 
+// MARK: - Converting to Word and text
+
+// Writes the document as a Word file (.docx) with MuPDF's docx writer, which
+// uses the bundled "extract" library. options: MuPDF writer options, e.g.
+// "analyse=yes" for layout analysis, or NULL.
+int mino_write_docx(fz_context *ctx, fz_document *doc, const char *output_path, const char *options);
+
+// Returns the text of a page (0-based) in reading order as UTF-8, or NULL.
+// Free it with mino_free_text.
+char *mino_copy_page_text(fz_context *ctx, fz_document *doc, int page);
+void mino_free_text(fz_context *ctx, char *text);
+
 #ifdef __cplusplus
 }
 #endif
