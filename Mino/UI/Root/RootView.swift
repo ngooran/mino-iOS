@@ -215,6 +215,7 @@ private struct ToolRouteView: View {
         case .scan: ScanFlowView()
         case .ocr: OCRFlowView()
         case .fillSign, .edit: EditorFlowView(tool: tool)
+        case .officeToPDF: OfficeFlowView()
         case .photosToPDF: PhotosToPDFFlowView()
         case .pdfToImages: PDFToImagesFlowView()
         case .organize: OrganizeFlowView()
@@ -298,6 +299,9 @@ struct DroppedFile: Transferable {
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(importedContentType: .pdf) { try DroppedFile(copying: $0.file) }
         FileRepresentation(importedContentType: .image) { try DroppedFile(copying: $0.file) }
+        FileRepresentation(importedContentType: UTType("org.openxmlformats.wordprocessingml.document") ?? .rtf) { try DroppedFile(copying: $0.file) }
+        FileRepresentation(importedContentType: UTType("org.openxmlformats.spreadsheetml.sheet") ?? .rtf) { try DroppedFile(copying: $0.file) }
+        FileRepresentation(importedContentType: UTType("org.openxmlformats.presentationml.presentation") ?? .rtf) { try DroppedFile(copying: $0.file) }
     }
 
     /// The received file only lives until the drop ends, so keep a copy.

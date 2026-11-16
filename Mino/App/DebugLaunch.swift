@@ -7,7 +7,7 @@
 //
 //  xcrun simctl launch booted com.applestan.Mino -demoScreen compress -demoFree
 //  Screens: home, search, picker, password, compress, result, merge, split,
-//  scan, ocr, sign, signature, edit, photos, images, organize, protect, unlock,
+//  scan, ocr, sign, signature, edit, office, photos, images, organize, protect, unlock,
 //  files, settings, paywall
 //  Add -demoRun to run the tool and show its result.
 //
@@ -158,6 +158,12 @@ enum DebugLaunch {
                     appState.store.debugProOverride = true
                     appState.saveEdited(session)
                 }
+            }
+        case "office":
+            await appState.receive([makeSampleReport()])
+            if run, let session = appState.officeSession {
+                appState.store.debugProOverride = true
+                appState.convertOffice(session)
             }
         case "photos":
             appState.openPhotosToPDF()
@@ -349,6 +355,38 @@ enum DebugLaunch {
         }
         pdf += "trailer\n<< /Size \(objects.count + 1) /Root 1 0 R >>\nstartxref\n\(xref)\n%%EOF\n"
         try? Data(pdf.utf8).write(to: url)
+        return url
+    }
+
+    /// "Quarterly Report.rtf": a rich text document with headings, a table and a list.
+    static func makeSampleReport() -> URL {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("DemoOffice", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let url = folder.appendingPathComponent("Quarterly Report.rtf")
+        if FileManager.default.fileExists(atPath: url.path) { return url }
+        let html = """
+        <html><body style="font-family: Helvetica; font-size: 12pt">
+        <h1>Quarterly Report</h1>
+        <p>Prepared for the board of <b>Morgan Building Services</b>. This report covers the third quarter and compares it with the same period last year.</p>
+        <h2>Summary</h2>
+        <p>Revenue grew by twelve percent. Costs stayed flat. The order book for the next quarter is the largest so far, with fourteen projects confirmed.</p>
+        <table border="1" cellpadding="6" style="border-collapse: collapse">
+        <tr><th>Region</th><th>Revenue</th><th>Change</th></tr>
+        <tr><td>North</td><td>245,000</td><td>+8%</td></tr>
+        <tr><td>South</td><td>189,500</td><td>+15%</td></tr>
+        <tr><td>West</td><td>97,300</td><td>+21%</td></tr>
+        </table>
+        <h2>Outlook</h2>
+        <ul><li>Hire two more plumbers before March.</li><li>Replace the oldest van.</li><li>Open the workshop on Saturdays.</li></ul>
+        </body></html>
+        """
+        if let text = try? NSAttributedString(
+            data: Data(html.utf8),
+            options: [.documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue],
+            documentAttributes: nil
+        ), let rtf = try? text.data(from: NSRange(location: 0, length: text.length), documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]) {
+            try? rtf.write(to: url)
+        }
         return url
     }
 

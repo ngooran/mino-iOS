@@ -44,6 +44,7 @@ final class AppState {
     var ocrSession: OCRSession?
     /// Fill & Sign or Edit & Annotate.
     var editorSession: EditorSession?
+    var officeSession: OfficeSession?
     var photosSession: PhotosToPDFSession?
     var imagesSession: PDFToImagesSession?
     var organizeSession: OrganizeSession?
@@ -299,12 +300,15 @@ final class AppState {
     func receive(_ urls: [URL]) async {
         let pdfs = urls.filter { ImportTypes.classify($0) == .pdf }
         let images = urls.filter { ImportTypes.classify($0) == .image }
+        let office = urls.filter { ImportTypes.classify($0) == .office }
 
         if !pdfs.isEmpty {
             let mergeIsOpen = selectedTab == .home && homePath.last == .merge && mergeSession?.phase == .configure
             await importAndRoute(pdfs, target: mergeIsOpen ? .mergeAdd : .open)
         } else if !images.isEmpty, Tool.photosToPDF.isAvailable {
             await importAndRoute(images, target: .tool(.photosToPDF))
+        } else if let document = office.first, Tool.officeToPDF.isAvailable {
+            await importAndRoute([document], target: .tool(.officeToPDF))
         }
     }
 
@@ -312,6 +316,17 @@ final class AppState {
         if target == .tool(.photosToPDF) {
             openPhotosToPDF(askingForPhotos: false)
             await addPhotos(from: urls)
+            return
+        }
+        if target == .tool(.officeToPDF) {
+            guard let url = urls.first else { return }
+            isImporting = true
+            defer { isImporting = false }
+            guard let copy = try? await documentImporter.importFile(from: url) else {
+                errorMessage = String(localized: "“\(url.lastPathComponent)” couldn't be opened.")
+                return
+            }
+            startOffice(with: copy)
             return
         }
 
@@ -460,28 +475,58 @@ final class AppState {
                 worker.cancel()
             }
 
-            switch outcome {
-            case .success(let output):
-                if Task.isCancelled {
-                    output.urls.forEach(OutputLocation.removeFile(at:))
-                    state.phase = .configure
-                    return
-                }
-                let result = toolResults.add(output, tool: tool)
-                state.result = FileItem(result)
-                state.resultText = output.text
-                state.phase = .done
-                if !isPro { usage.recordUse() }
-                HapticManager.shared.compressionComplete()
-                HistoryManager.shared.recordGoodOperation()
-                HistoryManager.shared.requestReviewIfAppropriate()
-            case .failure(let error):
-                if error is CancellationError || Task.isCancelled {
-                    state.phase = .configure
-                } else {
-                    state.phase = .failed(error.localizedDescription)
-                    HapticManager.shared.error()
-                }
+            finish(tool, state: state, with: outcome)
+        }
+    }
+
+    /// Like `run`, for work that has to stay on the main actor (WebKit).
+    func runOnMain(
+        _ tool: Tool,
+        state: TaskState,
+        work: @escaping @MainActor (_ progress: @escaping (Double) -> Void) async throws -> ToolOutput
+    ) {
+        state.phase = .working
+        state.progress = nil
+        state.result = nil
+        state.resultText = nil
+        HapticManager.shared.compressionStart()
+
+        state.task = Task {
+            let outcome: Result<ToolOutput, Error>
+            do {
+                outcome = .success(try await work { value in
+                    if state.phase == .working { state.progress = value }
+                })
+            } catch {
+                outcome = .failure(error)
+            }
+            finish(tool, state: state, with: outcome)
+        }
+    }
+
+    /// Files a finished run: the result goes to the library, a free action is counted.
+    private func finish(_ tool: Tool, state: TaskState, with outcome: Result<ToolOutput, Error>) {
+        switch outcome {
+        case .success(let output):
+            if Task.isCancelled {
+                output.urls.forEach(OutputLocation.removeFile(at:))
+                state.phase = .configure
+                return
+            }
+            let result = toolResults.add(output, tool: tool)
+            state.result = FileItem(result)
+            state.resultText = output.text
+            state.phase = .done
+            if !isPro { usage.recordUse() }
+            HapticManager.shared.compressionComplete()
+            HistoryManager.shared.recordGoodOperation()
+            HistoryManager.shared.requestReviewIfAppropriate()
+        case .failure(let error):
+            if error is CancellationError || Task.isCancelled {
+                state.phase = .configure
+            } else {
+                state.phase = .failed(error.localizedDescription)
+                HapticManager.shared.error()
             }
         }
     }
@@ -492,6 +537,7 @@ final class AppState {
         case .scan: scanSession = nil
         case .ocr: ocrSession = nil
         case .fillSign, .edit: editorSession = nil
+        case .officeToPDF: officeSession = nil
         case .photosToPDF: photosSession = nil
         case .pdfToImages: imagesSession = nil
         case .organize: organizeSession = nil
@@ -619,6 +665,31 @@ final class AppState {
                     source: written, flattenAnnotations: flatten, flattenForm: tool == .fillSign, outputURL: output
                 )
                 return ToolOutput(urls: [output], kind: tool == .fillSign ? .signed : .edited, pageCount: pages)
+            } catch {
+                OutputLocation.removeFile(at: output)
+                throw error
+            }
+        }
+    }
+
+    // MARK: - Office to PDF
+
+    private func startOffice(with fileURL: URL) {
+        officeSession?.state.cancel()
+        officeSession = OfficeSession(fileURL: fileURL)
+        show(Tool.officeToPDF.route)
+    }
+
+    func convertOffice(_ session: OfficeSession) {
+        guard mayRun(.officeToPDF, retry: { [weak self] in self?.convertOffice(session) }) else { return }
+        let source = session.fileURL
+        let pageSize = session.pageSize
+        let name = session.name
+        runOnMain(.officeToPDF, state: session.state) { progress in
+            let output = OutputLocation.url(folder: "Converted", fileName: name)
+            do {
+                let outcome = try await OfficeConverter().convert(fileURL: source, pageSize: pageSize, outputURL: output, progress: progress)
+                return ToolOutput(urls: [output], kind: .converted, pageCount: outcome.pageCount)
             } catch {
                 OutputLocation.removeFile(at: output)
                 throw error
@@ -1047,4 +1118,5 @@ nonisolated enum SettingsKeys {
     static let appearance = "appearance"
     static let photoPageSize = "photoPageSize"
     static let scanFilter = "scanFilter"
+    static let officePageSize = "officePageSize"
 }

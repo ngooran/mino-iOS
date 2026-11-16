@@ -14,6 +14,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.appearance) private var appearance: AppearanceOption = .system
     @AppStorage(SettingsKeys.photoPageSize) private var photoPageSize: PhotoPageSize = .fit
     @AppStorage(SettingsKeys.scanFilter) private var scanFilter: ScanFilter = .color
+    @AppStorage(SettingsKeys.officePageSize) private var officePageSize: OfficePageSize = .regional
     @State private var isRestoring = false
     @State private var restoreMessage: String?
 
@@ -41,6 +42,13 @@ struct SettingsView: View {
                         ForEach(PhotoPageSize.allCases) { Text($0.title).tag($0) }
                     } label: {
                         Label { Text("Photo Page Size") } icon: { IconTile(systemImage: "photo.on.rectangle", color: .green) }
+                    }
+                }
+                if Tool.officeToPDF.isAvailable {
+                    Picker(selection: $officePageSize) {
+                        ForEach(OfficePageSize.allCases) { Text($0.title).tag($0) }
+                    } label: {
+                        Label { Text("Office Page Size") } icon: { IconTile(systemImage: "doc.richtext.fill", color: .blue) }
                     }
                 }
                 Picker(selection: $appearance) {

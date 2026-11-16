@@ -76,7 +76,7 @@ nonisolated enum Tool: String, CaseIterable, Identifiable, Hashable, Sendable {
         .scan, .photosToPDF,
         .compress, .merge, .split, .organize,
         .fillSign, .edit,
-        .pdfToImages, .ocr,
+        .pdfToImages, .officeToPDF, .ocr,
         .protect,
     ]
 
@@ -222,7 +222,7 @@ nonisolated enum Tool: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .fillSign: return "signature form fill contract initials date checkbox"
         case .edit: return "editor markup highlight draw note text white-out annotate comment"
         case .pdfToImages: return "jpg jpeg png picture photo export convert"
-        case .officeToPDF: return "word docx excel xlsx powerpoint pptx pages numbers keynote convert"
+        case .officeToPDF: return "word doc docx excel xls xlsx powerpoint ppt pptx rtf csv text convert"
         case .pdfToWord: return "docx doc text txt editable convert"
         case .ocr: return "ocr searchable text copy extract scan recognize"
         case .protect: return "password lock encrypt secure unlock remove"
@@ -268,9 +268,10 @@ nonisolated enum ImportTypes {
     /// Images that Photos to PDF accepts.
     static let images: [UTType] = [.image]
 
-    /// Documents that Office to PDF accepts.
+    /// Documents that Office to PDF accepts: the formats that passed the
+    /// quality gate. Pages, Numbers and Keynote are not offered; they were not tested.
     static let office: [UTType] = {
-        var types: [UTType] = [.rtf, .rtfd, .plainText, .html]
+        var types: [UTType] = [.rtf, .plainText, .html, .commaSeparatedText]
         let identifiers = [
             "org.openxmlformats.wordprocessingml.document",
             "com.microsoft.word.doc",
@@ -278,20 +279,13 @@ nonisolated enum ImportTypes {
             "com.microsoft.excel.xls",
             "org.openxmlformats.presentationml.presentation",
             "com.microsoft.powerpoint.ppt",
-            "com.apple.iwork.pages.sffpages",
-            "com.apple.iwork.pages.pages",
-            "com.apple.iwork.numbers.sffnumbers",
-            "com.apple.iwork.numbers.numbers",
-            "com.apple.iwork.keynote.sffkey",
-            "com.apple.iwork.keynote.key",
-            "public.comma-separated-values-text",
         ]
         types.append(contentsOf: identifiers.compactMap { UTType($0) })
         return types
     }()
 
     static let officeExtensions: Set<String> = [
-        "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pages", "numbers", "key", "rtf", "rtfd", "txt", "csv", "html", "htm",
+        "doc", "docx", "xls", "xlsx", "ppt", "pptx", "rtf", "txt", "csv", "html", "htm",
     ]
 
     static let imageExtensions: Set<String> = [

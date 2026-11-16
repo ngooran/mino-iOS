@@ -217,6 +217,42 @@ final class OCRSession: ToolSession {
     }
 }
 
+// MARK: - Office to PDF
+
+@Observable
+@MainActor
+final class OfficeSession: ToolSession {
+    let state = TaskState()
+    /// A copy of the chosen file in the working folder.
+    let fileURL: URL
+    let fileSize: Int64
+    var pageSize: OfficePageSize
+
+    init(fileURL: URL) {
+        self.fileURL = fileURL
+        fileSize = ((try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size]) as? Int64) ?? 0
+        pageSize = OfficePageSize(rawValue: StorageRoot.defaults.string(forKey: SettingsKeys.officePageSize) ?? "") ?? .regional
+    }
+
+    var name: String { fileURL.deletingPathExtension().lastPathComponent }
+
+    /// "DOCX", "XLS", ...
+    var typeBadge: String { fileURL.pathExtension.uppercased() }
+
+    /// What kind of document it is, in words.
+    var typeName: String {
+        switch fileURL.pathExtension.lowercased() {
+        case "doc", "docx": return String(localized: "Word document")
+        case "xls", "xlsx": return String(localized: "Excel workbook")
+        case "ppt", "pptx": return String(localized: "PowerPoint presentation")
+        case "rtf": return String(localized: "Rich text document")
+        case "csv": return String(localized: "CSV table")
+        case "htm", "html": return String(localized: "Web page")
+        default: return String(localized: "Text document")
+        }
+    }
+}
+
 // MARK: - Photos to PDF
 
 @Observable
