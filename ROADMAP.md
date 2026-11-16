@@ -256,7 +256,7 @@ Work happens on branch `toolkit` (from `redesign-2.0`). Version and build number
 | Recognize Text | Done | `OCRTests`; demo runs; output inspected with PDFKit |
 | Fill & Sign | Done | `EditorTests`; demo runs; saved pages rendered and inspected |
 | Edit & Annotate | Done | `EditorTests`; demo runs; saved pages rendered and inspected |
-| Office to PDF | Not started | Gate: 17 of 20 documents |
+| Office to PDF | Done. **Gate passed: 20 of 20 convert; 19 match their Quick Look preview, 1 matches it including a flaw** | `OfficeGateTests` on 20 real documents, compared with Quick Look; `OfficeToPDFTests`; demo run |
 | PDF to Word | Not started | Gate: 15 of 20 documents |
 
 A tool appears in the app once it is listed in `Tool.available` (`Mino/App/Tools.swift`).
@@ -278,7 +278,7 @@ ls "$(xcrun simctl get_app_container <udid> com.applestan.Mino data)/Documents/D
 python3 Scripts/sync_strings.py
 ```
 
-Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `merge`, `split`, `scan`, `ocr`, `sign`, `signature`, `edit`, `photos`, `images`, `organize`, `protect`, `unlock`, `files`, `settings`, `paywall`.
+Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `merge`, `split`, `scan`, `ocr`, `sign`, `signature`, `edit`, `office`, `photos`, `images`, `organize`, `protect`, `unlock`, `files`, `settings`, `paywall`.
 
 ### 2.1: what was built
 
@@ -359,6 +359,67 @@ Demo screens: `-demoScreen sign` (a rental agreement with a name field and a che
 7. **On a page that is shown turned**, stamps are turned back so they appear upright, and text is placed as an image, because free text would lie on its side.
 8. **Resize** is offered for text, signatures, marks and images (Smaller and Larger buttons). Shapes, highlights and drawings can be moved and deleted, not resized.
 9. A PDF that limits changes (permissions password) is refused with a pointer to Protect & Unlock.
+
+### 2.4, Office to PDF: the gate
+
+**Decision rule (owner):** ship only if 17 of 20 test documents match their Quick Look preview. **Result: passed.**
+
+Test set: 20 documents from the Apache POI test corpus (`test-data/document`, `spreadsheet`, `slideshow`), chosen before any was converted, preferring files that came from real websites: 8 Word (4 `.doc`, 4 `.docx`), 6 Excel (3 `.xls`, 3 `.xlsx`), 6 PowerPoint (1 `.ppt`, 5 `.pptx`). They are not in the repository. To run the gate again with any folder of documents:
+
+```bash
+TEST_RUNNER_MINO_GATE_DIR=/path/to/documents TEST_RUNNER_MINO_GATE_OUT=/path/to/results \
+xcodebuild test -project Mino.xcodeproj -scheme Mino -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro Max' -derivedDataPath build/DerivedData \
+  -only-testing:MinoTests/OfficeGateTests
+```
+
+It writes each PDF, Quick Look's thumbnail of the same file and `report.tsv` (pages, layout, share of the preview's words found in the PDF).
+
+How "match" was judged: (1) the share of the words Quick Look's renderer shows that are in the PDF's text; (2) page 1 of every PDF next to Quick Look's thumbnail, by eye; (3) eight inner pages (later sheets, later slides), by eye. Not every page of every document was looked at.
+
+| # | Document | Pages | Words found | Verdict |
+|---|---|---|---|---|
+| 1 | Travel approval form (.doc, tables) | 3 | 100% | Match |
+| 2 | Library calendar, Russian (.docx, tables) | 14 | 100% | Match |
+| 3 | Biosketch (.doc) | 3 | 100% | Match |
+| 4 | Sample document (.doc, fonts and colors) | 1 | 100% | Match |
+| 5 | Illustrative cases (.docx, tables) | 5 | 100% | Match |
+| 6 | Various pictures (.docx) | 1 | 100% | Match, all five pictures |
+| 7 | Project lifecycle (.doc, a diagram) | 9 | 100% | Match; the diagram moves to the next page where it doesn't fit |
+| 8 | Seven columns (.doc) | 1 | 100% | Match |
+| 9 | Monthly budget (.xlsx) | 1 | 100% | Match, with fills and the data bar |
+| 10 | Average tax rates (.xlsx, 3 sheets) | 6 | 100% | Match, all sheets |
+| 11 | Mortgage calculation (.xls, 3 sheets, 2 empty) | 1 | 100% | Match; empty sheets are left out |
+| 12 | NSSE benchmark report (.xls, 7 sheets) | 11 | 100% | **Match with a flaw:** one sheet consists of text boxes, which Quick Look itself draws as a narrow, overlapping column. The PDF shows the same |
+| 13 | Hotel price list, Russian (.xls, 3 sheets) | 7 | 94% | Match, with colors |
+| 14 | KYC file structure (.xlsx, many sheets) | 50 | 96% | Match |
+| 15 | Leadership summit (.pptx) | 16 | 99% | Match, one slide per page |
+| 16 | Geometry lecture (.pptx) | 14 | 99% | Match |
+| 17 | Conference talk (.pptx) | 28 | 100% | Match |
+| 18 | Security talk (.ppt) | 23 | 100% | Match |
+| 19 | Sample show (.pptx) | 2 | 100% | Match |
+| 20 | Performance tuning (.pptx) | 46 | 100% | Match |
+
+What it took to get there (the first run converted 15 of 20 usably):
+- **Workbooks with several sheets.** Quick Look shows one sheet and switches tabs natively; from a web view only the first sheet can be reached. `WorkbookSplitter` makes one copy of the workbook per visible sheet with the others marked hidden (`state="hidden"` in `xl/workbook.xml` for `.xlsx`; the visibility byte of the BOUNDSHEET records for `.xls`) and converts each. The sheet itself sits in a frame of another origin; a script that runs in every frame hands over its HTML, which is then loaded on its own with a few substitute style rules (grid lines, cells that spill over empty neighbors).
+- **True size.** WebKit lays a page out 25% wider than the paper and prints it at 80%. The page is zoomed by the same 25%, so a 12-point font is 12 points in the PDF and a Word page's margins come out where Word puts them.
+- **Fills and colors.** WebKit leaves backgrounds out and darkens light text when printing; `print-color-adjust: exact` prints what the preview shows.
+- **Slides** get a page each, as wide as the paper's long side and shaped like the slide.
+- **Sheets** print at 100% like Excel, on landscape paper when wide, shrunk when still too wide (not below 35%). Empty rows at the end, empty sheets and blank trailing pages are left out.
+- **Mis-scaled drawings.** In `.xls` sheets Quick Look writes the place of drawings in EMU as if they were pixels, which made one sheet 5,563 pages long. Those values are brought back to points.
+
+Choices:
+1. **Offline is enforced, not assumed:** the web view gets a rule list that blocks every http, https, ws and ftp load, runs no script of the document's, and uses a non-persistent store. If the rule list can't be compiled, nothing is converted.
+2. **Pages, Numbers and Keynote are not offered.** The roadmap lists them; no test files were available, so they are left out rather than shipped untested. HTML is accepted (covered by a test).
+3. **MuPDF's own Office reader is not used as a fallback.** On the test workbook it showed unformatted numbers (0.2301999999999) and cut columns off.
+4. The first document takes about 5 seconds on the simulator, almost all of it starting the web view; each further sheet about 0.7 seconds.
+
+Known gaps:
+- Text boxes and shapes in `.xls` sheets (document 12) come out as Quick Look shows them: badly.
+- Charts in workbooks were not in the test set; whether Quick Look draws them is not checked.
+- Password-protected Office files are not handled; they fail with "couldn't be opened".
+- A sheet wider than about 2,100 points is cut off on the right.
+- Speed and memory were measured on the simulator only.
 
 ### Known gaps after 2.3
 
