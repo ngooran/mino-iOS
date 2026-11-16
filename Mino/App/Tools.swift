@@ -75,7 +75,7 @@ nonisolated enum Tool: String, CaseIterable, Identifiable, Hashable, Sendable {
     static let available: [Tool] = [
         .scan, .photosToPDF,
         .compress, .merge, .split, .organize,
-        .fillSign,
+        .fillSign, .edit,
         .pdfToImages, .ocr,
         .protect,
     ]
