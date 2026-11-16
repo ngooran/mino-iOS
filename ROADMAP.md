@@ -89,6 +89,8 @@ Both tools share one page editor built on PDFKit annotations.
 ### 2.4 "Office" — Office to PDF + PDF to Word
 PDF to Word ships only if it passes the quality gate in section 4. If it fails, ship "PDF to Text" alone.
 
+**Outcome (16 Nov 2026):** Office to PDF passed its gate. PDF to Word failed its gate, so 2.4 ships Office to PDF and PDF to Text. Details in section 11.
+
 ---
 
 ## 4. Tool Specifications
@@ -146,6 +148,7 @@ All tools follow the existing pattern: a session object in `Mino/App/Sessions.sw
 - **Flow:** open PDF → Word (.docx) or Text → Convert. Scanned pages go through OCR first.
 - **Build:** MuPDF's docx writer (`fz_new_docx_writer`). It needs the bundled `extract` library, so the MuPDF frameworks must be rebuilt with `HAVE_EXTRACT=yes` (`Scripts/build_mupdf_ios.sh`).
 - **Quality gate before building the UI:** convert 20 documents (contracts, invoices, CVs, multi-column pages, tables, scans). Ship Word output only if at least 15 are usable without major fixing. Otherwise ship "PDF to Text" and say "best for text documents". This is the highest-demand and highest-risk tool; poor output costs ratings.
+- **Outcome:** the gate failed (section 11). The tool ships as **PDF to Text**. The frameworks did not need a rebuild: `extract` is already in the MuPDF 1.27 build.
 
 ---
 
@@ -175,6 +178,8 @@ Reasoning: the free tools match the highest-volume searches and bring downloads 
 ### Paywall copy (2.4 state)
 Unlimited actions · Scan with text recognition · Fill and sign · Edit and annotate · Convert to and from Word · Merge, split and batch · Password protection · Family Sharing for up to 6 people.
 
+As built: "Convert to and from Word" is "Convert Word, Excel and PowerPoint to PDF", because PDF to Word did not pass its gate.
+
 ---
 
 ## 6. App Store Plan
@@ -184,7 +189,7 @@ Unlimited actions · Scan with text recognition · Fill and sign · Edit and ann
 | 2.1 | Mino - PDF Compressor & Merger | Merge, Split & JPG to PDF | photo,image,converter,password,protect,unlock,rotate,delete,pages,organize,batch,offline,reduce |
 | 2.2 | Mino - PDF Scanner & Converter | Compress, Merge, Split & OCR | scan,document,camera,text,jpg,photo,image,password,unlock,rotate,organize,batch,offline,shrink |
 | 2.3 | Mino - PDF Scanner & Converter | Sign, Fill, Compress & Merge | scan,ocr,split,jpg,photo,form,signature,annotate,highlight,edit,password,unlock,rotate,offline |
-| 2.4 | Mino - PDF Scanner & Converter | Sign, Fill, Compress & Merge | scan,ocr,split,jpg,photo,word,docx,excel,form,signature,annotate,edit,password,unlock,rotate,offline |
+| 2.4 | Mino - PDF Scanner & Converter | Sign, Fill, Compress & Merge | scan,ocr,split,jpg,photo,word,docx,excel,powerpoint,text,form,signature,annotate,password,offline |
 
 - Keywords never repeat words from the name or subtitle; Apple indexes those already.
 - These are starting points. Check popularity and difficulty in an ASO tool before each submission.
@@ -257,7 +262,10 @@ Work happens on branch `toolkit` (from `redesign-2.0`). Version and build number
 | Fill & Sign | Done | `EditorTests`; demo runs; saved pages rendered and inspected |
 | Edit & Annotate | Done | `EditorTests`; demo runs; saved pages rendered and inspected |
 | Office to PDF | Done. **Gate passed: 20 of 20 convert; 19 match their Quick Look preview, 1 matches it including a flaw** | `OfficeGateTests` on 20 real documents, compared with Quick Look; `OfficeToPDFTests`; demo run |
-| PDF to Word | Not started | Gate: 15 of 20 documents |
+| PDF to Word | **Gate failed: at best 11 of 20 usable (15 needed). Not shipped** | `WordGateTests` on 20 real PDFs; every .docx opened with Quick Look next to the PDF page |
+| PDF to Text (ships in place of PDF to Word) | Done | `PDFToTextTests`; demo run; text file inspected; the text of all 20 gate PDFs inspected |
+
+All four releases are built. What is left is the owner's: see "Left for the owner" at the end of this section.
 
 A tool appears in the app once it is listed in `Tool.available` (`Mino/App/Tools.swift`).
 
@@ -278,7 +286,7 @@ ls "$(xcrun simctl get_app_container <udid> com.applestan.Mino data)/Documents/D
 python3 Scripts/sync_strings.py
 ```
 
-Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `merge`, `split`, `scan`, `ocr`, `sign`, `signature`, `edit`, `office`, `photos`, `images`, `organize`, `protect`, `unlock`, `files`, `settings`, `paywall`.
+Demo screens: `home`, `search`, `picker`, `password`, `compress`, `result`, `merge`, `split`, `scan`, `ocr`, `sign`, `signature`, `edit`, `office`, `text`, `photos`, `images`, `organize`, `protect`, `unlock`, `files`, `settings`, `paywall`.
 
 ### 2.1: what was built
 
@@ -420,6 +428,88 @@ Known gaps:
 - Password-protected Office files are not handled; they fail with "couldn't be opened".
 - A sheet wider than about 2,100 points is cut off on the right.
 - Speed and memory were measured on the simulator only.
+
+### 2.4, PDF to Word: the gate
+
+**Decision rule (owner):** convert a 20-document test set before building the screen. If fewer than 15 are usable without major fixing, ship "PDF to Text" only. **Result: failed. At best 11 of 20. Mino ships PDF to Text.**
+
+Test set: 20 PDFs chosen before any was converted, covering what the roadmap names (contracts, invoices, CVs, multi-column pages, tables, scans) plus forms, slides and non-Latin text. They are not in the repository. To run the gate again with any folder of PDFs:
+
+```bash
+TEST_RUNNER_MINO_WORD_GATE_DIR=/path/to/pdfs TEST_RUNNER_MINO_WORD_GATE_OUT=/path/to/results \
+xcodebuild test -project Mino.xcodeproj -scheme Mino -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,name=iPhone 18 Pro Max' -derivedDataPath build/DerivedData \
+  -only-testing:MinoTests/WordGateTests
+```
+
+It writes a `.docx` and a `.txt` per PDF and `report.tsv`. `TEST_RUNNER_MINO_WORD_GATE_OPTIONS` passes options to MuPDF's writer (for example `analyse=yes`).
+
+How "usable" was judged: (1) the share of the PDF's words that are in the .docx; (2) counts of paragraphs, tables and images in the .docx; (3) Quick Look's rendering of every .docx next to page 1 of the PDF, by eye. The files were **not opened in Microsoft Word** (not available here); Quick Look and Pages use the same reader.
+
+| # | Document | Pages | Verdict with default options |
+|---|---|---|---|
+| 1 | US Constitution (plain legal text) | 19 | Usable |
+| 2 | Lease agreement with photos | 12 | **Not usable:** about half the text and the photos are missing |
+| 3 | Rental contract | 2 | Usable |
+| 4 | Monthly budget (a table with fills) | 1 | **Not usable:** the layout is jumbled |
+| 5 | Scanned invoices (images only) | 3 | **Not usable:** a scan comes out as an empty page, even with a text layer added first |
+| 6 | Biosketch (a CV) | 3 | Borderline |
+| 7 | Research paper, two columns | 14 | Borderline |
+| 8 | Research paper, two columns | 12 | Borderline |
+| 9 | Printed web page | 1 | **Not usable:** most of the text is missing |
+| 10 | Travel approval form (tables) | 3 | Usable |
+| 11 | Illustrative cases (tables) | 5 | Borderline |
+| 12 | IRS W-9 (form) | 6 | **Not usable:** the form is scattered |
+| 13 | IRS 1040 (form) | 2 | **Not usable:** the form is scattered |
+| 14 | Review article | 23 | **Not usable:** unreadable characters |
+| 15 | Short technical page | 3 | Usable |
+| 16 | Japanese help page | 1 | Usable |
+| 17 | Research paper, one column | 15 | Borderline |
+| 18 | Form 160F | 1 | **Not usable:** the form is scattered |
+| 19 | Library calendar, Russian (tables) | 14 | Usable |
+| 20 | Conference slides | 28 | **Not usable:** the slides fall apart |
+
+Usable: 6. Borderline: 5. Not usable: 9. Counting every borderline document as usable gives 11, below 15.
+
+A second run with `analyse=yes` put text and reading order right in nearly every document, but dropped every table and every picture. That is plain text inside a .docx, which is what PDF to Text gives honestly. It fails the gate as well.
+
+Two further reasons not to ship it: the writer puts line breaks inside text runs and writes font sizes with decimals, which Word may reject or repair on opening. This could not be checked without Word.
+
+**The plain text of the same 20 PDFs is good:** two-column papers come out in reading order, the review article that turned into unreadable characters in the .docx reads correctly, Cyrillic and Japanese are right, and the scanned invoices are read by text recognition.
+
+### 2.4: what was built
+
+- **Office to PDF** (`Mino/Features/Office/OfficeConverter.swift`, `WorkbookSplitter.swift`, `OfficeFlowView`): Word, Excel, PowerPoint, RTF, text, CSV and HTML to PDF with the system's own document renderers in an offscreen web view, printed to PDF. Paper size option (A4, Letter; default from the region, changeable in Settings). Gate and details above.
+- **PDF to Text** (`Mino/Features/PDFToWord/PDFToWordEngine.swift`, `PDFToTextFlowView`, `PDFToTextSession`): the text of a PDF in reading order as a UTF-8 `.txt` file, pages separated by an empty line. "Read Scanned Pages" (on by default) runs text recognition on pages without text. The result screen shows the text with Copy Text, Share, Save to Files and Preview. Pro; the paywall appears at "Convert to Text".
+- The tool's case is still called `Tool.pdfToWord` in code; its title is "PDF to Text". `PDFToWordEngine.convertToWord` and `mino_write_docx` stay in the code for the gate only and are not reachable from the app.
+- Tests: `OfficeToPDFTests` (13), `PDFToTextTests` (6), the two gate tests (skipped without their folders). The whole suite: 100 tests, 2 skipped, 0 failures.
+- Screens checked on iPhone 18 Pro Max, iPad Pro 13-inch and iPhone Duo closed, flat and book pose. Demo run: the 12-page sample lease came out as a 20 KB text file with all 12 pages.
+
+### Choices made in 2.4
+
+1. **PDF to Text, not PDF to Word** (the owner's rule, applied to the gate result). Nothing in the app or the store texts promises Word output. The screen says: "Best for text documents. … Layout, tables and pictures are not kept."
+2. **One output, no format picker.** The roadmap's flow had "Word (.docx) or Text"; with Word out, the screen has one button.
+3. **A PDF with no text at all fails with a hint** ("Switch on Read Scanned Pages") instead of saving an empty file.
+4. **No MuPDF rebuild.** `HAVE_EXTRACT=no` in `Scripts/build_mupdf_ios.sh` has no effect on MuPDF 1.27, so `extract` and the docx writer were already in the frameworks. The script is unchanged apart from a comment.
+5. **The paywall line** "Convert to and from Word" became "Convert Word, Excel and PowerPoint to PDF".
+6. The text of a result is kept with the result (as for Recognize Text), so the result screen and Files can show and copy it.
+
+### Known gaps after 2.4
+
+- PDF to Word: not shipped. Run the gate again when MuPDF's docx writer improves, or consider another converter (that would be a new dependency: the owner's decision).
+- PDF to Text keeps no layout: tables come out as lines of cell text, and columns of numbers lose their alignment.
+- Text recognition of scans has the limits listed under 2.2.
+- Office to PDF: see its "Known gaps" above.
+- Not tested on a device: speed and memory of Office to PDF and of text recognition on long scans.
+
+### Left for the owner
+
+1. **Camera:** Scan to PDF on an iPhone, an iPad and the iPhone Duo (both cameras), and Organize Pages > Insert > Scan Pages.
+2. **Touch:** the page editor (fields, signature pad, drag, draw, Apple Pencil), drag to reorder photos and pages, Save to Photos, the Share Extension with images, Office files and several files.
+3. **Other apps:** open results in Acrobat (protected, signed, flattened, searchable PDFs) and a few converted Office files.
+4. **App Store Connect** (nothing was touched): version numbers and builds, the texts in AppStoreMetadata.md for 2.1 to 2.4, screenshots, the app's new name from 2.2, review notes. Mino Pro stays €4.99.
+5. **Decide:** whether the four releases ship one by one or together, and translation (the String Catalog is ready, English only).
+6. Merge `toolkit` after 2.0 is released; it was not merged into `redesign-2.0` or `main`.
 
 ### Known gaps after 2.3
 

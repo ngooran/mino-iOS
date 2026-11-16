@@ -566,3 +566,58 @@ Mino Pro is still one purchase, with no subscription.
 **Screenshots:** lead with Fill & Sign (`-demoScreen sign`) and Edit & Annotate (`-demoScreen edit`).
 
 **Wording to keep:** never "legally binding", "e-signature" or "digital signature" for Fill & Sign; never "redact" or "remove" for white-out.
+
+### Version 2.4 "Office"
+
+PDF to Word is **not** in this release: it did not pass its quality gate (ROADMAP.md, section 11). The release has Office to PDF and PDF to Text.
+
+**App Name (30 max)**
+```
+Mino - PDF Scanner & Converter
+```
+Character count: 30 (unchanged from 2.2)
+
+**Subtitle (30 max)**
+```
+Sign, Fill, Compress & Merge
+```
+Character count: 28 (unchanged from 2.3)
+
+**Keywords (100 max)**
+```
+scan,ocr,split,jpg,photo,word,docx,excel,powerpoint,text,form,signature,annotate,password,offline
+```
+Character count: 97. "word", "docx", "excel" and "powerpoint" are there for Office to PDF.
+
+**Promotional Text (170 max)**
+```
+NEW: Turn Word, Excel and PowerPoint files into PDFs, and PDFs into text you can edit. All on your device, nothing uploaded. One purchase, no subscription.
+```
+Character count: 155
+
+**What's New in 2.4**
+```
+Convert documents, offline.
+
+• Office to PDF (Mino Pro): turn Word, Excel and PowerPoint files into PDFs. Also RTF, text, CSV and HTML. Every sheet of a workbook is included, and each slide gets its own page.
+• PDF to Text (Mino Pro): get the words of a PDF in reading order, as a text file you can open in Word, Pages or Notes. Scanned pages are read with text recognition. Best for text documents: layout, tables and pictures are not kept.
+
+Both tools open for everyone, so you can set everything up before deciding.
+
+As always, your files are converted on your device. Nothing is uploaded.
+
+Mino Pro is still one purchase, with no subscription.
+```
+
+**Notes for App Review (2.4), additions**
+```
+- Office to PDF uses the system's built-in document renderers on the device. The app makes no network connections.
+- PDF to Text saves a plain text file. The app does not create Word documents.
+- Sample flow: Home > Office to PDF > choose a .docx file > Convert to PDF shows Mino Pro.
+```
+
+**Privacy:** unchanged, "Data Not Collected". No new permission.
+
+**Screenshots:** lead with Office to PDF (`-demoScreen office`) and PDF to Text (`-demoScreen text`).
+
+**Wording to keep:** never "PDF to Word", "to Word", "editable Word document" or "docx export". Say "PDF to Text" and "best for text documents". For Office to PDF, name the formats that were tested (Word, Excel, PowerPoint, RTF, text, CSV, HTML); not Pages, Numbers or Keynote.

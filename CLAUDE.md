@@ -71,6 +71,10 @@ TabView (.sidebarAdaptable)
 
 **Page editor:** `EditorSession` holds the PDFKit document and all behavior; `PageEditorView` only turns touches into `tap(at:on:)` and `dragBegan/Changed/Ended` in page coordinates, which is also how the tests and demo screens drive it. Additions are standard PDF annotations. Saving = PDFKit `write`, then `PageEditorEngine.finish` (MuPDF `mino_bake`, saved with `mino_save_pdf_untouched`; do not use the cleaning save after baking). PDFKit on iOS redraws a page when an annotation is added or removed, not when one is changed: use the session's `mutate`.
 
+**Office to PDF:** `OfficeConverter` (main actor, async; AppState uses `runOnMain`, not `run`) loads the file in an offscreen `WKWebView`, which uses the system's Office renderers, and prints it with a `UIPrintPageRenderer`. The web view blocks all network loads with a content rule list and runs no document scripts; if the rules can't be compiled, nothing is converted. Workbooks are converted one sheet at a time (`WorkbookSplitter` hides the other sheets in a copy). The reasons for each step are in ROADMAP.md, "2.4, Office to PDF: the gate".
+
+**PDF to Text:** the tool `Tool.pdfToWord` is titled "PDF to Text". PDF to Word failed its quality gate (ROADMAP.md, section 11), so never promise Word output in the app or store texts. `PDFToWordEngine.text` is what ships; `convertToWord` and `mino_write_docx` exist only for `WordGateTests`.
+
 **Opening files:** `ImportTarget` says what the file picker is for. `AppState.importDocuments` copies PDFs into `ImportedPDFs/` and asks for the password of locked ones; the working copy is then unlocked (`PDFDocumentInfo.wasLocked`). "Open PDF", incoming files and "Continue with another tool" show `ToolPickerSheet`.
 
 ### Monetization (`Mino/Store/`)
@@ -81,7 +85,7 @@ Free download + one-time non-consumable **Mino Pro** (`com.applestan.Mino.pro`),
 - People who bought the paid app keep everything: `ProStore.checkLegacyPurchase()` compares `AppTransaction.originalAppVersion` (the build number on iOS) with `firstFreemiumBuild` (4). Only production receipts count.
 - Gate features with `appState.requirePro(reason) { action }`; the paywall runs `action` after unlocking. Tools use `appState.mayRun(tool) { retry }`, which also checks the daily allowance.
 - Local testing: the shared `Mino` scheme uses `Mino.storekit`. DEBUG builds have a Pro/Free switch in Settings.
-- DEBUG launch arguments open any screen with sample data: `-demoScreen home|search|picker|password|compress|result|merge|split|scan|ocr|sign|signature|edit|photos|images|organize|protect|unlock|files|settings|paywall`, plus `-demoFree`, `-demoPro`, and `-demoRun` to run the tool and show its result (`Mino/App/DebugLaunch.swift`).
+- DEBUG launch arguments open any screen with sample data: `-demoScreen home|search|picker|password|compress|result|merge|split|scan|ocr|sign|signature|edit|office|text|photos|images|organize|protect|unlock|files|settings|paywall`, plus `-demoFree`, `-demoPro`, and `-demoRun` to run the tool and show its result (`Mino/App/DebugLaunch.swift`).
 - `-demoSandbox` (DEBUG) swaps in a throwaway store (`StorageRoot`: `Documents/DemoSandbox` + a separate UserDefaults suite). It is wiped and refilled with sample files on every launch, shows the €4.99 price (the real Mino Pro price, since StoreKit can't load outside Xcode) and never asks for a review. Use it for screenshots so a device's real files and stats never show. `-demoAppearance light|dark` sets the app appearance.
 
 ### Core Data Flow
@@ -117,7 +121,7 @@ User selects PDF → SplitService → PDFSplitter → [SplitResult]
 - `MergeService` - Combine multiple PDFs into one
 - `SplitService` - Extract page ranges or split into individual pages
 - `Library/ToolResultStore` - Results of every tool added after 2.0
-- Engines: `PhotosToPDF/PhotosToPDFEngine`, `PDFToImages/PDFToImagesEngine`, `Organize/PageOrganizer`, `Protect/PDFProtector`, `Scan/ScanEngine` (+ `Scan/DocumentCamera`, the VisionKit camera), `OCR/TextRecognizer` (Vision), `Editor/` (the page editor of Fill & Sign and Edit & Annotate: `EditorSession`, `EditorModel`, `SignatureStore`, `PageEditorEngine`)
+- Engines: `PhotosToPDF/PhotosToPDFEngine`, `PDFToImages/PDFToImagesEngine`, `Organize/PageOrganizer`, `Protect/PDFProtector`, `Scan/ScanEngine` (+ `Scan/DocumentCamera`, the VisionKit camera), `OCR/TextRecognizer` (Vision), `Editor/` (the page editor of Fill & Sign and Edit & Annotate: `EditorSession`, `EditorModel`, `SignatureStore`, `PageEditorEngine`), `Office/OfficeConverter` (+ `Office/WorkbookSplitter`), `PDFToWord/PDFToWordEngine` (PDF to Text)
 
 **MuPDF Integration** (`Mino/Core/MuPDF/`)
 - `MuPDFHelpers.h/.c` - C wrapper functions for MuPDF API
@@ -151,7 +155,7 @@ User selects PDF → SplitService → PDFSplitter → [SplitResult]
 - `Tasks/CompressFlowView` - quality (with size estimates) → progress → result
 - `Tasks/MergeFlowView`, `Tasks/SplitFlowView` - same configure → progress → result pattern
 - `Tasks/ToolFlow` - shared frame of the newer tools: working, failure and result screens, `PageSelectionGrid`, `DocumentCard`
-- `Tasks/PhotosToPDFFlowView`, `PDFToImagesFlowView`, `OrganizeFlowView`, `ProtectFlowView`, `ScanFlowView`, `OCRFlowView`, `EditorFlowView` (both editor tools)
+- `Tasks/PhotosToPDFFlowView`, `PDFToImagesFlowView`, `OrganizeFlowView`, `ProtectFlowView`, `ScanFlowView`, `OCRFlowView`, `EditorFlowView` (both editor tools), `OfficeFlowView`, `PDFToTextFlowView`
 - `Home/ToolPickerSheet` - "What do you want to do?"
 - `Files/FilesView` - file list and Quick Look preview
 - `Settings/SettingsView` - settings and statistics
@@ -206,7 +210,8 @@ xcodebuild test -project Mino.xcodeproj -scheme Mino -sdk iphonesimulator \
 ```
 
 - One test file per tool, with a round trip (the output is opened with PDFKit, which is independent of the MuPDF code under test) and the tool's "done when" from ROADMAP.md.
-- Fixtures are in `MinoTests/Fixtures`, generated by `Scripts/make_fixtures.swift` and `Scripts/make_structured_fixture.py`.
+- Fixtures are in `MinoTests/Fixtures`, generated by `Scripts/make_fixtures.swift`, `make_structured_fixture.py`, `make_form_fixture.py` and `make_office_fixtures.py`.
+- `OfficeGateTests` and `WordGateTests` are the two quality gates. They are skipped unless a folder of test documents is given (`TEST_RUNNER_MINO_GATE_DIR` / `TEST_RUNNER_MINO_WORD_GATE_DIR`, see ROADMAP.md section 11).
 
 ## App Store Screenshots
 
