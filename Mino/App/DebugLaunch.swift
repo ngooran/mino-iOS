@@ -87,6 +87,7 @@ enum DebugLaunch {
                     session.filter = filter
                 }
                 if arguments.contains("-demoSearchable") { session.makeSearchable = true }
+                if arguments.contains("-demoDiscard") { appState.discardScan(session) }
                 if run {
                     if session.makeSearchable { appState.store.debugProOverride = true }
                     appState.saveScan(session)

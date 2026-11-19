@@ -107,8 +107,32 @@ struct TabRoot: View {
     /// Start with the list showing. Left automatic, a flat iPhone Duo hides it
     /// although both columns fit; the sidebar button still collapses it.
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    /// Changed to rebuild the navigation when the camera closes after the
+    /// layout switched under it (see `body`).
+    @State private var navigationID = 0
+    @State private var layoutChangedUnderCamera = false
 
     var body: some View {
+        layout
+            .id(navigationID)
+            // A navigation stack that is created while the camera covers the
+            // screen (folding or unfolding the iPhone Duo mid-scan, through the
+            // in-between angles) can come up on its root list although the
+            // path still holds the tool. Built again once the camera is
+            // gone, it shows the path.
+            .onChange(of: sizeClass) {
+                if appState.camera != nil { layoutChangedUnderCamera = true }
+            }
+            .onChange(of: appState.camera == nil) { _, closed in
+                if closed && layoutChangedUnderCamera {
+                    layoutChangedUnderCamera = false
+                    navigationID += 1
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var layout: some View {
         let path = Binding(
             get: { appState.path(for: tab) },
             set: { appState.setPath($0, for: tab) }

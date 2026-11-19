@@ -568,8 +568,6 @@ final class AppState {
         show(Tool.scan.route)
     }
 
-    /// Saves pages from the document camera and appends them, or replaces
-    /// one page when it is being retaken.
     /// Opens the document camera (Scan to PDF, or Organize Pages > Insert).
     func openCamera(_ purpose: CameraRequest.Purpose) {
         guard camera == nil, DocumentCamera.isSupported else { return }
@@ -588,6 +586,8 @@ final class AppState {
         }
     }
 
+    /// Saves pages from the document camera and appends them, or replaces
+    /// one page when it is being retaken.
     func addScannedImages(_ images: [UIImage], replacing page: ScanPage.ID? = nil) async {
         guard let session = scanSession, !images.isEmpty else { return }
         session.isLoading = true
@@ -612,6 +612,18 @@ final class AppState {
         } else {
             session.pages.append(contentsOf: pages)
         }
+    }
+
+    /// Throws away the pages of a scan that wasn't saved and opens the camera
+    /// for a new one (where there is a camera).
+    func discardScan(_ session: ScanSession) {
+        let working = StorageRoot.documents.appendingPathComponent(OutputLocation.workingFolder).standardizedFileURL.path
+        for page in session.pages where page.url.standardizedFileURL.path.hasPrefix(working) {
+            try? FileManager.default.removeItem(at: page.url)
+        }
+        session.pages.removeAll()
+        session.makeSearchable = false
+        openCamera(.scan(retake: nil))
     }
 
     func saveScan(_ session: ScanSession) {

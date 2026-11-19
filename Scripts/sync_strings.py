@@ -25,6 +25,7 @@ DERIVED = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "build", "Der
 # key -> (text for one, text for other)
 PLURALS = {
     "%lld pages": ("%lld page", "%lld pages"),
+    "Discard all %lld pages?": ("Discard 1 page?", "Discard all %lld pages?"),
     "%lld photos": ("%lld photo", "%lld photos"),
     "%lld files": ("%lld file", "%lld files"),
     "%lld free actions left today": ("%lld free action left today", "%lld free actions left today"),

@@ -24,6 +24,7 @@ private struct ScanContent: View {
     @Bindable var session: ScanSession
     @Environment(AppState.self) private var appState
     @State private var pickerItems: [PhotosPickerItem] = []
+    @State private var confirmsDiscard = false
 
     var body: some View {
         ToolFlow(
@@ -163,6 +164,28 @@ private struct ScanContent: View {
             .primaryButtonStyle()
             .disabled(session.isLoading)
             .keyboardShortcut(.defaultAction)
+
+            Button(role: .destructive) {
+                confirmsDiscard = true
+            } label: {
+                Text("Discard Scan")
+                    .font(.body.weight(.medium))
+                    .frame(maxWidth: .infinity, minHeight: 36)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .disabled(session.isLoading)
+            .confirmationDialog(
+                "Discard all \(session.pages.count) pages?",
+                isPresented: $confirmsDiscard,
+                titleVisibility: .visible
+            ) {
+                Button("Discard and Scan Again", role: .destructive) {
+                    withAnimation { appState.discardScan(session) }
+                }
+            } message: {
+                Text("The pages haven't been saved.")
+            }
         }
     }
 

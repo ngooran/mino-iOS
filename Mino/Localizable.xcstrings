@@ -492,6 +492,30 @@
     "Delete “%@”?" : {},
     "Deselect" : {},
     "Deselect All" : {},
+    "Discard Scan" : {},
+    "Discard all %lld pages?" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard 1 page?"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Discard all %lld pages?"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Discard and Scan Again" : {},
     "Done" : {},
     "Drag over the text to highlight it." : {},
     "Drag over what you want to cover." : {},
@@ -960,6 +984,7 @@
     "The file may have been moved or deleted" : {},
     "The image couldn't be converted." : {},
     "The offline filter couldn't be set up." : {},
+    "The pages haven't been saved." : {},
     "The password is too long. Use up to 120 characters." : {},
     "The passwords don't match." : {},
     "The scanned pages couldn't be added." : {},

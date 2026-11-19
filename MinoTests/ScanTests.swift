@@ -151,4 +151,31 @@ final class ScanTests: XCTestCase {
         appState.store.debugProOverride = nil
         appState.usage.reset()
     }
+
+    @MainActor
+    func testDiscardThrowsAwayThePagesAndStartsOver() throws {
+        let appState = AppState()
+        appState.openScan()
+        let session = try XCTUnwrap(appState.scanSession)
+        // Pages from the camera live in the working folder; discarding deletes them.
+        let folder = OutputLocation.workingDirectory()
+        let pages = samplePages(2).enumerated().map { index, url -> URL in
+            let copy = folder.appendingPathComponent("page-\(index).jpg")
+            try? FileManager.default.copyItem(at: url, to: copy)
+            return copy
+        }
+        appState.addScanFiles(pages)
+        session.makeSearchable = true
+        XCTAssertEqual(session.pages.count, 2)
+
+        appState.discardScan(session)
+        XCTAssertTrue(session.pages.isEmpty)
+        XCTAssertFalse(session.makeSearchable)
+        XCTAssertTrue(pages.allSatisfy { !FileManager.default.fileExists(atPath: $0.path) })
+        // Still on the Scan screen, ready for a new scan; nothing was saved or counted.
+        XCTAssertEqual(appState.homePath, [.tool(.scan)])
+        XCTAssertNil(session.state.result)
+        XCTAssertEqual(appState.camera != nil, DocumentCamera.isSupported, "The camera opens for the new scan where there is one")
+        appState.camera = nil
+    }
 }
