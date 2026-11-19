@@ -65,7 +65,7 @@ TabView (.sidebarAdaptable)
 6. `-demoScreen` case in `DebugLaunch.swift`, a test file in `MinoTests/`, and the tool in `Tool.available`.
 7. Run `python3 Scripts/sync_strings.py` after a build to update the String Catalog.
 
-**Camera:** the document camera does not exist in the simulator (`DocumentCamera.isSupported` is false). `-demoScreen scan` and the DEBUG "Use Sample Pages" button use `DebugLaunch.makeSampleScanPages`. Never run it on a physical device from here; the owner tests the camera.
+**Camera:** the document camera does not exist in the simulator (`DocumentCamera.isSupported` is false). `-demoScreen scan` and the DEBUG "Use Sample Pages" button use `DebugLaunch.makeSampleScanPages`. Never run it on a physical device from here; the owner tests the camera. The camera is presented from `RootView` (`AppState.openCamera`), never from a tool screen: unfolding the Duo rebuilds tool screens. `-demoCamera` puts a stand-in camera in the simulator to test presenting and folding.
 
 **Text layers:** `mino_overlay_pages` draws pages of one PDF on top of pages of another as Form XObjects, mapped through the page's rotation and crop box. Recognize Text uses it for the invisible text layer (drawn with CoreGraphics, so fonts for any script are embedded).
 

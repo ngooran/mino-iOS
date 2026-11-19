@@ -23,14 +23,7 @@ struct ScanFlowView: View {
 private struct ScanContent: View {
     @Bindable var session: ScanSession
     @Environment(AppState.self) private var appState
-    @State private var camera: CameraRequest?
     @State private var pickerItems: [PhotosPickerItem] = []
-
-    /// Why the camera is open: more pages, or a new capture of one page.
-    private struct CameraRequest: Identifiable {
-        let id = UUID()
-        var retake: ScanPage.ID?
-    }
 
     var body: some View {
         ToolFlow(
@@ -43,13 +36,6 @@ private struct ScanContent: View {
             configureView
         } extras: { _ in
             RecognizedTextCard(text: session.state.resultText)
-        }
-        .fullScreenCover(item: $camera) { request in
-            DocumentCamera { images in
-                camera = nil
-                Task { await appState.addScannedImages(images, replacing: request.retake) }
-            }
-            .ignoresSafeArea()
         }
         .onChange(of: pickerItems) { _, items in
             guard !items.isEmpty else { return }
@@ -81,7 +67,7 @@ private struct ScanContent: View {
                 ProgressView()
             } else {
                 if DocumentCamera.isSupported {
-                    Button("Start Scanning") { camera = CameraRequest() }
+                    Button("Start Scanning") { appState.openCamera(.scan(retake: nil)) }
                         .secondaryButtonStyle()
                 }
                 PhotosPicker(selection: $pickerItems, matching: .images, preferredItemEncoding: .current) {
@@ -96,8 +82,9 @@ private struct ScanContent: View {
         .background(Color.groupedBackground)
         .task {
             // Straight to the camera, as the Scan button promises.
-            if DocumentCamera.isSupported && session.pages.isEmpty && camera == nil && !StorageRoot.isDemo {
-                camera = CameraRequest()
+            if DocumentCamera.isSupported && DocumentCamera.opensByItself && session.pages.isEmpty && !session.openedCamera {
+                session.openedCamera = true
+                appState.openCamera(.scan(retake: nil))
             }
         }
     }
@@ -119,7 +106,7 @@ private struct ScanContent: View {
                         .contextMenu {
                             if DocumentCamera.isSupported {
                                 Button {
-                                    camera = CameraRequest(retake: page.id)
+                                    appState.openCamera(.scan(retake: page.id))
                                 } label: {
                                     Label("Retake", systemImage: "camera")
                                 }
@@ -202,7 +189,7 @@ private struct ScanContent: View {
         .contentShape(Rectangle())
 
         if DocumentCamera.isSupported {
-            Button { camera = CameraRequest() } label: { label }
+            Button { appState.openCamera(.scan(retake: nil)) } label: { label }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Add pages")
         } else {

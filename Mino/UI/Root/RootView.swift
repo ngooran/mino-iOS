@@ -54,6 +54,15 @@ struct RootView: View {
         .sheet(item: $state.toolPicker) { context in
             ToolPickerSheet(context: context)
         }
+        // Here and not on the Scan screen: unfolding the iPhone Duo swaps the
+        // tab layout for the split view and rebuilds that screen, which would
+        // close the camera and lose the pages taken so far.
+        .fullScreenCover(item: $state.camera) { request in
+            DocumentCamera { images in
+                appState.cameraFinished(request, images: images)
+            }
+            .ignoresSafeArea()
+        }
         .modifier(PasswordPrompt())
         .alert(
             "Can't Open File",

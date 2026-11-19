@@ -25,7 +25,6 @@ private struct OrganizeContent: View {
     @Environment(AppState.self) private var appState
     /// One thumbnail loader per PDF that contributes pages.
     @State private var loaders: [URL: PageThumbnailLoader] = [:]
-    @State private var showsCamera = false
 
     var body: some View {
         ToolFlow(
@@ -90,7 +89,7 @@ private struct OrganizeContent: View {
                     }
                     if Tool.scan.isAvailable && DocumentCamera.isSupported {
                         Button {
-                            showsCamera = true
+                            appState.openCamera(.insertPages)
                         } label: {
                             Label("Scan Pages", systemImage: "doc.viewfinder")
                         }
@@ -99,13 +98,6 @@ private struct OrganizeContent: View {
                     Label("Insert", systemImage: "plus")
                 }
             }
-        }
-        .fullScreenCover(isPresented: $showsCamera) {
-            DocumentCamera { images in
-                showsCamera = false
-                Task { await appState.insertScannedPages(images, into: session) }
-            }
-            .ignoresSafeArea()
         }
         .bottomActions {
             Button {

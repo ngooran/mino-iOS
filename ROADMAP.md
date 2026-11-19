@@ -511,6 +511,10 @@ Two further reasons not to ship it: the writer puts line breaks inside text runs
 5. **Decide:** whether the four releases ship one by one or together, and translation (the String Catalog is ready, English only).
 6. Merge `toolkit` after 2.0 is released; it was not merged into `redesign-2.0` or `main`.
 
+### Fixed after device testing (19 Nov 2026)
+
+- **Unfolding the Duo with the camera open** left a black, stuck camera (found by the owner on the device). Cause: unfolding swaps the tab layout for the split view, which rebuilt the Scan screen; its camera closed and the rebuilt screen opened a second one, and the two fought over the camera. The camera is now presented from `RootView` (`AppState.camera`), which survives the layout change, and opens by itself only once per scan (`ScanSession.openedCamera`). The same applies to Organize Pages > Insert > Scan Pages. Verified in the Duo simulator with a stand-in camera (`-demoCamera`, DEBUG only; `-demoCameraSave <seconds>` presses Save): the same camera stays open closed → flat → book → closed, and pages saved after unfolding land in the scan. Whether VisionKit's own camera handles the resize is for the owner to confirm on the device.
+
 ### Known gaps after 2.3
 
 - **Touch input (owner):** every tap, drag and the signature pad were exercised through the session's functions and screenshots, never with a finger. On a device, check: tapping fields, drawing a signature, placing and dragging things, drawing with one finger while two fingers scroll, and Apple Pencil on iPad.

@@ -65,6 +65,10 @@ final class AppState {
     var toolQuery = ""
     /// Non-nil while the "What do you want to do?" sheet is showing.
     var toolPicker: ToolPickerContext?
+    /// Non-nil while the document camera is showing. It is presented from the
+    /// root view, which survives the change of layout when the iPhone Duo
+    /// folds or unfolds, so the camera stays open with the pages taken so far.
+    var camera: CameraRequest?
     /// Non-nil while the password prompt for a locked PDF is showing.
     var passwordRequest: PasswordRequest?
     private var passwordContinuation: CheckedContinuation<String?, Never>?
@@ -566,6 +570,24 @@ final class AppState {
 
     /// Saves pages from the document camera and appends them, or replaces
     /// one page when it is being retaken.
+    /// Opens the document camera (Scan to PDF, or Organize Pages > Insert).
+    func openCamera(_ purpose: CameraRequest.Purpose) {
+        guard camera == nil, DocumentCamera.isSupported else { return }
+        camera = CameraRequest(purpose: purpose)
+    }
+
+    /// The camera closed: `images` is empty when it was cancelled.
+    func cameraFinished(_ request: CameraRequest, images: [UIImage]) {
+        camera = nil
+        switch request.purpose {
+        case .scan(let retake):
+            Task { await addScannedImages(images, replacing: retake) }
+        case .insertPages:
+            guard let session = organizeSession else { return }
+            Task { await insertScannedPages(images, into: session) }
+        }
+    }
+
     func addScannedImages(_ images: [UIImage], replacing page: ScanPage.ID? = nil) async {
         guard let session = scanSession, !images.isEmpty else { return }
         session.isLoading = true
@@ -1150,4 +1172,17 @@ nonisolated enum SettingsKeys {
     static let photoPageSize = "photoPageSize"
     static let scanFilter = "scanFilter"
     static let officePageSize = "officePageSize"
+}
+
+/// Why the document camera is open.
+struct CameraRequest: Identifiable {
+    enum Purpose {
+        /// More pages for the scan, or a new capture of one page.
+        case scan(retake: ScanPage.ID?)
+        /// Scanned pages for Organize Pages.
+        case insertPages
+    }
+
+    let id = UUID()
+    let purpose: Purpose
 }

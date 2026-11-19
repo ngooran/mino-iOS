@@ -179,6 +179,10 @@ final class ScanSession: ToolSession {
     var makeSearchable = false
     /// Captured pages are being saved.
     var isLoading = false
+    /// The camera opens by itself once per scan, when the screen first appears.
+    /// The screen is rebuilt when the iPhone Duo folds or unfolds; that must
+    /// not open a second camera.
+    var openedCamera = false
 
     init(quality: CompressionQuality) {
         self.quality = quality
