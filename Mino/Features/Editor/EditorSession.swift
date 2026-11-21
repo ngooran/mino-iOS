@@ -76,23 +76,29 @@ final class EditorSession: ToolSession {
     var pendingImage: UIImage?
 
     private(set) var selected: PDFAnnotation?
-    /// Changes whenever the page content changed; the view observes it.
-    private(set) var revision = 0
 
-    private var ours: Set<ObjectIdentifier> = []
+    /// What the person added and is on a page now. Kept here so that nothing
+    /// has to look through every page of a long document after each change.
+    private var ours: [ObjectIdentifier: PDFAnnotation] = [:]
+    /// The form fields, found once: they don't change while editing.
+    private let widgets: [PDFAnnotation]
     private var undoStack: [Change] = []
     private var redoStack: [Change] = []
-    private var marker: (annotation: PDFAnnotation, page: PDFPage)?
     /// Where a signature goes once it has been drawn.
     private var pendingSignature: (page: PDFPage, point: CGPoint, kind: SignatureKind, field: CGRect?)?
     private var readOnlyBefore: [(PDFAnnotation, Bool)] = []
 
-    // Drag in progress
-    private var dragPage: PDFPage?
-    private var dragStart: CGPoint = .zero
-    private var dragPoints: [CGPoint] = []
-    private var preview: [PDFAnnotation] = []
-    private var moveOrigin: CGRect?
+    // Drag in progress. Not observed: it changes with every movement of the
+    // finger, and only the overlay (`overlayChanged`) has to follow it.
+    @ObservationIgnored private var dragPage: PDFPage?
+    @ObservationIgnored private var dragStart: CGPoint = .zero
+    @ObservationIgnored private var dragPoints: [CGPoint] = []
+    @ObservationIgnored private var preview: [PDFAnnotation] = []
+    @ObservationIgnored private var moveOrigin: CGRect?
+    @ObservationIgnored private var selectedPage: PDFPage?
+
+    /// Called when `overlay` changed. The view redraws its overlay then.
+    @ObservationIgnored var overlayChanged: (() -> Void)?
 
     // MARK: - Init
 
@@ -102,6 +108,10 @@ final class EditorSession: ToolSession {
         self.document = document
         self.pdf = pdf
         self.signatures = signatures
+        // Only Fill & Sign works with form fields.
+        self.widgets = tool == .fillSign
+            ? (0..<pdf.pageCount).compactMap { pdf.page(at: $0) }.flatMap { $0.annotations.filter { $0.type == "Widget" } }
+            : []
         beginEditing()
     }
 
@@ -112,22 +122,42 @@ final class EditorSession: ToolSession {
     /// Something that covers content was added. Covering is not removing, so
     /// the result is always flattened: at least the cover can't be lifted off.
     var hasWhiteout: Bool {
-        allPages.contains { page in
-            page.annotations.contains { ours.contains(ObjectIdentifier($0)) && $0.type == "Square" && $0.interiorColor == .white }
-        }
+        ours.values.contains { $0.type == "Square" && $0.interiorColor == .white }
     }
 
     var flattensOnSave: Bool { tool == .fillSign || flatten || hasWhiteout }
 
-    private var allPages: [PDFPage] {
-        (0..<pdf.pageCount).compactMap { pdf.page(at: $0) }
-    }
-
-    private var widgets: [PDFAnnotation] {
-        allPages.flatMap { $0.annotations.filter { $0.type == "Widget" } }
-    }
-
     var hasFormFields: Bool { !widgets.isEmpty }
+
+    // MARK: - Overlay
+
+    /// What the view draws over the pages. None of it is in the document.
+    /// PDFKit renders a whole page again whenever an annotation is added or
+    /// removed, so whatever follows the finger is drawn here instead, and the
+    /// page changes once, when the finger lifts.
+    struct Overlay {
+        /// A shape being drawn, or the thing being moved, with its page.
+        var live: (page: PDFPage, annotations: [PDFAnnotation])?
+        /// The dashed frame around the selection, in page coordinates.
+        var selection: (page: PDFPage, rect: CGRect)?
+
+        var isEmpty: Bool { live == nil && selection == nil }
+    }
+
+    var overlay: Overlay {
+        var result = Overlay()
+        if let page = dragPage {
+            if moveOrigin != nil, let selected {
+                result.live = (page, [selected])
+            } else if !preview.isEmpty {
+                result.live = (page, preview)
+            }
+        }
+        if let selected, let page = selectedPage {
+            result.selection = (page, selected.bounds.insetBy(dx: -4, dy: -4))
+        }
+        return result
+    }
 
     // MARK: - Editing sessions
 
@@ -144,8 +174,8 @@ final class EditorSession: ToolSession {
     /// Removes what must not be saved: the selection frame, drag previews and
     /// the temporary read-only flags.
     func prepareForSaving() {
-        select(nil)
         cancelDrag()
+        select(nil)
         for (widget, wasReadOnly) in readOnlyBefore {
             widget.isReadOnly = wasReadOnly
         }
@@ -178,7 +208,7 @@ final class EditorSession: ToolSession {
     private func ownAnnotation(at point: CGPoint, on page: PDFPage) -> PDFAnnotation? {
         // Topmost first; a little slack makes thin strokes easy to hit.
         page.annotations.reversed().first {
-            ours.contains(ObjectIdentifier($0)) && $0.bounds.insetBy(dx: -6, dy: -6).contains(point)
+            ours[ObjectIdentifier($0)] != nil && $0.bounds.insetBy(dx: -6, dy: -6).contains(point)
         }
     }
 
@@ -393,8 +423,12 @@ final class EditorSession: ToolSession {
         dragPage = page
         dragStart = point
         dragPoints = [point]
-        if activeTool == nil, let selected {
+        if activeTool == nil, let selected, selected.page === page {
             moveOrigin = selected.bounds
+            // While it moves, the overlay shows it; the page is drawn again
+            // only when it is put back.
+            page.removeAnnotation(selected)
+            overlayChanged?()
         }
     }
 
@@ -402,13 +436,13 @@ final class EditorSession: ToolSession {
         guard let page = dragPage else { return }
         dragPoints.append(point)
         if let origin = moveOrigin, let selected {
-            let moved = origin.offsetBy(dx: point.x - dragStart.x, dy: point.y - dragStart.y)
-            mutate(selected, on: page) { selected.bounds = moved }
-            updateMarker()
+            selected.bounds = origin.offsetBy(dx: point.x - dragStart.x, dy: point.y - dragStart.y)
+            overlayChanged?()
             return
         }
         guard let tool = activeTool else { return }
-        showPreview(annotations(for: tool, endingAt: point, on: page, final: false), on: page)
+        preview = annotations(for: tool, endingAt: point, on: page, final: false)
+        overlayChanged?()
     }
 
     func dragEnded() {
@@ -417,33 +451,41 @@ final class EditorSession: ToolSession {
             dragPage = nil
             dragPoints = []
             moveOrigin = nil
+            preview = []
+            overlayChanged?()
         }
         if let origin = moveOrigin, let selected {
             let final = selected.bounds
+            page.addAnnotation(selected)
             guard final != origin else { return }
             let apply: (CGRect) -> Void = { [weak self] rect in
                 self?.mutate(selected, on: page) { selected.bounds = rect }
-                self?.updateMarker()
+                self?.overlayChanged?()
             }
             // Already moved: record it without moving again.
             undoStack.append(Change(undo: { apply(origin) }, redo: { apply(final) }))
             redoStack.removeAll()
-            revision += 1
             return
         }
         guard let tool = activeTool else { return }
-        showPreview([], on: page)
         let moved = hypot(end.x - dragStart.x, end.y - dragStart.y)
         // A touch that hardly moved is not a shape.
         guard moved >= 4 || (tool == .draw && dragPoints.count > 1) else { return }
         add(annotations(for: tool, endingAt: end, on: page, final: true), to: page, selecting: false)
     }
 
+    /// Ends a drag without adding anything. Something being moved goes back
+    /// where it was.
     private func cancelDrag() {
-        if let page = dragPage { showPreview([], on: page) }
+        if let origin = moveOrigin, let selected, let page = dragPage {
+            selected.bounds = origin
+            page.addAnnotation(selected)
+        }
         dragPage = nil
         dragPoints = []
         moveOrigin = nil
+        preview = []
+        overlayChanged?()
     }
 
     private func annotations(for tool: EditorTool, endingAt end: CGPoint, on page: PDFPage, final: Bool) -> [PDFAnnotation] {
@@ -473,40 +515,14 @@ final class EditorSession: ToolSession {
         }
     }
 
-    private func showPreview(_ annotations: [PDFAnnotation], on page: PDFPage) {
-        preview.forEach { page.removeAnnotation($0) }
-        preview = annotations
-        annotations.forEach { page.addAnnotation($0) }
-        revision += 1
-    }
-
     // MARK: - Selection
 
+    /// The overlay draws a frame around the selection; nothing is added to the page.
     func select(_ annotation: PDFAnnotation?, on page: PDFPage? = nil) {
-        if let marker {
-            marker.page.removeAnnotation(marker.annotation)
-            self.marker = nil
-        }
+        if moveOrigin != nil { cancelDrag() }
         selected = annotation
-        if let annotation, let page = page ?? annotation.page {
-            let frame = PDFAnnotation(bounds: annotation.bounds.insetBy(dx: -4, dy: -4), forType: .square, withProperties: nil)
-            frame.color = UIColor(named: "AccentColor") ?? .systemTeal
-            let border = PDFBorder()
-            border.lineWidth = 1.2
-            border.style = .dashed
-            border.dashPattern = [4, 3]
-            frame.border = border
-            page.addAnnotation(frame)
-            marker = (frame, page)
-        }
-        revision += 1
-    }
-
-    private func updateMarker() {
-        guard let selected, let marker else { return }
-        marker.page.removeAnnotation(marker.annotation)
-        marker.annotation.bounds = selected.bounds.insetBy(dx: -4, dy: -4)
-        marker.page.addAnnotation(marker.annotation)
+        selectedPage = annotation.flatMap { page ?? $0.page }
+        overlayChanged?()
     }
 
     var selectedIsText: Bool { selected?.type == "FreeText" }
@@ -523,11 +539,11 @@ final class EditorSession: ToolSession {
         perform(Change(
             undo: { [weak self] in
                 page.addAnnotation(annotation)
-                self?.ours.insert(ObjectIdentifier(annotation))
+                self?.ours[ObjectIdentifier(annotation)] = annotation
             },
             redo: { [weak self] in
                 page.removeAnnotation(annotation)
-                self?.ours.remove(ObjectIdentifier(annotation))
+                self?.ours[ObjectIdentifier(annotation)] = nil
             }
         ))
     }
@@ -552,7 +568,7 @@ final class EditorSession: ToolSession {
                     )
                 }
             }
-            self?.updateMarker()
+            self?.overlayChanged?()
         }
         perform(Change(undo: { apply(1) }, redo: { apply(factor) }))
     }
@@ -573,14 +589,14 @@ final class EditorSession: ToolSession {
             undo: { [weak self] in
                 annotations.forEach {
                     page.removeAnnotation($0)
-                    self?.ours.remove(ObjectIdentifier($0))
+                    self?.ours[ObjectIdentifier($0)] = nil
                 }
                 self?.select(nil)
             },
             redo: { [weak self] in
                 annotations.forEach {
                     page.addAnnotation($0)
-                    self?.ours.insert(ObjectIdentifier($0))
+                    self?.ours[ObjectIdentifier($0)] = $0
                 }
             }
         ))
@@ -593,7 +609,6 @@ final class EditorSession: ToolSession {
         change.redo()
         undoStack.append(change)
         redoStack.removeAll()
-        revision += 1
     }
 
     func undo() {
@@ -601,7 +616,6 @@ final class EditorSession: ToolSession {
         select(nil)
         change.undo()
         redoStack.append(change)
-        revision += 1
     }
 
     func redo() {
@@ -609,7 +623,6 @@ final class EditorSession: ToolSession {
         select(nil)
         change.redo()
         undoStack.append(change)
-        revision += 1
     }
 
     /// Changes an annotation that is on a page. PDFKit on iOS redraws a page
@@ -618,7 +631,6 @@ final class EditorSession: ToolSession {
         page.removeAnnotation(annotation)
         change()
         page.addAnnotation(annotation)
-        revision += 1
     }
 
     /// Makes PDFKit draw a page again after a form field changed.
@@ -628,7 +640,6 @@ final class EditorSession: ToolSession {
         nudge.color = .clear
         page.addAnnotation(nudge)
         page.removeAnnotation(nudge)
-        revision += 1
     }
 
     private func redraw(_ widgets: [PDFAnnotation]) {

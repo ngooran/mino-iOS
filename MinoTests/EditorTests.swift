@@ -370,8 +370,9 @@ final class EditorTests: XCTestCase {
         XCTAssertTrue(session.selectedIsText)
         XCTAssertEqual(note.bounds.minX, 200, accuracy: 0.5)
         XCTAssertEqual(note.bounds.maxY, 400, accuracy: 0.5, "The tap is the text's top-left corner")
-        // A dashed frame shows the selection; it is not one of the changes.
-        XCTAssertEqual(page.annotations.count, 2)
+        // A dashed frame shows the selection. The overlay draws it; the page doesn't get it.
+        XCTAssertEqual(page.annotations.count, 1)
+        XCTAssertEqual(session.overlay.selection?.rect, note.bounds.insetBy(dx: -4, dy: -4))
 
         // Drag it: only a drag that starts on the selection moves it.
         XCTAssertFalse(session.canBeginDrag(at: CGPoint(x: 400, y: 100), on: page))
@@ -521,6 +522,87 @@ final class EditorTests: XCTestCase {
         XCTAssertTrue(item.url.path.contains("/Signed/"))
         appState.delete(item)
         appState.store.debugProOverride = nil
+    }
+
+    /// PDFKit renders a whole page when an annotation is added or removed, so
+    /// what follows the finger stays in the overlay until the finger lifts.
+    func testDragsChangeThePageOnlyWhenTheFingerLifts() throws {
+        let session = try session(.edit, "text-3pages.pdf")
+        let page = try XCTUnwrap(session.pdf.page(at: 0))
+        var overlayUpdates = 0
+        session.overlayChanged = { overlayUpdates += 1 }
+
+        // Drawing: the stroke is in the overlay, then on the page.
+        session.activeTool = .draw
+        session.dragBegan(at: CGPoint(x: 100, y: 300), on: page)
+        for step in 1...30 {
+            session.dragChanged(to: CGPoint(x: 100 + CGFloat(step) * 5, y: 300 + CGFloat(step % 5)))
+            XCTAssertEqual(page.annotations.count, 0, "Nothing is added while drawing")
+        }
+        XCTAssertEqual(session.overlay.live?.annotations.count, 1)
+        XCTAssertGreaterThanOrEqual(overlayUpdates, 30)
+        session.dragEnded()
+        XCTAssertNil(session.overlay.live)
+        XCTAssertEqual(types(on: page), ["Ink"])
+
+        // Moving: taken off the page while it moves, put back where it ends.
+        session.activeTool = .text
+        session.tap(at: CGPoint(x: 200, y: 400), on: page)
+        session.submitText("Note")
+        let note = try XCTUnwrap(session.selected)
+        let start = note.bounds
+        session.dragBegan(at: CGPoint(x: 205, y: 395), on: page)
+        for step in 1...10 {
+            session.dragChanged(to: CGPoint(x: 205 + CGFloat(step) * 4, y: 395))
+            XCTAssertNil(note.page, "The note is drawn by the overlay while it moves")
+            XCTAssertTrue(session.overlay.live?.annotations.first === note)
+            XCTAssertEqual(session.overlay.selection?.rect, note.bounds.insetBy(dx: -4, dy: -4), "The frame follows")
+        }
+        session.dragEnded()
+        XCTAssertTrue(note.page === page)
+        XCTAssertEqual(note.bounds.minX, start.minX + 40, accuracy: 0.5)
+        session.undo()
+        XCTAssertTrue(note.page === page)
+        XCTAssertEqual(note.bounds.minX, start.minX, accuracy: 0.5)
+
+        // A move that is interrupted puts the note back where it was.
+        session.select(note, on: page)
+        session.dragBegan(at: CGPoint(x: note.bounds.midX, y: note.bounds.midY), on: page)
+        session.dragChanged(to: CGPoint(x: note.bounds.midX + 80, y: note.bounds.midY))
+        session.activeTool = .draw
+        XCTAssertTrue(note.page === page)
+        XCTAssertEqual(note.bounds.minX, start.minX, accuracy: 0.5)
+        XCTAssertTrue(session.overlay.isEmpty)
+    }
+
+    /// The overlay draws annotations that are not on a page.
+    func testTheOverlayDrawsEveryKindOfAddition() throws {
+        let size = 300
+        let annotations: [(String, PDFAnnotation)] = [
+            ("ink", try XCTUnwrap(EditorAnnotations.ink((0...40).map { CGPoint(x: 50 + $0 * 5, y: 50 + $0 * 4) }, color: .black, lineWidth: 3))),
+            ("rectangle", EditorAnnotations.shape(.rectangle, from: CGPoint(x: 50, y: 50), to: CGPoint(x: 250, y: 250), color: .red, lineWidth: 3)),
+            ("ellipse", EditorAnnotations.shape(.ellipse, from: CGPoint(x: 50, y: 50), to: CGPoint(x: 250, y: 250), color: .red, lineWidth: 3)),
+            ("arrow", EditorAnnotations.shape(.arrow, from: CGPoint(x: 50, y: 50), to: CGPoint(x: 250, y: 250), color: .blue, lineWidth: 3)),
+            ("highlight", EditorAnnotations.highlight(CGRect(x: 50, y: 100, width: 200, height: 20), color: .yellow)),
+            ("white-out", EditorAnnotations.whiteout(CGRect(x: 50, y: 100, width: 200, height: 20))),
+            ("text", EditorAnnotations.text("Hello there", at: CGPoint(x: 60, y: 200), fontSize: 18, color: .black)),
+            ("stamp", EditorAnnotations.stamp(EditorAnnotations.markImage(.check, color: .black), center: CGPoint(x: 150, y: 150), width: 60, pageRotation: 0)),
+        ]
+        for (name, annotation) in annotations {
+            XCTAssertNil(annotation.page)
+            let layer = AnnotationLayer()
+            layer.annotations = [annotation]
+            // Page coordinates grow upward; the overlay's grow downward.
+            layer.pageTransform = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: CGFloat(size))
+            let context = try XCTUnwrap(CGContext(
+                data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size * 4,
+                space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            layer.draw(in: context)
+            let data = try XCTUnwrap(context.data).assumingMemoryBound(to: UInt8.self)
+            let drawn = (0..<(size * size)).filter { data[$0 * 4 + 3] > 0 }.count
+            XCTAssertGreaterThan(drawn, 100, "\(name) should be drawn")
+        }
     }
 
     func testAPDFThatLimitsChangesIsRefused() throws {

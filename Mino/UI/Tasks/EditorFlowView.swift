@@ -78,8 +78,9 @@ private struct EditorContent: View {
     // MARK: - Editor
 
     private var editor: some View {
+        // The page stops above the bottom bar: under it, the bottom of a page
+        // that fits the screen couldn't be reached to sign or write on.
         PageEditorView(session: session)
-            .ignoresSafeArea(edges: .bottom)
             .background(Color.groupedBackground)
             .safeAreaInset(edge: .top, spacing: 0) {
                 toolStrip
@@ -283,41 +284,64 @@ private struct ToolChip: View {
 
 /// PDFKit's view with the editor's gestures. Taps and one-finger drags are
 /// passed to the session in page coordinates; a drag that the session
-/// doesn't want scrolls as usual.
+/// doesn't want scrolls as usual. What follows the finger is drawn by an
+/// `EditorOverlayView` on top, so PDFKit renders a page only when it changed.
 struct PageEditorView: UIViewRepresentable {
     let session: EditorSession
 
-    func makeUIView(context: Context) -> PDFView {
-        let view = PDFView()
+    func makeUIView(context: Context) -> EditorPDFView {
+        let view = EditorPDFView()
         view.document = session.pdf
         view.autoScales = true
         view.displayMode = .singlePageContinuous
         view.displayDirection = .vertical
         view.displaysPageBreaks = true
         view.backgroundColor = .systemGroupedBackground
+        view.overlay.pdfView = view
 
-        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped(_:)))
+        let coordinator = context.coordinator
+        let tap = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tapped(_:)))
         tap.cancelsTouchesInView = false
-        tap.delegate = context.coordinator
+        tap.delegate = coordinator
         view.addGestureRecognizer(tap)
 
-        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.panned(_:)))
+        let pan = UIPanGestureRecognizer(target: coordinator, action: #selector(Coordinator.panned(_:)))
         pan.maximumNumberOfTouches = 1
-        pan.delegate = context.coordinator
+        pan.delegate = coordinator
         view.addGestureRecognizer(pan)
-        context.coordinator.pan = pan
-        context.coordinator.view = view
+        coordinator.pan = pan
+        coordinator.view = view
+
+        session.overlayChanged = { [weak view, weak session] in
+            guard let view, let session else { return }
+            view.overlay.show(session.overlay)
+        }
+        view.overlay.show(session.overlay)
 
         // Scrolling waits until the editor has decided it doesn't want the drag.
-        DispatchQueue.main.async {
-            Coordinator.scrollViews(in: view).forEach { $0.panGestureRecognizer.require(toFail: pan) }
+        // The overlay follows scrolling and zooming.
+        DispatchQueue.main.async { [weak view] in
+            guard let view else { return }
+            for scrollView in Coordinator.scrollViews(in: view) {
+                scrollView.panGestureRecognizer.require(toFail: pan)
+                coordinator.observations.append(scrollView.observe(\.contentOffset) { [weak view] _, _ in
+                    MainActor.assumeIsolated { view?.overlay.follow() }
+                })
+            }
         }
+        coordinator.observations.append(NotificationCenter.default.addObserver(
+            forName: .PDFViewScaleChanged, object: view, queue: .main
+        ) { [weak view] _ in
+            MainActor.assumeIsolated { view?.overlay.follow() }
+        })
         return view
     }
 
-    func updateUIView(_ view: PDFView, context: Context) {
-        // Reading the revision makes SwiftUI call this when the pages changed.
-        _ = session.revision
+    func updateUIView(_ view: EditorPDFView, context: Context) {}
+
+    static func dismantleUIView(_ view: EditorPDFView, coordinator: Coordinator) {
+        coordinator.session.overlayChanged = nil
+        coordinator.observations.removeAll()
     }
 
     func makeCoordinator() -> Coordinator {
@@ -329,6 +353,8 @@ struct PageEditorView: UIViewRepresentable {
         let session: EditorSession
         weak var view: PDFView?
         weak var pan: UIPanGestureRecognizer?
+        /// Scroll and zoom observers; released with the view.
+        var observations: [Any] = []
 
         init(session: EditorSession) {
             self.session = session
@@ -340,15 +366,23 @@ struct PageEditorView: UIViewRepresentable {
             }
         }
 
-        private func pagePoint(_ recognizer: UIGestureRecognizer) -> (PDFPage, CGPoint)? {
-            guard let view else { return nil }
-            let location = recognizer.location(in: view)
-            guard let page = view.page(for: location, nearest: false) else { return nil }
+        private func pagePoint(_ location: CGPoint) -> (PDFPage, CGPoint)? {
+            guard let view, let page = view.page(for: location, nearest: false) else { return nil }
             return (page, view.convert(location, to: page))
         }
 
+        /// Where the finger came down. A pan is recognized only after the
+        /// finger has moved a little; a stroke still starts at the touch.
+        private func startLocation(of pan: UIPanGestureRecognizer) -> CGPoint {
+            guard let view else { return .zero }
+            let location = pan.location(in: view)
+            let moved = pan.translation(in: view)
+            return CGPoint(x: location.x - moved.x, y: location.y - moved.y)
+        }
+
         @objc func tapped(_ recognizer: UITapGestureRecognizer) {
-            guard recognizer.state == .ended, let (page, point) = pagePoint(recognizer) else { return }
+            guard recognizer.state == .ended, let view,
+                  let (page, point) = pagePoint(recognizer.location(in: view)) else { return }
             session.tap(at: point, on: page)
         }
 
@@ -356,13 +390,15 @@ struct PageEditorView: UIViewRepresentable {
             guard let view else { return }
             switch recognizer.state {
             case .began:
-                guard let (page, point) = pagePoint(recognizer) else { return }
-                session.dragBegan(at: point, on: page)
+                guard let (page, start) = pagePoint(startLocation(of: recognizer)) else { return }
+                session.dragBegan(at: start, on: page)
+                session.dragChanged(to: view.convert(recognizer.location(in: view), to: page))
                 activePage = page
             case .changed:
                 guard let page = activePage else { return }
                 session.dragChanged(to: view.convert(recognizer.location(in: view), to: page))
             case .ended, .cancelled, .failed:
+                guard activePage != nil else { return }
                 session.dragEnded()
                 activePage = nil
             default:
@@ -373,14 +409,176 @@ struct PageEditorView: UIViewRepresentable {
         private var activePage: PDFPage?
 
         func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
-            guard recognizer === pan else { return true }
-            guard let (page, point) = pagePoint(recognizer) else { return false }
+            guard let pan = recognizer as? UIPanGestureRecognizer, pan === self.pan else { return true }
+            guard let (page, point) = pagePoint(startLocation(of: pan)) else { return false }
             return session.canBeginDrag(at: point, on: page)
         }
 
         func gestureRecognizer(_ recognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
             // The tap must not block PDFKit's own recognizers, nor wait for them.
             recognizer is UITapGestureRecognizer
+        }
+    }
+}
+
+/// PDFKit's view with the editor's overlay on top.
+final class EditorPDFView: PDFView {
+    let overlay = EditorOverlayView()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        overlay.isUserInteractionEnabled = false
+        overlay.backgroundColor = .clear
+        addSubview(overlay)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not used")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        overlay.frame = bounds
+        if subviews.last !== overlay { bringSubviewToFront(overlay) }
+        overlay.follow()
+    }
+}
+
+/// Draws the session's overlay above the pages: a shape while it is drawn,
+/// something while it is moved, and the selection frame. These are layers
+/// over PDFKit's view; changing them never makes PDFKit render a page again.
+final class EditorOverlayView: UIView {
+    weak var pdfView: PDFView?
+
+    private var content = EditorSession.Overlay()
+    private let liveLayer = AnnotationLayer()
+    private let frameLayer = CAShapeLayer()
+    /// Counts the drags, so a finished one can be cleared a moment later.
+    private var liveGeneration = 0
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        liveLayer.needsDisplayOnBoundsChange = false
+        layer.addSublayer(liveLayer)
+        frameLayer.fillColor = nil
+        frameLayer.lineWidth = 1.5
+        frameLayer.lineDashPattern = [5, 4]
+        layer.addSublayer(frameLayer)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not used")
+    }
+
+    override func tintColorDidChange() {
+        super.tintColorDidChange()
+        frameLayer.strokeColor = tintColor.cgColor
+    }
+
+    func show(_ overlay: EditorSession.Overlay) {
+        let ended = content.live != nil && overlay.live == nil
+        // When a drag ends, PDFKit draws the page with the result a moment
+        // later. Until then the overlay keeps showing it, so nothing flickers.
+        if ended {
+            liveGeneration += 1
+            let generation = liveGeneration
+            content.selection = overlay.selection
+            follow()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                guard let self, self.liveGeneration == generation else { return }
+                self.content.live = nil
+                self.follow()
+            }
+            return
+        }
+        if overlay.live != nil { liveGeneration += 1 }
+        content = overlay
+        follow()
+    }
+
+    /// Places the layers for the current scroll position and zoom.
+    func follow() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+
+        if let selection = content.selection, let transform = transform(for: selection.page) {
+            frameLayer.strokeColor = tintColor.cgColor
+            frameLayer.path = CGPath(rect: selection.rect, transform: [transform])
+            frameLayer.isHidden = false
+        } else {
+            frameLayer.isHidden = true
+        }
+
+        guard let live = content.live, let transform = transform(for: live.page) else {
+            liveLayer.isHidden = true
+            liveLayer.annotations = []
+            return
+        }
+        // Room for strokes and arrowheads that reach past an annotation's bounds.
+        let pageRect = live.annotations.reduce(CGRect.null) { $0.union($1.bounds) }.insetBy(dx: -12, dy: -12)
+        var rect = pageRect.applying(transform).integral
+        // When zoomed in far, only what can be seen (and a screen around it) is drawn.
+        let visible = bounds.insetBy(dx: -bounds.width, dy: -bounds.height)
+        let clipped = rect.width * rect.height > visible.width * visible.height
+        if clipped {
+            rect = rect.intersection(visible)
+        }
+        guard !rect.isNull, !rect.isEmpty else {
+            liveLayer.isHidden = true
+            return
+        }
+        let unchanged = !clipped && !liveLayer.clipped
+            && liveLayer.annotations.count == live.annotations.count
+            && zip(liveLayer.annotations, live.annotations).allSatisfy { $0 === $1 }
+            && liveLayer.bounds.size == rect.size
+            && liveLayer.pageTransform.a == transform.a && liveLayer.pageTransform.b == transform.b
+            && liveLayer.pageTransform.c == transform.c && liveLayer.pageTransform.d == transform.d
+        liveLayer.isHidden = false
+        liveLayer.frame = rect
+        // Moved or scrolled without changing: shift the drawing, don't draw it again.
+        guard !unchanged else { return }
+        liveLayer.contentsScale = traitCollection.displayScale
+        liveLayer.annotations = live.annotations
+        liveLayer.pageTransform = transform
+        liveLayer.origin = rect.origin
+        liveLayer.clipped = clipped
+        liveLayer.setNeedsDisplay()
+    }
+
+    /// Page coordinates (points, y up) to this view's coordinates.
+    private func transform(for page: PDFPage) -> CGAffineTransform? {
+        guard let pdfView, page.document != nil else { return nil }
+        let origin = pdfView.convert(CGPoint.zero, from: page)
+        let x = pdfView.convert(CGPoint(x: 100, y: 0), from: page)
+        let y = pdfView.convert(CGPoint(x: 0, y: 100), from: page)
+        // The overlay covers the PDF view exactly, so its coordinates are the PDF view's.
+        return CGAffineTransform(
+            a: (x.x - origin.x) / 100, b: (x.y - origin.y) / 100,
+            c: (y.x - origin.x) / 100, d: (y.y - origin.y) / 100,
+            tx: origin.x, ty: origin.y
+        )
+    }
+}
+
+/// Draws annotations that are not on a page, the way PDFKit draws them on one.
+nonisolated final class AnnotationLayer: CALayer {
+    var annotations: [PDFAnnotation] = []
+    /// Page coordinates to the overlay's coordinates, when the drawing was made.
+    var pageTransform: CGAffineTransform = .identity
+    /// The layer's place in the overlay when the drawing was made. Moving the
+    /// layer later moves the drawing with it.
+    var origin: CGPoint = .zero
+    /// Only part of the annotations fits the layer.
+    var clipped = false
+
+    override func draw(in context: CGContext) {
+        context.translateBy(x: -origin.x, y: -origin.y)
+        context.concatenate(pageTransform)
+        for annotation in annotations {
+            annotation.draw(with: .cropBox, in: context)
         }
     }
 }
