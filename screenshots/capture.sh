@@ -8,6 +8,7 @@
 #   screenshots/capture.sh                 all devices
 #   screenshots/capture.sh iPhone          one device folder: iPhone, iPad or Duo-inner
 #   SHOTS_ONLY="04_Photos 07_Edit" screenshots/capture.sh     only these shots
+#   LOC=de screenshots/capture.sh          another language: en (default), de, es
 #
 # Writes screenshots/raw/<device>/en/<shot>.png (git-ignored). Needs a Debug simulator build:
 #   xcodebuild -project Mino.xcodeproj -scheme Mino -sdk iphonesimulator \
@@ -25,7 +26,15 @@ APP="$ROOT/build/WarnData/Build/Products/Debug-iphonesimulator/Mino.app"
 OUT="$ROOT/screenshots/raw"
 TMP="$(mktemp -d)"
 PY=/opt/homebrew/bin/python3
-LOC=en
+LOC="${LOC:-en}"
+# The app's language and the region whose number and date formats the store page uses.
+case $LOC in
+  en) REGION=en_US ;;
+  de) REGION=de_DE ;;
+  es) REGION=es_ES ;;
+  fr) REGION=fr_FR ;;
+  *) echo "Unknown LOC $LOC"; exit 1 ;;
+esac
 SAMPLES="$ROOT/screenshots/samples"   # sample photos and the Word file (make_photos.py)
 
 [[ -d "$APP" ]] || { echo "No Debug simulator build at $APP"; exit 1; }
@@ -102,9 +111,9 @@ for entry in "${DEVICES[@]}"; do
     # Paths go in after the split: the repo path has spaces.
     args=("${(@)args/@PHOTOS@/$SAMPLES/photos}"); args=("${(@)args/@DOCX@/$SAMPLES/Project Proposal.docx}")
     for attempt in 1 2 3; do
-      # The store page is en-US: US number and date formats, whatever the simulator's region.
+      # The language and region of this store page, whatever the simulator's own settings.
       xcrun simctl launch --terminate-running-process "$u" com.applestan.Mino \
-        -AppleLanguages "(en)" -AppleLocale en_US \
+        -AppleLanguages "($LOC)" -AppleLocale "$REGION" \
         -demoSandbox -demoAppearance light "${args[@]}" >/dev/null
       sleep $(( wait + (attempt - 1) * 10 ))
       capture "$folder" "$name" "$u" "$TMP/$file.png"

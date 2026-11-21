@@ -8,14 +8,259 @@ This document contains optimized App Store metadata for Mino.
 
 | Field | Value |
 |-------|-------|
-| App Name | Mino - PDF Compressor & Merger |
+| App Name | Mino - PDF Scanner & Converter (from 2.0; 1.x: Mino - PDF Compressor & Merger) |
 | Bundle ID | com.applestan.Mino |
 | SKU | mino-pdf-compressor |
 | Primary Language | English (US) |
 
 ---
 
+## 2.0 Listing: All Tools, en-US, de-DE, es-ES (21 Nov 2026)
+
+2.0 ships every tool of 2.1 to 2.4 at once (owner's decision, 21 Nov 2026), so the listing below replaces the compress-only 2.0 texts further down. Wording rules: never "PDF to Word" (it is PDF to Text); a signature is drawn, never "certified" or "legally binding"; Mino is not sold in France in 2.0 (RELEASE-2.0.md, "Export compliance"), so there is no fr-FR listing yet.
+
+Limits: name 30, subtitle 30, keywords 100, promotional text 170, description 4000. Keywords never repeat a word of the name or subtitle.
+
+### en-US
+
+**Name** (30): `Mino - PDF Scanner & Converter`
+**Subtitle** (28): `Sign, Fill, Compress & Merge`
+**Keywords** (97): `scan,ocr,split,jpg,photo,word,docx,excel,powerpoint,text,form,signature,annotate,password,offline`
+
+**Promotional Text** (147)
+```
+Scan, sign, convert and compress PDFs, all on your device. Nothing is uploaded and no account is needed. Try every tool, then unlock Mino Pro once.
+```
+
+**Description**
+```
+Every PDF tool you need, in one app that works offline. Scan paper, fill in and sign forms, convert photos and Office files, and make big PDFs small enough to send. Your files never leave your device.
+
+SCAN TO PDF
+Point the camera at a page: Mino finds the edges, straightens it and cleans it up. Scan several pages into one PDF, in color, grayscale or black and white.
+
+FILL & SIGN
+Tap a form field to fill it in, tick boxes, choose from lists. Draw your signature once and place it, with your initials and today's date, anywhere on the page. Mino keeps your signature on this device only. (A drawn signature, not a certified digital signature.)
+
+EDIT & ANNOTATE
+Highlight text, draw with your finger or Apple Pencil, add notes, shapes, arrows and pictures, and cover parts of a page with white-out.
+
+CONVERT
+- Photos to PDF: JPG, PNG and HEIC into one PDF, in the order you choose
+- Office to PDF: Word, Excel and PowerPoint files, plus RTF, text, CSV and HTML
+- PDF to Images: every page as JPG or PNG, saved to Photos
+- PDF to Text: the words of a PDF in reading order, best for text documents
+
+RECOGNIZE TEXT
+Make scanned PDFs searchable, or copy their text. Recognition runs on your device.
+
+COMPRESS
+See the size of each setting before you start, then shrink PDFs for email, messages and uploads. Batch-compress many files at once with Mino Pro.
+
+ORGANIZE, MERGE, SPLIT
+Rotate, delete, duplicate and reorder pages, insert pages from another PDF, combine several PDFs into one, or take out just the pages you need.
+
+PROTECT & UNLOCK
+Add a password to a PDF, or remove one you know.
+
+MADE FOR IPHONE, IPAD AND IPHONE DUO
+Native, in light and dark mode. On iPad and the unfolded iPhone Duo your tools and your files sit side by side. Open PDFs from Files, Mail or any app with the Share Extension, or drag them in.
+
+PRIVATE BY DESIGN
+Mino processes everything on your device. No uploads, no account, no tracking.
+
+TRY EVERYTHING, PAY ONCE
+Scan, compress, convert photos, export images and organize pages 3 times a day for free. Every other tool opens for you to set up and try. Mino Pro unlocks all tools without limits with a single purchase: no subscription, and Family Sharing is included.
+
+Questions or ideas? We'd love to hear from you.
+```
+
+**What's New in 2.0**
+```
+Mino becomes a complete PDF toolkit, and it's now free to download.
+
+NEW TOOLS
+• Scan to PDF with edge detection and filters
+• Fill & Sign: fill in forms, sign, add the date
+• Edit & Annotate: highlight, draw, add text and shapes
+• Recognize Text: make scans searchable
+• Photos to PDF and PDF to Images
+• Office to PDF: Word, Excel and PowerPoint
+• PDF to Text
+• Organize Pages
+• Protect & Unlock
+
+ALSO NEW
+• A fresh design for iPhone, iPad and iPhone Duo
+• Now in German, Spanish and French
+
+Free: 3 actions a day with Scan, Compress, Photos to PDF, PDF to Images and Organize Pages. Mino Pro, one purchase: every tool, unlimited, with Family Sharing.
+
+Already bought Mino? Thank you. You keep everything: Mino Pro is unlocked for you.
+```
+
+### de-DE
+
+**Name** (30): `Mino - PDF Scanner & Konverter`
+**Subtitle** (27): `PDF verkleinern & signieren`
+**Keywords** (96): `zusammenfügen,unterschreiben,ausfüllen,scannen,dokument,ocr,jpg,foto,word,excel,passwort,offline`
+
+**Promotional Text** (159)
+```
+Scannen, unterschreiben, umwandeln und verkleinern – alles auf deinem Gerät. Nichts wird hochgeladen, kein Konto nötig. Probiere jedes Werkzeug, dann Mino Pro.
+```
+
+**Description**
+```
+Alle PDF-Werkzeuge, die du brauchst, in einer App, die offline funktioniert. Scanne Papier, fülle Formulare aus und unterschreibe sie, wandle Fotos und Office-Dateien um und mach große PDFs klein genug zum Versenden. Deine Dateien verlassen dein Gerät nie.
+
+IN PDF SCANNEN
+Halte die Kamera auf eine Seite: Mino findet die Kanten, richtet sie gerade aus und macht sie sauber. Scanne mehrere Seiten in ein PDF, in Farbe, Graustufen oder Schwarzweiß.
+
+AUSFÜLLEN & SIGNIEREN
+Tippe auf ein Formularfeld, um es auszufüllen, setze Häkchen, wähle aus Listen. Zeichne deine Unterschrift einmal und setze sie mit deinen Initialen und dem heutigen Datum überall auf die Seite. Mino behält deine Unterschrift nur auf diesem Gerät. (Eine gezeichnete Unterschrift, keine zertifizierte digitale Signatur.)
+
+BEARBEITEN & MARKIEREN
+Markiere Text, zeichne mit dem Finger oder dem Apple Pencil, füge Notizen, Formen, Pfeile und Bilder hinzu und decke Teile einer Seite ab.
+
+UMWANDELN
+- Fotos in PDF: JPG, PNG und HEIC in ein PDF, in der Reihenfolge, die du wählst
+- Office in PDF: Word-, Excel- und PowerPoint-Dateien, dazu RTF, Text, CSV und HTML
+- PDF in Bilder: jede Seite als JPG oder PNG, in Fotos gesichert
+- PDF in Text: die Wörter eines PDFs in Lesereihenfolge, am besten für Textdokumente
+
+TEXT ERKENNEN
+Mach gescannte PDFs durchsuchbar oder kopiere ihren Text. Die Erkennung läuft auf deinem Gerät.
+
+KOMPRIMIEREN
+Sieh dir die Größe jeder Einstellung an, bevor du beginnst, und verkleinere PDFs für E-Mails, Nachrichten und Uploads. Mit Mino Pro komprimierst du viele Dateien auf einmal.
+
+ORDNEN, ZUSAMMENFÜGEN, AUFTEILEN
+Drehe, lösche, dupliziere und sortiere Seiten, füge Seiten aus einem anderen PDF ein, fasse mehrere PDFs zu einem zusammen oder nimm nur die Seiten heraus, die du brauchst.
+
+SCHÜTZEN & ENTSPERREN
+Versieh ein PDF mit einem Passwort oder entferne eines, das du kennst.
+
+FÜR IPHONE, IPAD UND IPHONE DUO
+Nativ, im hellen und dunklen Modus. Auf dem iPad und dem aufgeklappten iPhone Duo liegen deine Werkzeuge und Dateien nebeneinander. Öffne PDFs aus Dateien, Mail oder jeder App über die Share-Erweiterung oder zieh sie einfach hinein.
+
+PRIVAT VON GRUND AUF
+Mino verarbeitet alles auf deinem Gerät. Keine Uploads, kein Konto, kein Tracking.
+
+ALLES TESTEN, EINMAL ZAHLEN
+Scannen, Komprimieren, Fotos in PDF, PDF in Bilder und Seiten ordnen: 3-mal am Tag kostenlos. Jedes andere Werkzeug kannst du öffnen, einrichten und ausprobieren. Mino Pro schaltet alle Werkzeuge ohne Grenzen frei, mit einem einzigen Kauf: kein Abo, Familienfreigabe inklusive.
+
+Fragen oder Ideen? Wir freuen uns, von dir zu hören.
+```
+
+**What's New in 2.0**
+```
+Mino wird zum kompletten PDF-Werkzeugkasten – und ist jetzt kostenlos.
+
+NEUE WERKZEUGE
+• In PDF scannen mit Kantenerkennung und Filtern
+• Ausfüllen & signieren: Formulare ausfüllen, unterschreiben, Datum setzen
+• Bearbeiten & markieren: markieren, zeichnen, Text und Formen hinzufügen
+• Text erkennen: Scans durchsuchbar machen
+• Fotos in PDF und PDF in Bilder
+• Office in PDF: Word, Excel und PowerPoint
+• PDF in Text
+• Seiten ordnen
+• Schützen & entsperren
+
+AUSSERDEM NEU
+• Ein frisches Design für iPhone, iPad und iPhone Duo
+• Jetzt auf Deutsch, Spanisch und Französisch
+
+Kostenlos: 3 Aktionen am Tag mit Scannen, Komprimieren, Fotos in PDF, PDF in Bilder und Seiten ordnen. Mino Pro, ein einziger Kauf: alle Werkzeuge, unbegrenzt, mit Familienfreigabe.
+
+Du hast Mino schon gekauft? Danke! Du behältst alles: Mino Pro ist für dich freigeschaltet.
+```
+
+### es-ES
+
+**Name** (30): `Mino - Escáner y conversor PDF`
+**Subtitle** (28): `Firmar, rellenar y comprimir`
+**Keywords** (98): `unir,combinar,dividir,escanear,documento,ocr,jpg,foto,word,excel,contraseña,editar,reducir,offline`
+
+**Promotional Text** (159)
+```
+Escanea, firma, convierte y comprime PDF, todo en tu dispositivo. No se sube nada y no necesitas cuenta. Prueba cada herramienta y desbloquea Mino Pro una vez.
+```
+
+**Description**
+```
+Todas las herramientas PDF que necesitas, en una app que funciona sin conexión. Escanea papel, rellena y firma formularios, convierte fotos y archivos de Office, y haz que los PDF grandes sean lo bastante pequeños para enviarlos. Tus archivos nunca salen de tu dispositivo.
+
+ESCANEAR A PDF
+Apunta la cámara a una página: Mino encuentra los bordes, la endereza y la limpia. Escanea varias páginas en un solo PDF, en color, escala de grises o blanco y negro.
+
+RELLENAR Y FIRMAR
+Toca un campo del formulario para rellenarlo, marca casillas, elige de listas. Dibuja tu firma una vez y colócala, con tus iniciales y la fecha de hoy, en cualquier parte de la página. Mino guarda tu firma solo en este dispositivo. (Una firma dibujada, no una firma digital certificada.)
+
+EDITAR Y ANOTAR
+Resalta texto, dibuja con el dedo o con el Apple Pencil, añade notas, formas, flechas e imágenes, y cubre partes de una página con corrector.
+
+CONVERTIR
+- Fotos a PDF: JPG, PNG y HEIC en un solo PDF, en el orden que elijas
+- Office a PDF: archivos de Word, Excel y PowerPoint, además de RTF, texto, CSV y HTML
+- PDF a imágenes: cada página como JPG o PNG, guardada en Fotos
+- PDF a texto: las palabras de un PDF en orden de lectura, ideal para documentos de texto
+
+RECONOCER TEXTO
+Haz que los PDF escaneados se puedan buscar o copia su texto. El reconocimiento se hace en tu dispositivo.
+
+COMPRIMIR
+Mira el tamaño de cada ajuste antes de empezar y reduce los PDF para correo, mensajes y subidas. Con Mino Pro comprimes muchos archivos a la vez.
+
+ORGANIZAR, COMBINAR, DIVIDIR
+Gira, elimina, duplica y reordena páginas, inserta páginas de otro PDF, combina varios PDF en uno o extrae solo las páginas que necesitas.
+
+PROTEGER Y DESBLOQUEAR
+Pon una contraseña a un PDF o quita una que conozcas.
+
+PARA IPHONE, IPAD Y IPHONE DUO
+Nativa, en modo claro y oscuro. En el iPad y en el iPhone Duo desplegado, tus herramientas y tus archivos están uno al lado del otro. Abre PDF desde Archivos, Mail o cualquier app con la extensión para compartir, o simplemente arrástralos.
+
+PRIVADA POR DISEÑO
+Mino lo procesa todo en tu dispositivo. Sin subidas, sin cuenta, sin rastreo.
+
+PRUÉBALO TODO, PAGA UNA VEZ
+Escanear, comprimir, fotos a PDF, PDF a imágenes y organizar páginas: 3 veces al día gratis. Cualquier otra herramienta se abre para que la configures y la pruebes. Mino Pro desbloquea todas las herramientas sin límites con una sola compra: sin suscripción y con En familia incluido.
+
+¿Preguntas o ideas? Nos encantará saber de ti.
+```
+
+**What's New in 2.0**
+```
+Mino se convierte en un completo kit de herramientas PDF, y ahora se descarga gratis.
+
+HERRAMIENTAS NUEVAS
+• Escanear a PDF con detección de bordes y filtros
+• Rellenar y firmar: rellena formularios, firma, añade la fecha
+• Editar y anotar: resalta, dibuja, añade texto y formas
+• Reconocer texto: haz que los escaneos se puedan buscar
+• Fotos a PDF y PDF a imágenes
+• Office a PDF: Word, Excel y PowerPoint
+• PDF a texto
+• Organizar páginas
+• Proteger y desbloquear
+
+TAMBIÉN NUEVO
+• Un diseño renovado para iPhone, iPad y iPhone Duo
+• Ahora en alemán, español y francés
+
+Gratis: 3 acciones al día con Escanear, Comprimir, Fotos a PDF, PDF a imágenes y Organizar páginas. Mino Pro, una sola compra: todas las herramientas, sin límites, con En familia.
+
+¿Ya compraste Mino? Gracias. Lo conservas todo: Mino Pro está desbloqueado para ti.
+```
+
+---
+
 ## App Store Listing
+
+*The sections below are the earlier, compress-only texts (1.x and the first 2.0 plan). The 2.0 listing is the section above.*
+
 
 ### App Name (30 char max)
 ```
