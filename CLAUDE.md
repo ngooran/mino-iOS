@@ -26,7 +26,7 @@ open Mino.xcodeproj
 
 ## Architecture Overview
 
-Mino is an iOS PDF toolkit that uses MuPDF (C library) via Swift bridging. 2.0 has Compress, Merge and Split. Branch `toolkit` adds the tools of ROADMAP.md; its "Progress" section says what is built, how it was verified and what is left.
+Mino is an iOS PDF toolkit that uses MuPDF (C library) via Swift bridging. 2.0 has Compress, Merge and Split. `main` also has the tools of ROADMAP.md (merged from `toolkit` on 21 Nov 2026); `redesign-2.0` stays as 2.0 alone, and tag `v1.2` marks the live version. ROADMAP.md's "Progress" section says what is built, how it was verified and what is left.
 
 ### App Structure
 

@@ -122,7 +122,7 @@ Recommended sequence, once 2.0 is approved (it waits as "Pending Developer Relea
 The short window between the two can only give a few people free Pro, which is harmless. Doing it the other way round would charge people for an app without Pro. Never make the app free before 2.0 is approved.
 
 ### Step 7: After launch
-- [ ] Merge `redesign-2.0` into `main` and tag `v2.0`.
+- [x] Merge into `main`: done 21 Nov 2026, together with the toolkit (`main` = 2.0 + 2.1–2.4). Tag the commit that ships as `v2.0`. `v1.2` marks the live version.
 - [ ] Watch for 1.x buyers saying Pro didn't unlock (the grandfathering path can't be tested before release).
 - [ ] Check conversion in App Store Connect analytics: downloads before and after, and Pro purchase rate. Then reconsider the free limit and price.
 - [ ] Start 2.1 from [ROADMAP.md](ROADMAP.md): 10 new tools in four releases (2.1–2.4), with the free/Pro split, price path and App Store plan.

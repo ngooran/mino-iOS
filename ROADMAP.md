@@ -509,7 +509,7 @@ Two further reasons not to ship it: the writer puts line breaks inside text runs
 3. **Other apps:** open results in Acrobat (protected, signed, flattened, searchable PDFs) and a few converted Office files.
 4. **App Store Connect** (nothing was touched): version numbers and builds, the texts in AppStoreMetadata.md for 2.1 to 2.4, screenshots, the app's new name from 2.2, review notes. Mino Pro stays €4.99.
 5. **Decide:** whether the four releases ship one by one or together, and translation (the String Catalog is ready, English only).
-6. Merge `toolkit` after 2.0 is released; it was not merged into `redesign-2.0` or `main`.
+6. ~~Merge `toolkit`~~ Done 21 Nov 2026: `toolkit` was merged into `main`. `redesign-2.0` was left as 2.0 alone, in case 2.0 ships before the tools.
 
 ### Fixed after device testing (19 Nov 2026)
 
