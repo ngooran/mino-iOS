@@ -248,7 +248,6 @@ struct SettingsView: View {
             }
             LabeledContent("Free left today", value: "\(appState.usage.remaining)")
             Button("Reset Free Actions") { appState.usage.reset() }
-            NavigationLink("App Icon Export") { AppIconExportView() }
         }
     }
     #endif

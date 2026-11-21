@@ -79,7 +79,10 @@ struct AppIconView: View {
     var size: CGFloat = 60
 
     var body: some View {
-        AppIconDesign(size: size)
+        // The same picture as the app icon (Scripts/make_app_icon.py draws both).
+        Image("AppIconArtwork")
+            .resizable()
+            .interpolation(.high)
             .frame(width: size, height: size)
             .clipShape(RoundedRectangle(cornerRadius: size * 0.225, style: .continuous))
             .accessibilityHidden(true)

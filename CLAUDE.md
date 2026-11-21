@@ -173,9 +173,10 @@ User selects PDF → SplitService → PDFSplitter → [SplitResult]
 - Always add `.contentShape(Rectangle())` to buttons with `Spacer()` or HStack layouts
 - Ensures entire button area is tappable, not just visible content
 
-**App Icon** (`Mino/Resources/AppIconDesign.swift`)
-- SwiftUI Canvas-based icon design, also drawn in-app by `AppIconView`
-- Export via `AppIconExportView` (DEBUG only, in Settings)
+**App Icon** (`Scripts/make_app_icon.py`)
+- A white page with a folded corner and a teal "PDF" on a teal background, chosen on 21 Nov 2026 to stand out among the red and blue icons of the PDF category
+- The script draws the light, dark and tinted icons into `AppIcon.appiconset` and the copy `AppIconView` shows (`AppIconArtwork`). Letters: Nunito Black (`Scripts/fonts`, SIL Open Font License); Apple's SF fonts are not licensed for logos
+- Needs Pillow (`python3 -m pip install pillow`)
 
 ## MuPDF C API Notes
 
