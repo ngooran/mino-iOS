@@ -210,7 +210,7 @@ private struct TabPlaceholder: View {
     var body: some View {
         switch tab {
         case .home:
-            HomeDropZone()
+            HomeStartView()
         case .files:
             if let first = appState.files.first {
                 FilePreviewView(item: first)

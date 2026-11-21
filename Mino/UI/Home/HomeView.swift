@@ -276,29 +276,153 @@ private struct ToolTile: View {
     }
 }
 
-// MARK: - Placeholder (regular width, nothing open)
+// MARK: - Start pane (regular width, nothing open)
 
-struct HomeDropZone: View {
+/// The trailing column of Home on iPad and the open iPhone Duo when no tool or
+/// file is open: recent files to pick up again, a few tools to start with, and
+/// the reminder that files can be dropped here. Without files yet, large ways
+/// to start.
+struct HomeStartView: View {
+    @Environment(AppState.self) private var appState
+
+    /// The tools most people start with; the full list is on the left.
+    private let quickTools: [Tool] = [.fillSign, .compress, .photosToPDF, .officeToPDF]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                let recent = Array(appState.files.prefix(6))
+                if recent.isEmpty {
+                    firstStart
+                } else {
+                    PaneTitle(String(localized: "Recent"))
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14)], spacing: 14) {
+                        ForEach(recent) { item in
+                            RecentCard(item: item)
+                        }
+                    }
+                    PaneTitle(String(localized: "Start Something New"))
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
+                        ForEach(quickTools.filter(\.isAvailable)) { tool in
+                            QuickToolButton(tool: tool)
+                        }
+                    }
+                }
+                Label("Drop PDFs or photos here to start.", systemImage: "square.and.arrow.down")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 6)
+            }
+            .frame(maxWidth: 760)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
+            .frame(maxWidth: .infinity)
+        }
+        .background(Color.groupedBackground)
+    }
+
+    /// No files yet: the three ways to begin, large.
+    private var firstStart: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            PaneTitle(String(localized: "Start with a Document"))
+            HStack(spacing: 14) {
+                if Tool.scan.isAvailable {
+                    EntryButton(title: String(localized: "Scan"), systemImage: "doc.viewfinder", prominent: true) {
+                        appState.open(.scan)
+                    }
+                }
+                EntryButton(title: String(localized: "Open PDF"), systemImage: "doc", prominent: !Tool.scan.isAvailable) {
+                    appState.openPDF()
+                }
+                EntryButton(title: Tool.photosToPDF.title, systemImage: Tool.photosToPDF.systemImage, prominent: false) {
+                    appState.open(.photosToPDF)
+                }
+            }
+            .frame(height: 130)
+        }
+    }
+}
+
+private struct PaneTitle: View {
+    let title: String
+
+    init(_ title: String) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title)
+            .font(.title2.bold())
+            .padding(.horizontal, 4)
+            .padding(.top, 4)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// A recent file: a large first-page thumbnail, its name and what made it.
+private struct RecentCard: View {
+    let item: FileItem
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        VStack(spacing: 16) {
-            ContentUnavailableView {
-                Label("Pick a Tool", systemImage: "doc")
-            } description: {
-                Text("Choose a tool on the left, or drop a PDF or photos here.")
-            } actions: {
-                Button("Open PDF") { appState.openPDF() }
-                    .secondaryButtonStyle()
+        Button {
+            appState.show(.preview(item), in: .home)
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                FileThumbnail(url: item.url, width: 118)
+                    .frame(maxWidth: .infinity)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.name)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                    Label(item.kind.title, systemImage: item.kind.systemImage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
-            .background {
-                RoundedRectangle(cornerRadius: 30, style: .continuous)
-                    .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
-                    .foregroundStyle(.quaternary)
-            }
-            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardStyle(padding: 14, cornerRadius: 24)
+            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.groupedBackground)
+        .buttonStyle(.plain)
+        .hoverEffect(.lift)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(String(localized: "Opens a preview"))
+    }
+}
+
+/// One tool as a wide row: icon, title, subtitle, Pro badge when locked.
+private struct QuickToolButton: View {
+    let tool: Tool
+    @Environment(AppState.self) private var appState
+
+    var body: some View {
+        Button {
+            appState.open(tool)
+        } label: {
+            HStack(spacing: 12) {
+                IconTile(systemImage: tool.systemImage, color: tool.color, size: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(tool.title)
+                        .font(.headline)
+                    Text(tool.subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                if tool.access == .pro && !appState.isPro {
+                    ProBadge()
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardStyle(padding: 14, cornerRadius: 24)
+            .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .hoverEffect(.lift)
+        .accessibilityElement(children: .combine)
     }
 }

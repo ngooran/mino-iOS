@@ -151,7 +151,7 @@ User selects PDF → SplitService → PDFSplitter → [SplitResult]
 ### UI (`Mino/UI/`)
 
 - `Root/RootView` - tabs, adaptive navigation, file importer, paywall sheet, drag and drop
-- `Home/HomeView` - search, entry points, tool tiles by category, recent files, placeholder (regular width)
+- `Home/HomeView` - search, entry points, tool tiles by category, recent files; `HomeStartView` is the trailing column on regular width when nothing is open (recent files as thumbnails, four quick tools, the drop hint; three large start cards when there are no files)
 - `Tasks/CompressFlowView` - quality (with size estimates) → progress → result
 - `Tasks/MergeFlowView`, `Tasks/SplitFlowView` - same configure → progress → result pattern
 - `Tasks/ToolFlow` - shared frame of the newer tools: working, failure and result screens, `PageSelectionGrid`, `DocumentCard`
