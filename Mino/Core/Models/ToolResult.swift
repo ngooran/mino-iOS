@@ -31,7 +31,7 @@ nonisolated struct ToolOutput: Sendable {
     var totalSize: Int64 {
         urls.reduce(0) { total, url in
             let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
-            return total + (size ?? 0)
+            return total + size
         }
     }
 }

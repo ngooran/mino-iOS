@@ -63,7 +63,7 @@ nonisolated enum WorkbookSplitter {
 
 // MARK: - Reading little-endian numbers
 
-private extension Data {
+private nonisolated extension Data {
     func u16(_ offset: Int) -> Int {
         guard offset >= 0, offset + 2 <= count else { return 0 }
         return Int(self[startIndex + offset]) | Int(self[startIndex + offset + 1]) << 8
