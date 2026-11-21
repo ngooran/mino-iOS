@@ -216,15 +216,17 @@ xcodebuild test -project Mino.xcodeproj -scheme Mino -sdk iphonesimulator \
 
 ## App Store Screenshots
 
-Raw screenshots live in `Screenshots/raw/<locale>/<device>/` (`iphone-6.9`, `ipad-13`, `iphone-duo`, `iphone-duo-closed`), one file per screen (`01-home` ... `07-paywall`). Only `en-US` exists: the app and the listing are English only.
+The store set is made with ShotKit (`appdev/Private/iOS/ShotKit`, its `README.md` and `docs/`): the engine and the tool live there, Mino holds only its set.
 
-- Take them on simulators only, never on a physical device: iPhone 18 Pro Max (6.9", 1320×2868), iPad Pro 13-inch (2064×2752), iPhone Duo (open 2853×2007, closed 1398×2034).
-- Before shooting, run `xcrun simctl status_bar <udid> override --time 9:41 --batteryState charged --batteryLevel 100`, and set `xcrun simctl ui <udid> appearance light`.
-- Launch each screen with `-demoSandbox -demoAppearance light -demoScreen <screen>`, adding `-demoFree` except for merge and split. Wait about 15 s for the sample files.
-- Xcode 27 has no Simulator.app (Device Hub replaces it), and `simctl` can't fold the Duo. Use `hinge` (`brew install artemnovichkov/tap/hinge`):
-  - `hinge open` / `hinge close` / `hinge 110` set the fold.
-  - `hinge orient portrait` gives the wide, two-page inner layout; Duo "portrait" is 2853×2007.
-  - `hinge screenshot <file>` captures the display that is showing the app.
+- `screenshots/screenshot-plan.md`: the ten frames, their headlines and why (approved 21 Nov 2026).
+- `screenshots/capture.sh`: raw captures on iPhone 18 Pro, iPad Pro 13-inch (M5) and the open iPhone Duo, into `screenshots/raw/<iPhone|iPad|Duo-inner>/en/` (git-ignored). Needs a Debug simulator build in `build/WarnData`.
+- `screenshots/story/`: the set (`set.js` frames and copy, `theme.css`, `shotkit.json`). `open screenshots/story/index.html` for the gallery; `shotkit export --dir <A|B|C>` renders into `screenshots/output/` (git-ignored).
+- No frame may say "free" or show a price or the paywall (Guideline 2.3.7). Free tools are captured with `-demoFree -demoHideAllowance` (DEBUG: hides "free actions left today", keeps the PRO badges), Pro tools with `-demoPro`. Pro frames carry a "Mino Pro" mark.
+- Simulators only, never a physical device. `hinge -d <udid> open` unfolds the Duo; `simctl io <udid> screenshot --display=primary-1` captures its inner display at 2853 × 2007.
+- `simctl io screenshot` can't write to the external volume: the script writes to a temp folder first.
+- Upload only after the owner has seen the contact sheets: `shotkit upload --approved --version <x.y>`.
+
+The 2.0 raw shots in `Screenshots/raw/en-US/` (01-home ... 07-paywall) are the older set; `07-paywall` is still the reviewer screenshot of the in-app purchase.
 
 ## Git Workflow
 

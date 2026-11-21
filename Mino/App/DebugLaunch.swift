@@ -148,11 +148,15 @@ enum DebugLaunch {
                 session.tap(at: CGPoint(x: 330, y: 494), on: page)
                 session.submitText("Agreed, 15 Nov")
                 session.select(nil)
-                session.activeTool = .whiteout
-                // Cover rule 5 completely.
-                session.dragBegan(at: CGPoint(x: 52, y: 434), on: page)
-                session.dragChanged(to: CGPoint(x: 420, y: 458))
-                session.dragEnded()
+                // -demoNoWhiteout (store captures): without the white-out, whose warning
+                // would fill the bottom of the screen.
+                if !arguments.contains("-demoNoWhiteout") {
+                    session.activeTool = .whiteout
+                    // Cover rule 5 completely.
+                    session.dragBegan(at: CGPoint(x: 52, y: 434), on: page)
+                    session.dragChanged(to: CGPoint(x: 420, y: 458))
+                    session.dragEnded()
+                }
                 session.color = .black
                 session.activeTool = arguments.contains("-demoTool") ? .draw : nil
                 if run {
@@ -161,7 +165,9 @@ enum DebugLaunch {
                 }
             }
         case "office":
-            await appState.receive([makeSampleReport()])
+            // -demoFile <path>: a document from the Mac instead of the built-in sample (store
+            // captures use a Word file from screenshots/samples; iOS can't write .docx itself).
+            await appState.receive([externalCopy(value(after: "-demoFile", in: arguments)) ?? makeSampleReport()])
             if run, let session = appState.officeSession {
                 appState.store.debugProOverride = true
                 appState.convertOffice(session)
@@ -174,7 +180,9 @@ enum DebugLaunch {
             }
         case "photos":
             appState.openPhotosToPDF()
-            await appState.addPhotos(from: makeSamplePhotos())
+            // -demoPhotos <folder>: photos from the Mac (store captures, screenshots/samples).
+            let photos = value(after: "-demoPhotos", in: arguments).map(externalPhotos) ?? []
+            await appState.addPhotos(from: photos.isEmpty ? makeSamplePhotos() : photos)
             if let session = appState.photosSession {
                 if let size = value(after: "-demoPageSize", in: arguments).flatMap(PhotoPageSize.init(rawValue:)) {
                     session.pageSize = size
@@ -236,6 +244,25 @@ enum DebugLaunch {
         default:
             break
         }
+    }
+
+    /// A copy of a file on the Mac (the simulator can read it), so the app works on its own copy.
+    private static func externalCopy(_ path: String?) -> URL? {
+        guard let path, FileManager.default.fileExists(atPath: path) else { return nil }
+        let source = URL(fileURLWithPath: path)
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("DemoExternal", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let copy = folder.appendingPathComponent(source.lastPathComponent)
+        try? FileManager.default.removeItem(at: copy)
+        return (try? FileManager.default.copyItem(at: source, to: copy)) != nil ? copy : nil
+    }
+
+    /// The pictures in a folder on the Mac, by name, as copies.
+    private static func externalPhotos(_ folder: String) -> [URL] {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
+        return names.sorted()
+            .filter { ["jpg", "jpeg", "png", "heic"].contains(($0 as NSString).pathExtension.lowercased()) }
+            .compactMap { externalCopy((folder as NSString).appendingPathComponent($0)) }
     }
 
     private static func value(after flag: String, in arguments: [String]) -> String? {

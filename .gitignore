@@ -86,3 +86,8 @@ fastlane/test_output/
 
 # Crash logs
 *.crash
+
+# Store screenshots: the engine link, raw captures and renders are machine-local
+screenshots/story/shotkit
+screenshots/raw/
+screenshots/output/

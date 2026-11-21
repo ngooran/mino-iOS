@@ -125,7 +125,7 @@ struct ToolResultView<Extras: View>: View {
                     }
                 }
             } footer: {
-                if !appState.isPro {
+                if AllowanceVisibility.shows(isPro: appState.isPro) {
                     HStack(spacing: 4) {
                         Text("\(appState.usage.remaining) free actions left today.")
                         Button("Go unlimited") { appState.showPaywall(.general) }

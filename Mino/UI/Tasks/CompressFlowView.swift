@@ -291,7 +291,7 @@ private struct CompressResultView: View {
                     Label("Compress Another", systemImage: "arrow.down.doc")
                 }
             } footer: {
-                if !appState.isPro {
+                if AllowanceVisibility.shows(isPro: appState.isPro) {
                     HStack(spacing: 4) {
                         Text("\(appState.usage.remaining) free actions left today.")
                         Button("Go unlimited") { appState.showPaywall(.general) }

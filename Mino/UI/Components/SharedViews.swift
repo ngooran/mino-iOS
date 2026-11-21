@@ -152,12 +152,24 @@ struct TaskFailedView: View {
     }
 }
 
+/// Whether the daily allowance ("free actions left today") is shown. It is
+/// hidden for Pro users, and in DEBUG store captures (`-demoHideAllowance`):
+/// store screenshots must not say "free" (App Store Review Guideline 2.3.7).
+enum AllowanceVisibility {
+    static func shows(isPro: Bool) -> Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-demoHideAllowance") { return false }
+        #endif
+        return !isPro
+    }
+}
+
 /// "Free actions left today" with a link to Mino Pro. Hidden for Pro users.
 struct FreeAllowanceView: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        if !appState.isPro {
+        if AllowanceVisibility.shows(isPro: appState.isPro) {
             let remaining = appState.usage.remaining
             HStack(spacing: 8) {
                 HStack(spacing: 3) {
