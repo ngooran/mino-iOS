@@ -454,6 +454,30 @@ We built Mino because we believe PDF compression should be simple, fast, and res
 
 Submit it together with version 2.0: the first IAP of an app has to go to review with an app version.
 
+### Notes for App Review (2.0, all tools), as submitted on 21 Nov 2026
+```
+Mino 2.0 turns Mino from a paid PDF compressor into a free PDF toolkit with one non-consumable in-app purchase, "Mino Pro" (com.applestan.Mino.pro).
+
+FREE: 3 actions per day, shared by Scan to PDF, Compress, Photos to PDF, PDF to Images and Organize Pages.
+MINO PRO: unlimited actions and every other tool: Merge, Split, batch compression, Fill & Sign, Edit & Annotate, Recognize Text, Office to PDF, PDF to Text, Protect & Unlock.
+
+HOW TO SEE THE PURCHASE: every tool opens for everyone; the Mino Pro screen appears at the tool's final button. For example: Home > Merge > choose two PDFs > Merge. Or use a free tool a 4th time in one day. Restore Purchase is on the Mino Pro screen and in Settings.
+
+Customers who bought the paid app (builds 1 and 3) keep all features: we check AppTransaction.originalAppVersion and unlock Mino Pro automatically. In the sandbox this check does not apply, so the review device shows the free tier.
+
+PERMISSIONS
+- Camera: only for Scan to PDF, with Apple's document camera (VisionKit). Images stay on the device.
+- Photo library: add-only, for PDF to Images > Save to Photos. Photos are chosen with the system picker; the app never reads the library.
+
+ABOUT SOME TOOLS
+- Fill & Sign places a hand-drawn signature image. It is not a certificate-based digital signature, and the app says so. The signature is stored on the device and can be deleted in Settings.
+- Protect & Unlock removes a password only when the user enters it; it cannot open PDFs with unknown passwords.
+- Office to PDF uses the system's built-in document renderers on the device. PDF to Text saves a plain text file; the app does not create Word documents.
+- Text recognition uses Apple's Vision framework on the device.
+
+All processing happens on the device. No account, no server, no network connections, no data collection. The app is localized into English, German, Spanish and French.
+```
+
 ### Notes for App Review (2.0)
 ```
 Mino 2.0 changes Mino from a paid app to a free download with one non-consumable in-app purchase, "Mino Pro" (com.applestan.Mino.pro).

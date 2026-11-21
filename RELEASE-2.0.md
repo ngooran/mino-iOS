@@ -4,7 +4,7 @@ Everything about the 2.0 release in one place: what changed, what is done, and t
 
 Status on 15 Nov 2026: the code is done on branch `redesign-2.0` (merged into `main` with the toolkit on 21 Nov 2026, then deleted; 2.0 alone is commit `d2b82b3`), the Mino Pro in-app purchase exists in App Store Connect, and raw screenshots are taken. Nothing has been submitted to Apple yet.
 
-Status on 21 Nov 2026: 2.0 ships every tool of ROADMAP.md, on `main`. Version 2.0 exists in App Store Connect with its listing (en-US, de-DE, es-ES) and screenshots; TestFlight builds 2.0 (4) and 2.0 (5) are processed. The app is localized into German, Spanish and French; France is left out of 2.0 (see "Export compliance"). Not submitted.
+Status on 21 Nov 2026: 2.0 ships every tool of ROADMAP.md, on `main`. Version 2.0 exists in App Store Connect with its listing (en-US, de-DE, es-ES) and screenshots; TestFlight builds 2.0 (4) and 2.0 (5) are processed. The app is localized into German, Spanish and French; France is left out of 2.0 (see "Export compliance"). Submitted for review on 21 Nov 2026 with Mino Pro; release is manual (step 6).
 
 ---
 
@@ -100,16 +100,16 @@ Every step that touches App Store Connect is outward-facing. Do it deliberately,
 
 ### Step 4: Prepare version 2.0 in App Store Connect
 - [x] Create version 2.0 (iOS): done 21 Nov 2026, manual release, copyright "© 2026 Navid Gooran".
-- [ ] Attach the TestFlight build you tested (2.0 (5) or later). Builds 4 and 5 are in App Store Connect with their export compliance answered.
+- [x] Build 2.0 (5) attached on 21 Nov 2026. (It was not tested on a device before submission, by the owner's decision: "do all". Restore Purchase stays untested until release.)
 - [x] Listing texts: the "2.0 Listing: All Tools" section of AppStoreMetadata.md (name, subtitle, keywords, promotional text, description, What's New) is in App Store Connect for en-US, de-DE and es-ES since 21 Nov 2026, read back and identical.
 - [x] Screenshots: the ShotKit set (`screenshots/`), direction B, en-US, de-DE and es-ES, for iPhone 6.3", iPhone 6.9", iPad 13" and iPhone Duo: 120 files, verified by checksum on 21 Nov 2026.
-- [ ] Under **In-App Purchases and Subscriptions** on the version page, add **Mino Pro**. An app's first in-app purchase can only be submitted together with an app version.
-- [ ] App Review notes: paste "Notes for App Review (2.0)" from AppStoreMetadata.md.
+- [x] **Mino Pro** submitted together with the version; its reviewer screenshot is the current paywall (`screenshots/review/mino-pro-review.png`).
+- [x] App Review notes: "Notes for App Review (2.0, all tools)" in AppStoreMetadata.md. Age rating: the two new social-media questions answered No.
 - [ ] App Privacy: no change needed. StoreKit purchases go through Apple, and Mino still collects no data.
 - [x] Release option: **Manually release this version** (set when the version was created).
 
 ### Step 5: Submit for review
-- [ ] Submit version 2.0 with Mino Pro attached.
+- [x] Submitted on 21 Nov 2026, 20:07 UTC: version 2.0 and Mino Pro are Waiting for Review (submission `644c79e1-d784-47cb-9a07-f426ac89e47f`).
 
 ### Step 6: Release, and make the app free
 Order matters, because grandfathering keys on the build number:
