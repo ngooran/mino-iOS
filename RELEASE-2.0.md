@@ -2,7 +2,7 @@
 
 Everything about the 2.0 release in one place: what changed, what is done, and the steps left, in order.
 
-Status on 15 Nov 2026: the code is done on branch `redesign-2.0` (pushed, not merged), the Mino Pro in-app purchase exists in App Store Connect, and raw screenshots are taken. Nothing has been submitted to Apple yet.
+Status on 15 Nov 2026: the code is done on branch `redesign-2.0` (merged into `main` with the toolkit on 21 Nov 2026, then deleted; 2.0 alone is commit `d2b82b3`), the Mino Pro in-app purchase exists in App Store Connect, and raw screenshots are taken. Nothing has been submitted to Apple yet.
 
 ---
 
@@ -31,7 +31,7 @@ Code-level details are in [CLAUDE.md](CLAUDE.md). App Store texts are in [AppSto
 
 ## 2. Done
 
-### Code (branch `redesign-2.0`)
+### Code (2.0 alone: commit `d2b82b3`; now in `main`)
 - [x] Redesign: Home / Files / Settings tabs, the task flows (Compress, Merge, Split), the Files list with a preview, Statistics, and the Mino Pro paywall
 - [x] Adaptive layout for iPhone, iPad and iPhone Duo (closed, open flat, book pose)
 - [x] StoreKit 2 purchase, restore and entitlement checks; free daily limit; grandfathering

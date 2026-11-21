@@ -246,7 +246,7 @@ After 2.0 is submitted: build the 2.1 foundation (tool registry, new Home, file-
 
 ## 11. Progress
 
-Work happens on branch `toolkit` (from `redesign-2.0`). Version and build numbers are unchanged (2.0, build 4): set them when a release is cut. This section is the place to resume from.
+This work was done on branch `toolkit` and merged into `main` on 21 Nov 2026; the branches `toolkit` and `redesign-2.0` were then deleted. Version and build numbers are unchanged (2.0, build 4): set them when a release is cut. This section is the place to resume from.
 
 ### Status
 
@@ -509,7 +509,7 @@ Two further reasons not to ship it: the writer puts line breaks inside text runs
 3. **Other apps:** open results in Acrobat (protected, signed, flattened, searchable PDFs) and a few converted Office files.
 4. **App Store Connect** (nothing was touched): version numbers and builds, the texts in AppStoreMetadata.md for 2.1 to 2.4, screenshots, the app's new name from 2.2, review notes. Mino Pro stays €4.99.
 5. **Decide:** whether the four releases ship one by one or together, and translation (the String Catalog is ready, English only).
-6. ~~Merge `toolkit`~~ Done 21 Nov 2026: `toolkit` was merged into `main`. `redesign-2.0` was left as 2.0 alone, in case 2.0 ships before the tools.
+6. ~~Merge `toolkit`~~ Done 21 Nov 2026: `toolkit` was merged into `main`. `redesign-2.0` and `toolkit` were deleted; 2.0 without the tools is commit `d2b82b3`, if it ever has to ship on its own.
 
 ### Fixed after device testing (19 Nov 2026)
 
