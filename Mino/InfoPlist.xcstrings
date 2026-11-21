@@ -1,0 +1,62 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSCameraUsageDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mino verwendet die Kamera, um Dokumente als PDF zu scannen. Die Scans bleiben auf deinem Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mino uses the camera to scan documents into PDFs. Scans stay on your device."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mino usa la cámara para escanear documentos a PDF. Los escaneos se quedan en tu dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mino utilise l’appareil photo pour numériser des documents en PDF. Les numérisations restent sur votre appareil."
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryAddUsageDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mino sichert die Bilder, die du aus einem PDF exportierst, in deiner Fotomediathek."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mino saves the images you export from a PDF to your photo library."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mino guarda en tu fototeca las imágenes que exportas de un PDF."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mino enregistre dans votre photothèque les images que vous exportez d’un PDF."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

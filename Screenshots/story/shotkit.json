@@ -1,0 +1,9 @@
+{
+  "app": "Mino",
+  "frames": 10,
+  "sets": ["iphone", "iphone69", "ipad", "duo"],
+  "locales": { "en": "en-US" },
+  "direction": "B",
+  "output": "../output",
+  "asc": { "app": "6757166913" }
+}

@@ -75,13 +75,12 @@ def main():
         if key not in strings:
             missing.append(key)
             continue
-        strings[key]["localizations"] = {
-            "en": {
-                "variations": {
-                    "plural": {
-                        "one": {"stringUnit": {"state": "translated", "value": one}},
-                        "other": {"stringUnit": {"state": "translated", "value": other}},
-                    }
+        # Only English is set here; the translations of a plural key are kept.
+        strings[key].setdefault("localizations", {})["en"] = {
+            "variations": {
+                "plural": {
+                    "one": {"stringUnit": {"state": "translated", "value": one}},
+                    "other": {"stringUnit": {"state": "translated", "value": other}},
                 }
             }
         }

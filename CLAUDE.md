@@ -199,7 +199,7 @@ Generated files are stored in the app's Documents directory:
 
 ## Text
 
-All UI text is in `Mino/Localizable.xcstrings` (English only for now). SwiftUI literals are picked up automatically; anything that is a `String` must be written as `String(localized: "...")`. Counted strings use one key ("\(count) pages") with plural forms in the catalog. `python3 Scripts/sync_strings.py` updates the catalog after a command-line build and adds the plural forms listed in it.
+All UI text is in `Mino/Localizable.xcstrings`: English, German (du), Spanish (tú) and French (vous), since 21 Nov 2026. The permission prompts are in `Mino/InfoPlist.xcstrings`, the Share Extension's text in `MinoShare/Localizable.xcstrings`. `python3 Scripts/import_translations.py de.json es.json fr.json` puts translations into the catalog and refuses any whose format specifiers differ from the English. A new or changed English string needs its three translations before release; the store listing and screenshots are still English only. SwiftUI literals are picked up automatically; anything that is a `String` must be written as `String(localized: "...")`. Counted strings use one key ("\(count) pages") with plural forms in the catalog. `python3 Scripts/sync_strings.py` updates the catalog after a command-line build and adds the plural forms listed in it.
 
 ## Tests
 
