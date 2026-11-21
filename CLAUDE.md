@@ -226,7 +226,7 @@ The store set is made with ShotKit (`appdev/Private/iOS/ShotKit`, its `README.md
 - `simctl io screenshot` can't write to the external volume: the script writes to a temp folder first.
 - Upload only after the owner has seen the contact sheets: `shotkit upload --approved --version <x.y>`.
 
-The 2.0 raw shots in `Screenshots/raw/en-US/` (01-home ... 07-paywall) are the older set; `07-paywall` is still the reviewer screenshot of the in-app purchase.
+The 2.0 raw shots in `screenshots/raw-2.0/en-US/` (01-home ... 07-paywall) are the older set; `07-paywall` is still the reviewer screenshot of the in-app purchase.
 
 ## Git Workflow
 

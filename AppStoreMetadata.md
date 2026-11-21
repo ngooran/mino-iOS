@@ -205,7 +205,7 @@ We built Mino because we believe PDF compression should be simple, fast, and res
 | Family Sharing | On (can't be turned off) |
 | Display Name (en-US) | Mino Pro |
 | Description (en-US) | Unlimited compressions, merge, split and batch. |
-| Review Screenshot | The Mino Pro screen (Screenshots/raw/en-US/iphone-6.9/07-paywall.png) |
+| Review Screenshot | The Mino Pro screen (screenshots/raw-2.0/en-US/iphone-6.9/07-paywall.png) |
 
 Submit it together with version 2.0: the first IAP of an app has to go to review with an app version.
 
@@ -295,7 +295,7 @@ For future expansion, prioritize these markets:
 
 ## Screenshot Recommendations
 
-Raw 2.0 screenshots: `Screenshots/raw/en-US/` (iPhone 6.9", iPad 13", iPhone Duo open and closed). How to retake them: CLAUDE.md, "App Store Screenshots". Release steps: RELEASE-2.0.md.
+Raw 2.0 screenshots: `screenshots/raw-2.0/en-US/` (iPhone 6.9", iPad 13", iPhone Duo open and closed). How to retake them: CLAUDE.md, "App Store Screenshots". Release steps: RELEASE-2.0.md.
 
 ### Order and Content
 1. **Home** - "Compress, Merge, Split - All in One"

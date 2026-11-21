@@ -49,7 +49,7 @@ Code-level details are in [CLAUDE.md](CLAUDE.md). App Store texts are in [AppSto
   - State: **Ready to Submit**
 
 ### Assets
-- [x] Raw en-US screenshots in `Screenshots/raw/en-US/`, 7 screens per device (`01-home` ... `07-paywall`):
+- [x] Raw en-US screenshots in `screenshots/raw-2.0/en-US/`, 7 screens per device (`01-home` ... `07-paywall`):
 
 | Folder | Device | Size | App Store Connect slot |
 |---|---|---|---|
