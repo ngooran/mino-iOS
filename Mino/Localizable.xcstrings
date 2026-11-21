@@ -1,23 +1,37 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@ (edited)" : {},
-    "%@ (protected)" : {},
-    "%@ (searchable)" : {},
-    "%@ (signed)" : {},
-    "%@ (unlocked)" : {},
-    "%@ + %lld more" : {
+    "·" : {
+
+    },
+    "“%@” couldn't be added: %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@ + %2$lld more"
+            "value" : "“%1$@” couldn't be added: %2$@"
           }
         }
       }
     },
-    "%@ saved with Mino so far" : {},
-    "%@ was already well optimized, so there was little to remove." : {},
+    "“%@” couldn't be opened." : {
+
+    },
+    "“%@” couldn't be opened. Make sure it's a PDF that isn't damaged." : {
+
+    },
+    "“%@” couldn't be unlocked." : {
+
+    },
+    "“%@” doesn't allow changes. Remove its limits with Protect & Unlock first." : {
+
+    },
+    "“%@” is locked. Enter its password to open it." : {
+
+    },
+    "“%@” isn't an image Mino can read." : {
+
+    },
     "%@ · %lld%% smaller" : {
       "localizations" : {
         "en" : {
@@ -27,6 +41,21 @@
           }
         }
       }
+    },
+    "%@ (edited)" : {
+
+    },
+    "%@ (protected)" : {
+
+    },
+    "%@ (searchable)" : {
+
+    },
+    "%@ (signed)" : {
+
+    },
+    "%@ (unlocked)" : {
+
     },
     "%@ → %@ · %@" : {
       "localizations" : {
@@ -38,7 +67,25 @@
         }
       }
     },
-    "%lld" : {},
+    "%@ + %lld more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ + %2$lld more"
+          }
+        }
+      }
+    },
+    "%@ saved with Mino so far" : {
+
+    },
+    "%@ was already well optimized, so there was little to remove." : {
+
+    },
+    "%lld" : {
+
+    },
     "%lld %@ images" : {
       "localizations" : {
         "en" : {
@@ -61,72 +108,9 @@
         }
       }
     },
-    "%lld PDFs" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld PDF"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld PDFs"
-                }
-              }
-            }
-          }
-        }
-      }
+    "%lld dpi" : {
+
     },
-    "%lld PDFs created" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld PDF created"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld PDFs created"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld PDFs merged" : {},
-    "%lld PDFs · %lld pages · %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld PDFs · %2$lld pages · %3$@"
-          }
-        }
-      }
-    },
-    "%lld PDFs · %lld pages · about %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld PDFs · %2$lld pages · about %3$@"
-          }
-        }
-      }
-    },
-    "%lld dpi" : {},
     "%lld files" : {
       "localizations" : {
         "en" : {
@@ -171,7 +155,9 @@
         }
       }
     },
-    "%lld files couldn't be opened. Make sure they're PDFs that aren't damaged." : {},
+    "%lld files couldn't be opened. Make sure they're PDFs that aren't damaged." : {
+
+    },
     "%lld free actions left today" : {
       "localizations" : {
         "en" : {
@@ -292,6 +278,73 @@
         }
       }
     },
+    "%lld PDFs" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld PDF"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld PDFs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld PDFs · %lld pages · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld PDFs · %2$lld pages · %3$@"
+          }
+        }
+      }
+    },
+    "%lld PDFs · %lld pages · about %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld PDFs · %2$lld pages · about %3$@"
+          }
+        }
+      }
+    },
+    "%lld PDFs created" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld PDF created"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld PDFs created"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld PDFs merged" : {
+
+    },
     "%lld photos" : {
       "localizations" : {
         "en" : {
@@ -336,14 +389,30 @@
         }
       }
     },
-    "%lld selected" : {},
-    "%lld%%" : {},
-    "%lld%% smaller" : {},
-    "1024 x 1024 PNG" : {},
-    "A drawn signature, not a certified digital signature. It is stored on this %@ only." : {},
-    "A4" : {},
-    "AES-256 encryption. If you forget the password, the file can't be opened. Mino doesn't store it." : {},
-    "About" : {},
+    "%lld selected" : {
+
+    },
+    "%lld%%" : {
+
+    },
+    "%lld%% smaller" : {
+
+    },
+    "−%lld%%" : {
+
+    },
+    "1024 x 1024 PNG" : {
+
+    },
+    "A drawn signature, not a certified digital signature. It is stored on this %@ only." : {
+
+    },
+    "A4" : {
+
+    },
+    "About" : {
+
+    },
     "About %@ · %@" : {
       "localizations" : {
         "en" : {
@@ -354,17 +423,42 @@
         }
       }
     },
-    "About the same size · %@" : {},
-    "Access denied: %@" : {},
-    "Add" : {},
-    "Add PDFs" : {},
-    "Add PDFs to Merge" : {},
-    "Add Photos" : {},
-    "Add Text" : {},
-    "Add at Least 2 PDFs" : {},
-    "Add or remove a password" : {},
-    "Add pages" : {},
-    "Adding photos…" : {},
+    "About the same size · %@" : {
+
+    },
+    "Access denied: %@" : {
+
+    },
+    "Add" : {
+
+    },
+    "Add at Least 2 PDFs" : {
+
+    },
+    "Add or remove a password" : {
+
+    },
+    "Add pages" : {
+
+    },
+    "Add PDFs" : {
+
+    },
+    "Add PDFs to Merge" : {
+
+    },
+    "Add Photos" : {
+
+    },
+    "Add Text" : {
+
+    },
+    "Adding photos…" : {
+
+    },
+    "AES-256 encryption. If you forget the password, the file can't be opened. Mino doesn't store it." : {
+
+    },
     "All %lld Pages" : {
       "localizations" : {
         "en" : {
@@ -387,74 +481,204 @@
         }
       }
     },
-    "All Files" : {},
-    "Allow Copying Text" : {},
-    "Allow Printing" : {},
-    "Already small" : {},
-    "App Icon" : {},
-    "App Icon Export" : {},
-    "Appearance" : {},
-    "Arrow" : {},
-    "Automatic" : {},
-    "Automatic works for most documents. Choose a language when the text is read badly." : {},
-    "Average reduction" : {},
-    "Balanced" : {},
-    "Best Quality" : {},
-    "Best for text documents. You get the words in reading order as a text file you can open in Word, Pages or Notes. Layout, tables and pictures are not kept." : {},
-    "Black" : {},
-    "Black & White" : {},
-    "Blank Page" : {},
-    "Blue" : {},
-    "Building your PDF…" : {},
-    "CSV table" : {},
-    "Camera, auto-crop, multi-page" : {},
-    "Can't Open File" : {},
-    "Cancel" : {},
-    "Cannot access the selected file" : {},
-    "Change" : {},
-    "Changes saved" : {},
-    "Check" : {},
-    "Check that you have permission to write to this location." : {},
-    "Choose Another PDF" : {},
-    "Choose JPG, PNG or HEIC images. Each one becomes a page." : {},
-    "Choose PDF" : {},
-    "Choose PDFs" : {},
-    "Choose Pages" : {},
-    "Choose Photos" : {},
-    "Choose a PDF on Home to compress it." : {},
-    "Choose a file to preview it." : {},
-    "Choose a photo first." : {},
-    "Choose a tool on the left, or drop a PDF or photos here." : {},
-    "Choose from Files" : {},
-    "Choose two or more PDFs. You can change their order before merging." : {},
-    "Clear" : {},
-    "Close" : {},
-    "Color" : {},
-    "Combine PDFs into one" : {},
-    "Compress" : {},
-    "Compress %lld PDFs" : {},
-    "Compress Another" : {},
-    "Compress PDF…" : {},
-    "Compressed" : {},
-    "Compressed files will show up here." : {},
-    "Compressed on this %@. Your files are never uploaded." : {},
-    "Compressing several PDFs at once is part of Mino Pro." : {},
-    "Compressing…" : {},
-    "Compression failed: %@" : {},
-    "Continue with Another Tool" : {},
-    "Convert" : {},
-    "Convert Word, Excel and PowerPoint to PDF" : {},
-    "Convert to PDF" : {},
-    "Convert to Text" : {},
-    "Converted" : {},
-    "Converted on this %@. Nothing is uploaded." : {},
-    "Converted to PDF" : {},
-    "Converting Office files is part of Mino Pro." : {},
-    "Converting PDFs to text is part of Mino Pro." : {},
-    "Converting…" : {},
-    "Copied" : {},
-    "Copy Text" : {},
-    "Create" : {},
+    "All Files" : {
+
+    },
+    "Allow Copying Text" : {
+
+    },
+    "Allow Printing" : {
+
+    },
+    "Already small" : {
+
+    },
+    "App Icon" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Arrow" : {
+
+    },
+    "Automatic" : {
+
+    },
+    "Automatic works for most documents. Choose a language when the text is read badly." : {
+
+    },
+    "Average reduction" : {
+
+    },
+    "Balanced" : {
+
+    },
+    "Best for text documents. You get the words in reading order as a text file you can open in Word, Pages or Notes. Layout, tables and pictures are not kept." : {
+
+    },
+    "Best Quality" : {
+
+    },
+    "Black" : {
+
+    },
+    "Black & White" : {
+
+    },
+    "Blank Page" : {
+
+    },
+    "Blue" : {
+
+    },
+    "Building your PDF…" : {
+
+    },
+    "Camera, auto-crop, multi-page" : {
+
+    },
+    "Can't Open File" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Cannot access the selected file" : {
+
+    },
+    "Change" : {
+
+    },
+    "Changes saved" : {
+
+    },
+    "Check" : {
+
+    },
+    "Check that you have permission to write to this location." : {
+
+    },
+    "Choose a file to preview it." : {
+
+    },
+    "Choose a PDF on Home to compress it." : {
+
+    },
+    "Choose a photo first." : {
+
+    },
+    "Choose a tool on the left, or drop a PDF or photos here." : {
+
+    },
+    "Choose Another PDF" : {
+
+    },
+    "Choose from Files" : {
+
+    },
+    "Choose JPG, PNG or HEIC images. Each one becomes a page." : {
+
+    },
+    "Choose Pages" : {
+
+    },
+    "Choose PDF" : {
+
+    },
+    "Choose PDFs" : {
+
+    },
+    "Choose Photos" : {
+
+    },
+    "Choose two or more PDFs. You can change their order before merging." : {
+
+    },
+    "Clear" : {
+
+    },
+    "Close" : {
+
+    },
+    "Color" : {
+
+    },
+    "Combine PDFs into one" : {
+
+    },
+    "Compress" : {
+
+    },
+    "Compress %lld PDFs" : {
+
+    },
+    "Compress Another" : {
+
+    },
+    "Compress PDF…" : {
+
+    },
+    "Compressed" : {
+
+    },
+    "Compressed files will show up here." : {
+
+    },
+    "Compressed on this %@. Your files are never uploaded." : {
+
+    },
+    "Compressing several PDFs at once is part of Mino Pro." : {
+
+    },
+    "Compressing…" : {
+
+    },
+    "Compression failed: %@" : {
+
+    },
+    "Continue with Another Tool" : {
+
+    },
+    "Convert" : {
+
+    },
+    "Convert to PDF" : {
+
+    },
+    "Convert to Text" : {
+
+    },
+    "Convert Word, Excel and PowerPoint to PDF" : {
+
+    },
+    "Converted" : {
+
+    },
+    "Converted on this %@. Nothing is uploaded." : {
+
+    },
+    "Converted to PDF" : {
+
+    },
+    "Converting Office files is part of Mino Pro." : {
+
+    },
+    "Converting PDFs to text is part of Mino Pro." : {
+
+    },
+    "Converting…" : {
+
+    },
+    "Copied" : {
+
+    },
+    "Copy Text" : {
+
+    },
+    "Create" : {
+
+    },
     "Create PDF (%lld pages)" : {
       "localizations" : {
         "en" : {
@@ -477,22 +701,51 @@
         }
       }
     },
-    "Creating your PDF…" : {},
-    "Cross" : {},
-    "Custom" : {},
-    "Custom image quality and resolution are part of Mino Pro." : {},
-    "Custom quality and resolution" : {},
-    "Dark" : {},
-    "Date" : {},
-    "Debug" : {},
-    "Defaults" : {},
-    "Delete" : {},
-    "Delete Initials" : {},
-    "Delete Signature" : {},
-    "Delete “%@”?" : {},
-    "Deselect" : {},
-    "Deselect All" : {},
-    "Discard Scan" : {},
+    "Creating your PDF…" : {
+
+    },
+    "Cross" : {
+
+    },
+    "CSV table" : {
+
+    },
+    "Custom" : {
+
+    },
+    "Custom image quality and resolution are part of Mino Pro." : {
+
+    },
+    "Custom quality and resolution" : {
+
+    },
+    "Dark" : {
+
+    },
+    "Date" : {
+
+    },
+    "Defaults" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete “%@”?" : {
+
+    },
+    "Delete Initials" : {
+
+    },
+    "Delete Signature" : {
+
+    },
+    "Deselect" : {
+
+    },
+    "Deselect All" : {
+
+    },
     "Discard all %lld pages?" : {
       "localizations" : {
         "en" : {
@@ -515,36 +768,99 @@
         }
       }
     },
-    "Discard and Scan Again" : {},
-    "Done" : {},
-    "Drag over the text to highlight it." : {},
-    "Drag over what you want to cover." : {},
-    "Drag pages to change their order. Touch and hold a page to retake or delete it." : {},
-    "Drag photos to change their order. JPEG photos go in untouched, so they lose no quality." : {},
-    "Drag to draw the shape." : {},
-    "Drag to move it." : {},
-    "Drag to set the order" : {},
-    "Draw" : {},
-    "Draw New" : {},
-    "Draw with one finger or Apple Pencil. Use two fingers to scroll." : {},
-    "Duplicate" : {},
-    "Each page becomes its own PDF." : {},
-    "Earlier" : {},
-    "Edit" : {},
-    "Edit & Annotate" : {},
-    "Edit Text" : {},
-    "Edited" : {},
-    "Editing PDFs is part of Mino Pro." : {},
-    "Ellipse" : {},
-    "Encrypting…" : {},
-    "Enter a password." : {},
-    "Enter the password that opens the PDF" : {},
-    "Estimating size… · %@" : {},
-    "Every PDF tool, with no limits. Pay once and keep it forever." : {},
-    "Every Page" : {},
-    "Every tool, unlimited. One-time purchase." : {},
-    "Everything you make with Mino appears here." : {},
-    "Excel workbook" : {},
+    "Discard and Scan Again" : {
+
+    },
+    "Discard Scan" : {
+
+    },
+    "Done" : {
+
+    },
+    "Drag over the text to highlight it." : {
+
+    },
+    "Drag over what you want to cover." : {
+
+    },
+    "Drag pages to change their order. Touch and hold a page to retake or delete it." : {
+
+    },
+    "Drag photos to change their order. JPEG photos go in untouched, so they lose no quality." : {
+
+    },
+    "Drag to draw the shape." : {
+
+    },
+    "Drag to move it." : {
+
+    },
+    "Drag to set the order" : {
+
+    },
+    "Draw" : {
+
+    },
+    "Draw New" : {
+
+    },
+    "Draw with one finger or Apple Pencil. Use two fingers to scroll." : {
+
+    },
+    "Duplicate" : {
+
+    },
+    "Each page becomes its own PDF." : {
+
+    },
+    "Earlier" : {
+
+    },
+    "Edit" : {
+
+    },
+    "Edit & Annotate" : {
+
+    },
+    "Edit Text" : {
+
+    },
+    "Edited" : {
+
+    },
+    "Editing PDFs is part of Mino Pro." : {
+
+    },
+    "Ellipse" : {
+
+    },
+    "Encrypting…" : {
+
+    },
+    "Enter a password." : {
+
+    },
+    "Enter the password that opens the PDF" : {
+
+    },
+    "Estimating size… · %@" : {
+
+    },
+    "Every Page" : {
+
+    },
+    "Every PDF tool, with no limits. Pay once and keep it forever." : {
+
+    },
+    "Every tool, unlimited. One-time purchase." : {
+
+    },
+    "Everything you make with Mino appears here." : {
+
+    },
+    "Excel workbook" : {
+
+    },
     "Export %lld Images" : {
       "localizations" : {
         "en" : {
@@ -567,13 +883,27 @@
         }
       }
     },
-    "Export Icon" : {},
-    "Export each variant separately for iOS 18 dark/tinted icons" : {},
-    "Exporting…" : {},
-    "Extract %lld Pages" : {},
-    "Extract 1 Page" : {},
-    "Extract or separate pages" : {},
-    "Failed to copy file: %@" : {},
+    "Export each variant separately for iOS 18 dark/tinted icons" : {
+
+    },
+    "Export Icon" : {
+
+    },
+    "Exporting…" : {
+
+    },
+    "Extract %lld Pages" : {
+
+    },
+    "Extract 1 Page" : {
+
+    },
+    "Extract or separate pages" : {
+
+    },
+    "Failed to copy file: %@" : {
+
+    },
     "Failed to copy page %lld: %@" : {
       "localizations" : {
         "en" : {
@@ -584,7 +914,9 @@
         }
       }
     },
-    "Failed to create new PDF document" : {},
+    "Failed to create new PDF document" : {
+
+    },
     "Failed to delete page %lld: %@" : {
       "localizations" : {
         "en" : {
@@ -595,10 +927,18 @@
         }
       }
     },
-    "Failed to initialize PDF engine" : {},
-    "Failed to initialize page copy operation" : {},
-    "Failed to merge PDFs: %@" : {},
-    "Failed to open '%@'" : {},
+    "Failed to initialize page copy operation" : {
+
+    },
+    "Failed to initialize PDF engine" : {
+
+    },
+    "Failed to merge PDFs: %@" : {
+
+    },
+    "Failed to open '%@'" : {
+
+    },
     "Failed to open '%@': %@" : {
       "localizations" : {
         "en" : {
@@ -609,46 +949,126 @@
         }
       }
     },
-    "Failed to save PDF: %@" : {},
-    "Failed to split PDF: %@" : {},
-    "Family Sharing for up to 6 people" : {},
-    "File Not Found" : {},
-    "File access failed: %@" : {},
-    "File not found" : {},
-    "File not found: %@" : {},
-    "Files" : {},
-    "Files combined" : {},
-    "Files compressed" : {},
-    "Fill & Sign" : {},
-    "Fill Field" : {},
-    "Fill, sign and edit" : {},
-    "Filter" : {},
-    "Fit to Photo" : {},
-    "Flatten on Save" : {},
-    "Format" : {},
-    "Forms, signature, date" : {},
-    "Free" : {},
-    "Free left today" : {},
-    "From %@" : {},
-    "From Files" : {},
-    "Get Mino Pro" : {},
-    "Get Pro" : {},
-    "Go unlimited" : {},
-    "Grayscale" : {},
-    "Green" : {},
-    "Help & Support" : {},
-    "High · 300 dpi" : {},
-    "Highlight" : {},
-    "Hold your %@ over the page. Mino finds the edges and captures it." : {},
-    "Home" : {},
-    "I use Mino for PDFs. Everything stays on the device." : {},
-    "Image" : {},
-    "Image quality" : {},
-    "Images ready" : {},
-    "Initials" : {},
-    "Insert" : {},
-    "Insufficient memory to process the document" : {},
-    "Invalid PDF: %@" : {},
+    "Failed to save PDF: %@" : {
+
+    },
+    "Failed to split PDF: %@" : {
+
+    },
+    "Family Sharing for up to 6 people" : {
+
+    },
+    "File access failed: %@" : {
+
+    },
+    "File not found" : {
+
+    },
+    "File Not Found" : {
+
+    },
+    "File not found: %@" : {
+
+    },
+    "Files" : {
+
+    },
+    "Files combined" : {
+
+    },
+    "Files compressed" : {
+
+    },
+    "Fill & Sign" : {
+
+    },
+    "Fill Field" : {
+
+    },
+    "Fill, sign and edit" : {
+
+    },
+    "Filter" : {
+
+    },
+    "Fit to Photo" : {
+
+    },
+    "Flatten on Save" : {
+
+    },
+    "for messages and uploads" : {
+
+    },
+    "for printing" : {
+
+    },
+    "Format" : {
+
+    },
+    "Forms, signature, date" : {
+
+    },
+    "From %@" : {
+
+    },
+    "From Files" : {
+
+    },
+    "Get Mino Pro" : {
+
+    },
+    "Get Pro" : {
+
+    },
+    "Go unlimited" : {
+
+    },
+    "good for email" : {
+
+    },
+    "Grayscale" : {
+
+    },
+    "Green" : {
+
+    },
+    "Help & Support" : {
+
+    },
+    "High · 300 dpi" : {
+
+    },
+    "Highlight" : {
+
+    },
+    "Hold your %@ over the page. Mino finds the edges and captures it." : {
+
+    },
+    "Home" : {
+
+    },
+    "I use Mino for PDFs. Everything stays on the device." : {
+
+    },
+    "Image" : {
+
+    },
+    "Image quality" : {
+
+    },
+    "Images ready" : {
+
+    },
+    "Initials" : {
+
+    },
+    "Insert" : {
+
+    },
+    "Insufficient memory to process the document" : {
+
+    },
     "Invalid page range %lld-%lld for document with %lld pages" : {
       "localizations" : {
         "en" : {
@@ -659,74 +1079,189 @@
         }
       }
     },
-    "Invalid parameters provided" : {},
-    "JPG makes small files and suits photos and scans." : {},
-    "JPG, PNG, HEIC into one PDF" : {},
-    "Language" : {},
-    "Larger" : {},
-    "Later" : {},
-    "Letter" : {},
-    "Lifetime" : {},
-    "Light" : {},
-    "Line" : {},
-    "Lower values make smaller files. Text stays sharp; only images lose detail." : {},
-    "Make Text Searchable" : {},
-    "Make big files small" : {},
-    "Make sure the file is a valid PDF document." : {},
-    "Make sure the file is not in use by another app" : {},
-    "Margins" : {},
-    "Medium" : {},
-    "Merge" : {},
-    "Merge %lld PDFs" : {},
-    "Merge PDFs…" : {},
-    "Merge, split and batch" : {},
-    "Merged" : {},
-    "Merging PDFs is part of Mino Pro." : {},
-    "Merging…" : {},
-    "Mino" : {},
-    "Mino App Icon" : {},
-    "Mino Pro" : {},
-    "Mino Pro is unlocked on this %@." : {},
-    "Mino Pro isn't available right now. Check your internet connection and try again." : {},
-    "Mino isn't allowed to add to Photos. You can change this in Settings." : {},
-    "Mino processes your files on this %@ and never uploads them. Mino is open source under the AGPL-3.0 license and uses MuPDF by Artifex Software." : {},
-    "Mino saves a copy that opens without the password. The original stays as it is." : {},
-    "Mino – PDF Toolkit" : {},
-    "Mode" : {},
-    "More" : {},
-    "NEW" : {},
-    "New" : {},
-    "No File Selected" : {},
-    "No Files Yet" : {},
-    "No Mino Pro purchase was found for this Apple Account." : {},
-    "No PDF Selected" : {},
-    "No Tool Found" : {},
-    "No text was found in this PDF." : {},
-    "No tool matches “%@”." : {},
-    "None" : {},
-    "None of the PDFs could be compressed. They may be damaged." : {},
-    "Nothing Here Yet" : {},
-    "Nothing to Merge" : {},
-    "OK" : {},
-    "Office Page Size" : {},
-    "Office to PDF" : {},
-    "One payment. No subscription." : {},
-    "Open" : {},
-    "Open Merge on Home to combine PDFs." : {},
-    "Open PDF" : {},
-    "Open PDF…" : {},
-    "Open Split on Home and choose a PDF." : {},
-    "Opening…" : {},
-    "Options" : {},
-    "Organize Pages" : {},
-    "PDF" : {},
-    "PDF created" : {},
-    "PDF protected" : {},
-    "PDF to Images" : {},
-    "PDF to Text" : {},
-    "PDFs merged" : {},
-    "PNG keeps text and lines perfectly sharp, in larger files." : {},
-    "PRO" : {},
+    "Invalid parameters provided" : {
+
+    },
+    "Invalid PDF: %@" : {
+
+    },
+    "JPG makes small files and suits photos and scans." : {
+
+    },
+    "JPG, PNG, HEIC into one PDF" : {
+
+    },
+    "Language" : {
+
+    },
+    "Larger" : {
+
+    },
+    "Later" : {
+
+    },
+    "Letter" : {
+
+    },
+    "Lifetime" : {
+
+    },
+    "Light" : {
+
+    },
+    "Line" : {
+
+    },
+    "Lower values make smaller files. Text stays sharp; only images lose detail." : {
+
+    },
+    "Make big files small" : {
+
+    },
+    "Make sure the file is a valid PDF document." : {
+
+    },
+    "Make sure the file is not in use by another app" : {
+
+    },
+    "Make Text Searchable" : {
+
+    },
+    "Margins" : {
+
+    },
+    "Medium" : {
+
+    },
+    "Merge" : {
+
+    },
+    "Merge %lld PDFs" : {
+
+    },
+    "Merge PDFs…" : {
+
+    },
+    "Merge, split and batch" : {
+
+    },
+    "Merged" : {
+
+    },
+    "Merging PDFs is part of Mino Pro." : {
+
+    },
+    "Merging…" : {
+
+    },
+    "Mino" : {
+
+    },
+    "Mino – PDF Toolkit" : {
+
+    },
+    "Mino App Icon" : {
+
+    },
+    "Mino isn't allowed to add to Photos. You can change this in Settings." : {
+
+    },
+    "Mino Pro" : {
+
+    },
+    "Mino Pro is unlocked on this %@." : {
+
+    },
+    "Mino Pro isn't available right now. Check your internet connection and try again." : {
+
+    },
+    "Mino processes your files on this %@ and never uploads them. Mino is open source under the AGPL-3.0 license and uses MuPDF by Artifex Software." : {
+
+    },
+    "Mino saves a copy that opens without the password. The original stays as it is." : {
+
+    },
+    "Mode" : {
+
+    },
+    "More" : {
+
+    },
+    "New" : {
+
+    },
+    "NEW" : {
+
+    },
+    "No File Selected" : {
+
+    },
+    "No Files Yet" : {
+
+    },
+    "No Mino Pro purchase was found for this Apple Account." : {
+
+    },
+    "No PDF Selected" : {
+
+    },
+    "No text was found in this PDF." : {
+
+    },
+    "No Tool Found" : {
+
+    },
+    "No tool matches “%@”." : {
+
+    },
+    "None" : {
+
+    },
+    "None of the PDFs could be compressed. They may be damaged." : {
+
+    },
+    "Nothing Here Yet" : {
+
+    },
+    "Nothing to Merge" : {
+
+    },
+    "Office Page Size" : {
+
+    },
+    "Office to PDF" : {
+
+    },
+    "OK" : {
+
+    },
+    "One payment. No subscription." : {
+
+    },
+    "Open" : {
+
+    },
+    "Open Merge on Home to combine PDFs." : {
+
+    },
+    "Open PDF" : {
+
+    },
+    "Open PDF…" : {
+
+    },
+    "Open Split on Home and choose a PDF." : {
+
+    },
+    "Opening…" : {
+
+    },
+    "Options" : {
+
+    },
+    "Organize Pages" : {
+
+    },
     "Page %@ · %@" : {
       "localizations" : {
         "en" : {
@@ -737,7 +1272,9 @@
         }
       }
     },
-    "Page %lld" : {},
+    "Page %lld" : {
+
+    },
     "Page %lld couldn't be added: %@" : {
       "localizations" : {
         "en" : {
@@ -778,8 +1315,12 @@
         }
       }
     },
-    "Page Size" : {},
-    "Pages" : {},
+    "Page Size" : {
+
+    },
+    "Pages" : {
+
+    },
     "Pages %@ · %@" : {
       "localizations" : {
         "en" : {
@@ -790,67 +1331,204 @@
         }
       }
     },
-    "Pages as JPG or PNG" : {},
-    "Pages from Another PDF" : {},
-    "Pages updated" : {},
-    "Password" : {},
-    "Password Required" : {},
-    "Password accepted" : {},
-    "Password added" : {},
-    "Password protection" : {},
-    "Password protection is part of Mino Pro." : {},
-    "Password removed" : {},
-    "Permissions Password" : {},
-    "Photo %lld" : {},
-    "Photo Page Size" : {},
-    "Photos %@" : {},
-    "Photos to PDF" : {},
-    "Pick a Tool" : {},
-    "Pick a tool, then tap or drag on the page." : {},
-    "Pick a tool, then tap the page." : {},
-    "Please select a valid PDF file" : {},
-    "PowerPoint presentation" : {},
-    "Preview" : {},
-    "Privacy" : {},
-    "Privacy Policy" : {},
-    "Pro" : {},
-    "Pro state" : {},
-    "Protect" : {},
-    "Protect & Unlock" : {},
-    "Protect PDF" : {},
-    "Protected" : {},
-    "Purchase Failed" : {},
-    "Quality" : {},
-    "Rate Mino" : {},
-    "Read Scanned Pages" : {},
-    "Reading pages…" : {},
-    "Recent" : {},
-    "Recent Activity" : {},
-    "Recognize Text" : {},
-    "Recognize text so you can search and copy it" : {},
-    "Recognizes text on pages that are images" : {},
-    "Recommended" : {},
-    "Rectangle" : {},
-    "Red" : {},
-    "Redo" : {},
-    "Reduce & Organize" : {},
-    "Remove Password" : {},
-    "Remove page %lld" : {},
-    "Remove photo %lld" : {},
-    "Removing the password…" : {},
-    "Repeat Password" : {},
-    "Requires Mino Pro" : {},
-    "Reset Free Actions" : {},
-    "Resolution" : {},
-    "Restore Purchase" : {},
-    "Restore Purchases" : {},
-    "Result" : {},
-    "Retake" : {},
-    "Rich text document" : {},
-    "Rotate" : {},
-    "Rotate, delete, reorder" : {},
-    "Save Changes" : {},
-    "Save PDF" : {},
+    "Pages as JPG or PNG" : {
+
+    },
+    "Pages from Another PDF" : {
+
+    },
+    "Pages updated" : {
+
+    },
+    "Password" : {
+
+    },
+    "Password accepted" : {
+
+    },
+    "Password added" : {
+
+    },
+    "Password protection" : {
+
+    },
+    "Password protection is part of Mino Pro." : {
+
+    },
+    "Password removed" : {
+
+    },
+    "Password Required" : {
+
+    },
+    "PDF" : {
+
+    },
+    "PDF created" : {
+
+    },
+    "PDF protected" : {
+
+    },
+    "PDF to Images" : {
+
+    },
+    "PDF to Text" : {
+
+    },
+    "PDFs merged" : {
+
+    },
+    "Permissions Password" : {
+
+    },
+    "Photo %lld" : {
+
+    },
+    "Photo Page Size" : {
+
+    },
+    "Photos %@" : {
+
+    },
+    "Photos to PDF" : {
+
+    },
+    "Pick a Tool" : {
+
+    },
+    "Pick a tool, then tap or drag on the page." : {
+
+    },
+    "Pick a tool, then tap the page." : {
+
+    },
+    "Please select a valid PDF file" : {
+
+    },
+    "PNG keeps text and lines perfectly sharp, in larger files." : {
+
+    },
+    "PowerPoint presentation" : {
+
+    },
+    "Preview" : {
+
+    },
+    "Privacy" : {
+
+    },
+    "Privacy Policy" : {
+
+    },
+    "PRO" : {
+
+    },
+    "Protect" : {
+
+    },
+    "Protect & Unlock" : {
+
+    },
+    "Protect PDF" : {
+
+    },
+    "Protected" : {
+
+    },
+    "Purchase Failed" : {
+
+    },
+    "Quality" : {
+
+    },
+    "Rate Mino" : {
+
+    },
+    "Read Scanned Pages" : {
+
+    },
+    "Reading pages…" : {
+
+    },
+    "Recent" : {
+
+    },
+    "Recent Activity" : {
+
+    },
+    "Recognize Text" : {
+
+    },
+    "Recognize text so you can search and copy it" : {
+
+    },
+    "Recognizes text on pages that are images" : {
+
+    },
+    "Recommended" : {
+
+    },
+    "Rectangle" : {
+
+    },
+    "Red" : {
+
+    },
+    "Redo" : {
+
+    },
+    "Reduce & Organize" : {
+
+    },
+    "Remove page %lld" : {
+
+    },
+    "Remove Password" : {
+
+    },
+    "Remove photo %lld" : {
+
+    },
+    "Removing the password…" : {
+
+    },
+    "Repeat Password" : {
+
+    },
+    "Requires Mino Pro" : {
+
+    },
+    "Resolution" : {
+
+    },
+    "Restore Purchase" : {
+
+    },
+    "Restore Purchases" : {
+
+    },
+    "Result" : {
+
+    },
+    "Retake" : {
+
+    },
+    "Rich text document" : {
+
+    },
+    "Rotate" : {
+
+    },
+    "Rotate, delete, reorder" : {
+
+    },
+    "Save Changes" : {
+
+    },
+    "Save PDF" : {
+
+    },
     "Save PDF (%lld pages)" : {
       "localizations" : {
         "en" : {
@@ -873,54 +1551,147 @@
         }
       }
     },
-    "Save Signed PDF" : {},
-    "Save to Files" : {},
-    "Save to Photos" : {},
-    "Saved" : {},
-    "Saves the text of every page as a text file." : {},
-    "Saving…" : {},
-    "Scan" : {},
-    "Scan %@" : {},
-    "Scan Filter" : {},
-    "Scan Pages" : {},
-    "Scan a Document" : {},
-    "Scan saved" : {},
-    "Scan to PDF" : {},
-    "Scan with text recognition" : {},
-    "Scans" : {},
-    "Search" : {},
-    "Search tools" : {},
-    "Searchable" : {},
-    "Searchable PDF" : {},
-    "Searchable PDF, copy text" : {},
-    "See All" : {},
-    "Select All" : {},
-    "Select a valid page range within the document." : {},
-    "Select pages to rotate, move, duplicate or delete. Drag a page to move it." : {},
-    "Selected: page %@" : {},
-    "Selected: pages %@" : {},
-    "Set image quality and resolution" : {},
-    "Settings" : {},
-    "Share" : {},
-    "Share All" : {},
-    "Share Mino" : {},
-    "Show" : {},
-    "Sign & Edit" : {},
-    "Sign above the line" : {},
-    "Signature" : {},
-    "Signed" : {},
-    "Signed and saved" : {},
-    "Signing" : {},
-    "Signing PDFs is part of Mino Pro." : {},
-    "Size" : {},
-    "Small" : {},
-    "Smaller" : {},
-    "Smallest" : {},
-    "Something went wrong" : {},
-    "Source Code" : {},
-    "Space saved" : {},
-    "Split" : {},
-    "Split PDF…" : {},
+    "Save Signed PDF" : {
+
+    },
+    "Save to Files" : {
+
+    },
+    "Save to Photos" : {
+
+    },
+    "Saved" : {
+
+    },
+    "Saves the text of every page as a text file." : {
+
+    },
+    "Saving…" : {
+
+    },
+    "Scan" : {
+
+    },
+    "Scan %@" : {
+
+    },
+    "Scan a Document" : {
+
+    },
+    "Scan Filter" : {
+
+    },
+    "Scan Pages" : {
+
+    },
+    "Scan saved" : {
+
+    },
+    "Scan to PDF" : {
+
+    },
+    "Scan with text recognition" : {
+
+    },
+    "Scans" : {
+
+    },
+    "Search" : {
+
+    },
+    "Search tools" : {
+
+    },
+    "Searchable" : {
+
+    },
+    "Searchable PDF" : {
+
+    },
+    "Searchable PDF, copy text" : {
+
+    },
+    "See All" : {
+
+    },
+    "Select a valid page range within the document." : {
+
+    },
+    "Select All" : {
+
+    },
+    "Select pages to rotate, move, duplicate or delete. Drag a page to move it." : {
+
+    },
+    "Selected: page %@" : {
+
+    },
+    "Selected: pages %@" : {
+
+    },
+    "Set image quality and resolution" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Share" : {
+
+    },
+    "Share All" : {
+
+    },
+    "Share Mino" : {
+
+    },
+    "Show" : {
+
+    },
+    "Sign & Edit" : {
+
+    },
+    "Sign above the line" : {
+
+    },
+    "Signature" : {
+
+    },
+    "Signed" : {
+
+    },
+    "Signed and saved" : {
+
+    },
+    "Signing" : {
+
+    },
+    "Signing PDFs is part of Mino Pro." : {
+
+    },
+    "Size" : {
+
+    },
+    "Small" : {
+
+    },
+    "Smaller" : {
+
+    },
+    "Smallest" : {
+
+    },
+    "Something went wrong" : {
+
+    },
+    "Source Code" : {
+
+    },
+    "Space saved" : {
+
+    },
+    "Split" : {
+
+    },
     "Split into %lld PDFs" : {
       "localizations" : {
         "en" : {
@@ -943,84 +1714,237 @@
         }
       }
     },
-    "Split mode" : {},
-    "Splitting PDFs is part of Mino Pro." : {},
-    "Splitting…" : {},
-    "Standard · 150 dpi" : {},
-    "Start" : {},
-    "Start Scanning" : {},
-    "Statistics" : {},
-    "StoreKit" : {},
-    "Support" : {},
-    "System" : {},
-    "Tap a form field to fill it, or pick a tool." : {},
-    "Tap the pages you want to keep." : {},
-    "Tap to place a mark. Tap again for more." : {},
-    "Tap where the image should go." : {},
-    "Tap where the text should start." : {},
-    "Tap where today's date should go." : {},
-    "Tap where you want to sign." : {},
-    "Tap where you want to sign. This is a drawn signature, not a certified digital signature. It is kept on this %@ only and fixed in place when you save." : {},
-    "Terms" : {},
-    "Text" : {},
-    "Text Only" : {},
-    "Text document" : {},
-    "Text is recognized on this %@. Nothing is uploaded." : {},
-    "Text ready" : {},
-    "Text recognition is part of Mino Pro." : {},
-    "Text recognized" : {},
-    "Text, highlight, draw" : {},
-    "That is not the permissions password of this PDF." : {},
-    "That password didn't work" : {},
-    "That password didn't work." : {},
-    "That password didn't work. Try again to open “%@”." : {},
-    "That photo couldn't be loaded." : {},
-    "The App Store couldn't verify this purchase. Please try again." : {},
-    "The PDF couldn't be saved." : {},
-    "The PDF looks like the file's preview on this %@. Complex layouts can differ from Word or Excel, so check the result before you send it." : {},
-    "The PDF looks the same. Its text can then be searched, selected and copied. Pages that already have text are left as they are." : {},
-    "The document camera isn't available on this device. You can use photos of your pages instead." : {},
-    "The file is not a valid PDF document" : {},
-    "The file may have been moved or deleted" : {},
-    "The image couldn't be converted." : {},
-    "The offline filter couldn't be set up." : {},
-    "The pages haven't been saved." : {},
-    "The password is too long. Use up to 120 characters." : {},
-    "The passwords don't match." : {},
-    "The scanned pages couldn't be added." : {},
-    "The words, ready to edit" : {},
-    "Thick" : {},
-    "Thickness" : {},
-    "Thin" : {},
-    "This PDF has no password to remove." : {},
-    "This PDF has no password." : {},
-    "This PDF has no text. Switch on “Read Scanned Pages” to recognize it." : {},
-    "This PDF needs a password" : {},
-    "This PDF opens without a password but limits printing or copying. Enter its permissions password to save a copy without the limits." : {},
-    "This file couldn't be opened: %@" : {},
-    "This file has nothing to convert, or its format isn't supported." : {},
-    "This file may have been deleted." : {},
-    "This file took too long to open." : {},
-    "This removes the file from Mino. It can't be undone." : {},
-    "Try Again" : {},
-    "Try closing other apps and try again." : {},
-    "Try selecting the file again" : {},
-    "Try using a different compression quality level." : {},
-    "Try with fewer or smaller PDFs." : {},
-    "Undo" : {},
-    "Unlimited actions, every day" : {},
-    "Unlock" : {},
-    "Unlock Mino Pro" : {},
-    "Unlock for %@" : {},
-    "Unlock removes a password you know. It can't open a PDF whose password you don't know." : {},
-    "Unlocked" : {},
-    "Unlocked. Thank you for buying Mino early." : {},
-    "Unlocked. Thank you for supporting Mino." : {},
-    "Use Initials" : {},
-    "Use Sample Pages" : {},
-    "Use Signature" : {},
-    "Use a Tool" : {},
-    "Use only letters, numbers and symbols from the English keyboard. Other characters don't work in every PDF app." : {},
+    "Split mode" : {
+
+    },
+    "Split PDF…" : {
+
+    },
+    "Splitting PDFs is part of Mino Pro." : {
+
+    },
+    "Splitting…" : {
+
+    },
+    "Standard · 150 dpi" : {
+
+    },
+    "Start" : {
+
+    },
+    "Start Scanning" : {
+
+    },
+    "Statistics" : {
+
+    },
+    "Support" : {
+
+    },
+    "System" : {
+
+    },
+    "Tap a form field to fill it, or pick a tool." : {
+
+    },
+    "Tap the pages you want to keep." : {
+
+    },
+    "Tap to place a mark. Tap again for more." : {
+
+    },
+    "Tap where the image should go." : {
+
+    },
+    "Tap where the text should start." : {
+
+    },
+    "Tap where today's date should go." : {
+
+    },
+    "Tap where you want to sign." : {
+
+    },
+    "Tap where you want to sign. This is a drawn signature, not a certified digital signature. It is kept on this %@ only and fixed in place when you save." : {
+
+    },
+    "Terms" : {
+
+    },
+    "Text" : {
+
+    },
+    "Text document" : {
+
+    },
+    "Text is recognized on this %@. Nothing is uploaded." : {
+
+    },
+    "Text Only" : {
+
+    },
+    "Text ready" : {
+
+    },
+    "Text recognition is part of Mino Pro." : {
+
+    },
+    "Text recognized" : {
+
+    },
+    "Text, highlight, draw" : {
+
+    },
+    "That is not the permissions password of this PDF." : {
+
+    },
+    "That password didn't work" : {
+
+    },
+    "That password didn't work." : {
+
+    },
+    "That password didn't work. Try again to open “%@”." : {
+
+    },
+    "That photo couldn't be loaded." : {
+
+    },
+    "The App Store couldn't verify this purchase. Please try again." : {
+
+    },
+    "The document camera isn't available on this device. You can use photos of your pages instead." : {
+
+    },
+    "The file is not a valid PDF document" : {
+
+    },
+    "The file may have been moved or deleted" : {
+
+    },
+    "The image couldn't be converted." : {
+
+    },
+    "The offline filter couldn't be set up." : {
+
+    },
+    "The pages haven't been saved." : {
+
+    },
+    "The password is too long. Use up to 120 characters." : {
+
+    },
+    "The passwords don't match." : {
+
+    },
+    "The PDF couldn't be saved." : {
+
+    },
+    "The PDF looks like the file's preview on this %@. Complex layouts can differ from Word or Excel, so check the result before you send it." : {
+
+    },
+    "The PDF looks the same. Its text can then be searched, selected and copied. Pages that already have text are left as they are." : {
+
+    },
+    "The scanned pages couldn't be added." : {
+
+    },
+    "The words, ready to edit" : {
+
+    },
+    "Thick" : {
+
+    },
+    "Thickness" : {
+
+    },
+    "Thin" : {
+
+    },
+    "This file couldn't be opened: %@" : {
+
+    },
+    "This file has nothing to convert, or its format isn't supported." : {
+
+    },
+    "This file may have been deleted." : {
+
+    },
+    "This file took too long to open." : {
+
+    },
+    "This PDF has no password to remove." : {
+
+    },
+    "This PDF has no password." : {
+
+    },
+    "This PDF has no text. Switch on “Read Scanned Pages” to recognize it." : {
+
+    },
+    "This PDF needs a password" : {
+
+    },
+    "This PDF opens without a password but limits printing or copying. Enter its permissions password to save a copy without the limits." : {
+
+    },
+    "This removes the file from Mino. It can't be undone." : {
+
+    },
+    "Try Again" : {
+
+    },
+    "Try closing other apps and try again." : {
+
+    },
+    "Try selecting the file again" : {
+
+    },
+    "Try using a different compression quality level." : {
+
+    },
+    "Try with fewer or smaller PDFs." : {
+
+    },
+    "Undo" : {
+
+    },
+    "Unlimited actions, every day" : {
+
+    },
+    "Unlock" : {
+
+    },
+    "Unlock for %@" : {
+
+    },
+    "Unlock Mino Pro" : {
+
+    },
+    "Unlock removes a password you know. It can't open a PDF whose password you don't know." : {
+
+    },
+    "Unlocked" : {
+
+    },
+    "Unlocked. Thank you for buying Mino early." : {
+
+    },
+    "Unlocked. Thank you for supporting Mino." : {
+
+    },
+    "Use a Tool" : {
+
+    },
+    "Use Initials" : {
+
+    },
+    "Use only letters, numbers and symbols from the English keyboard. Other characters don't work in every PDF app." : {
+
+    },
+    "Use Signature" : {
+
+    },
     "Usually %@ smaller · %@" : {
       "localizations" : {
         "en" : {
@@ -1031,45 +1955,60 @@
         }
       }
     },
-    "Variant" : {},
-    "Verify the PDF is not corrupted and try again." : {},
-    "Verify the file exists and try again." : {},
-    "Version" : {},
-    "Web page" : {},
-    "What do you want to do?" : {},
-    "White-out" : {},
-    "White-out covers what is underneath. The covered text stays in the file, so don't use it to hide confidential information." : {},
-    "Word document" : {},
-    "Word, Excel, PowerPoint" : {},
-    "Works with Word, Excel and PowerPoint files, and with RTF, CSV and text. Slides get one page each; every sheet of a workbook is included." : {},
-    "Yellow" : {},
-    "You've used today's %lld free actions. Pro removes the limit." : {},
-    "Your Initials" : {},
-    "Your Savings" : {},
-    "Your Signature" : {},
-    "Your purchase is waiting for approval. Mino Pro unlocks as soon as it's approved." : {},
-    "Your signature is stored on this %@ only. You draw it in Fill & Sign." : {},
-    "for messages and uploads" : {},
-    "for printing" : {},
-    "good for email" : {},
-    "·" : {},
-    "“%@” couldn't be added: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "“%1$@” couldn't be added: %2$@"
-          }
-        }
-      }
+    "Variant" : {
+
     },
-    "“%@” couldn't be opened." : {},
-    "“%@” couldn't be opened. Make sure it's a PDF that isn't damaged." : {},
-    "“%@” couldn't be unlocked." : {},
-    "“%@” doesn't allow changes. Remove its limits with Protect & Unlock first." : {},
-    "“%@” is locked. Enter its password to open it." : {},
-    "“%@” isn't an image Mino can read." : {},
-    "−%lld%%" : {}
+    "Verify the file exists and try again." : {
+
+    },
+    "Verify the PDF is not corrupted and try again." : {
+
+    },
+    "Version" : {
+
+    },
+    "Web page" : {
+
+    },
+    "What do you want to do?" : {
+
+    },
+    "White-out" : {
+
+    },
+    "White-out covers what is underneath. The covered text stays in the file, so don't use it to hide confidential information." : {
+
+    },
+    "Word document" : {
+
+    },
+    "Word, Excel, PowerPoint" : {
+
+    },
+    "Works with Word, Excel and PowerPoint files, and with RTF, CSV and text. Slides get one page each; every sheet of a workbook is included." : {
+
+    },
+    "Yellow" : {
+
+    },
+    "You've used today's %lld free actions. Pro removes the limit." : {
+
+    },
+    "Your Initials" : {
+
+    },
+    "Your purchase is waiting for approval. Mino Pro unlocks as soon as it's approved." : {
+
+    },
+    "Your Savings" : {
+
+    },
+    "Your Signature" : {
+
+    },
+    "Your signature is stored on this %@ only. You draw it in Fill & Sign." : {
+
+    }
   },
   "version" : "1.0"
 }
