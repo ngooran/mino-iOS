@@ -116,8 +116,17 @@ Order matters, because grandfathering keys on the build number:
 So the app must not be free while 1.2 is the live version, and 2.0 must not be sold for €2.99.
 
 Recommended sequence, once 2.0 is approved (it waits as "Pending Developer Release"):
-1. Change the app price to **Free**, starting today, with the Netherlands as base territory.
-2. Immediately press **Release This Version** on 2.0.
+1. **Remove France from the app's availability** (see "Export compliance" below): `asc pricing availability edit --app 6757166913 --territory FRA --available false`, then read it back with `asc pricing availability view --app 6757166913`.
+2. Change the app price to **Free**, starting today, with the Netherlands as base territory.
+3. Immediately press **Release This Version** on 2.0.
+
+### Export compliance (decided 21 Nov 2026)
+
+Protect encrypts PDFs with AES-256 through MuPDF, a standard algorithm that is not part of iOS. Apple requires a French encryption declaration for that on the App Store in France ([Apple's table](https://developer.apple.com/help/app-store-connect/reference/export-compliance-documentation-for-encryption)). The owner chose to **leave France out of 2.0** instead.
+- Without France no documentation is required. App Store Connect confirms it: it refuses an encryption declaration for third-party standard cryptography that isn't sold in France.
+- So builds say "no documentation needed": `ITSAppUsesNonExemptEncryption = NO` (build setting), and builds 4 and 5 were set the same way in App Store Connect.
+- **This is only true while France is excluded.** Never release a build in France without first filing the French declaration (ANSSI) or moving PDF encryption to Apple's PDFKit.
+- France is still on sale for 1.2 (which has no Protect tool); it comes off at release, step 1 above.
 
 The short window between the two can only give a few people free Pro, which is harmless. Doing it the other way round would charge people for an app without Pro. Never make the app free before 2.0 is approved.
 

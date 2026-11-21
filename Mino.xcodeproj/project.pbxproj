@@ -479,6 +479,7 @@
 					"$(PROJECT_DIR)/Mino/Core/MuPDF",
 				);
 				INFOPLIST_FILE = Mino/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Mino uses the camera to scan documents into PDFs. Scans stay on your device.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Mino saves the images you export from a PDF to your photo library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -525,6 +526,7 @@
 					"$(PROJECT_DIR)/Mino/Core/MuPDF",
 				);
 				INFOPLIST_FILE = Mino/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Mino uses the camera to scan documents into PDFs. Scans stay on your device.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Mino saves the images you export from a PDF to your photo library.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
